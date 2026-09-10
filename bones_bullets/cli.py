@@ -53,7 +53,8 @@ def run(seed: int | None = None) -> int:
     def read(prompt: str) -> str:
         try:
             return input(prompt).strip().lower()
-        except EOFError:
+        except (EOFError, KeyboardInterrupt):
+            print()
             return "q"
 
     while True:
