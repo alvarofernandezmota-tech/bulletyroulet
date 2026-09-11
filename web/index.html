@@ -184,9 +184,15 @@
     display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: center;
   }
   .rival[hidden] { display: none !important; }
+  .rival { grid-template-columns: auto 1fr auto; }
+  .portrait { width: 84px; height: 84px; grid-row: 1 / span 2; align-self: start; filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+  .rival.active .portrait { animation: breathe 1.6s ease-in-out infinite; }
+  @keyframes breathe { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+  .rival.hit .portrait { animation: flinch .5s ease-out; }
+  @keyframes flinch { 0% { transform: translateX(0) } 20% { transform: translateX(-6px) rotate(-4deg) } 60% { transform: translateX(4px) rotate(2deg) } 100% { transform: translateX(0) } }
   .rival .name { font-family: "Rye", serif; font-size: 20px; color: var(--bone); }
   .rival .status { color: var(--bone-dim); font-style: italic; }
-  .rival .mini { display: flex; gap: 6px; grid-column: 1 / -1; }
+  .rival .mini { display: flex; gap: 6px; grid-column: 2 / -1; }
   .mini .d { width: 30px; height: 30px; border-radius: 6px; background: var(--felt); border: 1px solid var(--line); display: grid; place-items: center; font-family: "IBM Plex Mono", monospace; font-weight: 600; color: var(--bone); font-size: 15px; }
   .mini .d.hidden { color: transparent; background: repeating-linear-gradient(45deg, var(--felt) 0 4px, var(--line) 4px 6px); }
   .turn-banner { text-align: center; font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); min-height: 1.2em; }
@@ -222,6 +228,7 @@
   </section>
 
   <section class="rival" id="rival" hidden aria-label="Rival">
+    <svg class="portrait" id="rv-portrait" viewBox="0 0 100 100" aria-hidden="true"></svg>
     <div><div class="name" id="rv-name">El Tahúr</div><div class="status" id="rv-status">esperando</div></div>
     <div class="hearts" id="rv-hearts"></div>
     <div class="mini" id="rv-dice"></div>
@@ -326,12 +333,61 @@ function drawCylinder() {
   $("cyl").innerHTML = out + `<circle cx="50" cy="50" r="6" fill="#1a1410"/>`;
 }
 
+// Retratos dibujados a mano. Paleta: piel #d9a878, sombra #8a5a3a, sombrero #2b211a, latón #c99a3f.
+const FACE = `<circle cx="50" cy="50" r="46" fill="#3a3129"/><ellipse cx="50" cy="58" rx="20" ry="24" fill="#d9a878"/><ellipse cx="50" cy="62" rx="20" ry="20" fill="#c9966a" opacity=".35"/>`;
+const EYES = (dx = 0) => `<circle cx="${42 + dx}" cy="55" r="2.6" fill="#1a1410"/><circle cx="${58 + dx}" cy="55" r="2.6" fill="#1a1410"/>`;
+const PORTRAITS = {
+  sheriff: `
+    ${FACE}
+    <!-- barba y bigote -->
+    <path d="M32 66 Q50 92 68 66 Q60 80 50 80 Q40 80 32 66Z" fill="#6b4a33"/>
+    <path d="M36 63 Q50 74 64 63 Q58 66 50 65 Q42 66 36 63Z" fill="#4a3222"/>
+    ${EYES()}
+    <!-- ceño -->
+    <path d="M36 49 L46 51" stroke="#4a3222" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M64 49 L54 51" stroke="#4a3222" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- sombrero -->
+    <path d="M12 42 Q50 30 88 42 Q86 48 50 45 Q14 48 12 42Z" fill="#2b211a"/>
+    <path d="M28 42 Q30 16 50 14 Q70 16 72 42 Q50 38 28 42Z" fill="#2b211a"/>
+    <path d="M30 40 Q50 36 70 40" stroke="#c99a3f" stroke-width="2.5" fill="none"/>
+    <!-- estrella -->
+    <polygon points="50,74 53,81 61,81 55,86 57,93 50,89 43,93 45,86 39,81 47,81" fill="#c99a3f" stroke="#8a6524" stroke-width="1.2" transform="translate(0,4)"/>
+  `,
+  cauto: `
+    ${FACE}
+    ${EYES(-2)}
+    <path d="M40 70 Q50 66 60 70" stroke="#4a3222" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M24 46 Q50 30 76 46 Q50 42 24 46Z" fill="#5a4636"/>
+    <rect x="30" y="34" width="40" height="12" rx="3" fill="#5a4636"/>
+    <circle cx="42" cy="55" r="7" fill="none" stroke="#b9c4cc" stroke-width="1.5"/><circle cx="58" cy="55" r="7" fill="none" stroke="#b9c4cc" stroke-width="1.5"/><path d="M49 55 L51 55" stroke="#b9c4cc" stroke-width="1.5"/>
+  `,
+  tahur: `
+    ${FACE}
+    ${EYES(1)}
+    <path d="M38 66 Q50 70 62 66 Q56 64 50 64 Q44 64 38 66Z" fill="#1a1410"/>
+    <path d="M40 72 Q50 78 60 72" stroke="#4a3222" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M22 40 Q50 34 78 40 L76 45 Q50 40 24 45Z" fill="#1a1410"/>
+    <path d="M30 40 Q32 20 50 18 Q68 20 70 40Z" fill="#1a1410"/>
+    <rect x="30" y="34" width="40" height="5" fill="#b8262b"/>
+    <path d="M44 84 L50 78 L56 84 L50 92Z" fill="#b8262b"/>
+  `,
+  loco: `
+    ${FACE}
+    <circle cx="41" cy="54" r="4" fill="#1a1410"/><circle cx="59" cy="56" r="2.2" fill="#1a1410"/>
+    <path d="M38 66 Q50 82 64 64" stroke="#4a3222" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M42 70 L46 74 M50 74 L52 78 M56 70 L58 74" stroke="#e9dfc9" stroke-width="2" stroke-linecap="round"/>
+    <path d="M28 40 Q34 18 44 30 Q50 14 56 30 Q66 18 72 40Z" fill="#6b4a33"/>
+    <path d="M62 36 L78 30 L74 40Z" fill="#c99a3f"/>
+  `,
+};
+
 const hearts = (w, max) => `<span class="have">${"♥".repeat(max - w)}</span><span class="lost">${"♥".repeat(w)}</span>`;
 
 function renderRival(revealed) {
   const o = S.opponent, rv = $("rival");
   rv.hidden = false; rv.classList.toggle("active", !S.my_turn && !S.game_over);
   $("rv-name").textContent = S.rival_name;
+  const por = $("rv-portrait"); if (por.dataset.key !== S.rival) { por.innerHTML = PORTRAITS[S.rival] || PORTRAITS.tahur; por.dataset.key = S.rival; }
   $("rv-hearts").innerHTML = hearts(o.wounds, o.max_wounds);
   $("rv-status").textContent = o.played ? `ha jugado ${o.played.hand} por ${o.played.points}` : (S.my_turn ? "aún no ha jugado" : "está jugando...");
   const show = revealed || o.played;
@@ -400,7 +456,7 @@ async function playAiEvents(event) {
       const cyl = $("cyl"); cyl.classList.remove("spinning"); void cyl.offsetWidth; cyl.classList.add("spinning");
       log(`${name} aprieta el gatillo...`);
       if (!reduced) await sleep(900);
-      if (ev.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); log(`¡BANG! ${name} recibe una herida.`, "bang"); }
+      if (ev.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); log(`¡BANG! ${name} recibe una herida.`, "bang"); const rv = $("rival"); rv.classList.remove("hit"); void rv.offsetWidth; rv.classList.add("hit"); }
       else log(`${name}: click.`);
       S.opponent.dice = ev.dice; $("rv-dice").innerHTML = ev.dice.map(v => `<span class="d">${v}</span>`).join("");
     } else {
