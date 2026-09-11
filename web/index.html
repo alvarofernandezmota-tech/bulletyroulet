@@ -68,39 +68,33 @@
   .modes button[aria-pressed="true"] { border-color: var(--edge); color: var(--ink); background: var(--tile); }
   .modes button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 
-  /* escenario del rival: el personaje grande y centrado, la tarjeta se monta encima de sus pies */
-  .rival {
-    position: relative; height: 300px; overflow: hidden;
-    background: radial-gradient(ellipse at 50% 70%, #1b2230 0%, #0b0d12 55%, #050608 100%);
-    border: 4px solid var(--edge-dim); border-bottom: none; box-shadow: 0 0 0 2px #000;
-    display: block; margin-bottom: -46px; z-index: 0;
-  }
-  .rival::before { /* líneas de escaneo */
-    content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 2px, transparent 2px 4px); opacity: .6;
-  }
-  .rival::after { /* viñeta */
-    content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(ellipse at 50% 55%, transparent 40%, rgba(0,0,0,.75) 100%);
-  }
+  /* el rival vive DETRÁS de la interfaz, a pantalla completa */
+  .backdrop { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  .backdrop[hidden] { display: none !important; }
+  .backdrop .halo { position: absolute; left: 50%; top: 42%; width: 70vmin; height: 70vmin; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(200,128,28,.22) 0%, transparent 65%); animation: halo 3s ease-in-out infinite; }
+  .backdrop.active .halo { animation-duration: 1.2s; background: radial-gradient(circle, rgba(216,32,58,.22) 0%, transparent 65%); }
+  .backdrop .stage { position: absolute; left: 50%; bottom: 8vh; width: min(72vh, 90vw); height: min(144vh, 180vw); transform: translateX(-50%); transition: transform .25s ease-out; pointer-events: auto; cursor: pointer; }
+  .portrait { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(6px 6px 0 #000); opacity: 1; }
+  .backdrop::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 2px, transparent 2px 4px), radial-gradient(ellipse at 50% 45%, transparent 50%, rgba(0,0,0,.6) 100%); }
+  .backdrop.dead .stage { filter: grayscale(1) brightness(.5); }
+  /* la tarjeta deja ver al personaje */
+  .frame { background: rgba(21,22,26,.58); }
+  .tile { background: rgba(42,43,49,.75); }
+  .revolver { background: rgba(42,43,49,.7); }
+  /* placa del rival: pequeña, encima de la tarjeta */
+  .rival { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; padding: 8px 10px; min-height: 120px; background: rgba(21,22,26,.35); border: 4px solid var(--edge-dim); box-shadow: 0 0 0 2px #000; position: relative; z-index: 1; }
   .rival[hidden] { display: none !important; }
-  .portrait { position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); width: 150px; height: 300px; overflow: visible; filter: drop-shadow(5px 5px 0 #000); z-index: 1; }
-  .rival .halo { position: absolute; left: 50%; top: 40%; width: 220px; height: 220px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(200,128,28,.28) 0%, transparent 65%); pointer-events: none; }
-  .rival.active .halo { animation: halo 1.6s ease-in-out infinite; }
-  @keyframes halo { 0%, 100% { opacity: .6 } 50% { opacity: 1 } }
-  .rival .plate {
-    position: absolute; top: 10px; left: 10px; right: 10px; z-index: 2;
-    display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
-  }
   .rival .name { font-family: "Press Start 2P", monospace; font-size: 11px; color: var(--bone); text-shadow: 2px 2px 0 #000; }
-  .rival .status { color: var(--ink-dim); font-size: 19px; text-shadow: 1px 1px 0 #000; }
+  .rival .status { color: var(--ink-dim); font-size: 19px; }
   .rival .hearts { text-align: right; font-size: 20px; }
-  .rival .mini { position: absolute; right: 10px; bottom: 64px; z-index: 2; display: flex; gap: 4px; }
+  .rival .mini { grid-column: 1 / -1; display: flex; gap: 4px; }
   .mini .d { width: 26px; height: 26px; background: var(--bone); border: 3px solid #000; display: grid; place-items: center; font-family: "VT323", monospace; font-size: 22px; color: #000; line-height: 1; }
-  .mini .d.hidden { color: transparent; background: repeating-linear-gradient(45deg, #3a3b42 0 4px, #15161a 4px 7px); border-color: var(--edge-dim); }
-  .rival.active { border-color: var(--edge); }
-  .frame { position: relative; z-index: 1; }
-  @media (max-width: 420px) { .rival { height: 250px; } .portrait { width: 124px; height: 248px; } }
+  .mini .d.hidden { color: transparent; background: repeating-linear-gradient(45deg, #8d8f97 0 4px, #2a2b31 4px 7px); border-color: #000; }
+  .rival.active { border-color: var(--red-ink); }
+  .taunt { position: fixed; left: 50%; top: 14%; transform: translateX(-50%); z-index: 3; max-width: 320px; background: var(--bone); color: #000; font-family: "VT323", monospace; font-size: 22px; padding: 8px 12px; border: 4px solid #000; box-shadow: 4px 4px 0 #000; pointer-events: none; animation: tauntIn 2.4s ease-out both; }
+  .taunt::after { content: ""; position: absolute; left: 50%; bottom: -14px; border: 8px solid transparent; border-top-color: #000; transform: translateX(-50%); }
+  .taunt[hidden] { display: none !important; }
+  @keyframes tauntIn { 0% { opacity: 0; transform: translate(-50%, 8px) } 10%, 80% { opacity: 1; transform: translate(-50%, 0) } 100% { opacity: 0 } }
   .turn-banner { text-align: center; font-family: "Press Start 2P", monospace; font-size: 9px; color: var(--green); min-height: 1.4em; text-shadow: 2px 2px 0 #000; }
 
   /* dados */
@@ -180,6 +174,7 @@
   .seed button { background: var(--tile); border: 3px solid var(--edge-dim); color: var(--ink); padding: 6px 10px; cursor: pointer; font-family: "Press Start 2P", monospace; font-size: 8px; }
   /* --- movimiento --- */
   canvas#dust { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; opacity: .7; }
+  .backdrop { z-index: 0; } .table { z-index: 2; }
   .table { position: relative; z-index: 1; }
   .frame::after { /* brillo que recorre el marco */
     content: ""; position: absolute; inset: -4px; pointer-events: none; border: 4px solid transparent;
@@ -256,40 +251,40 @@
   @keyframes blink { 0%, 92%, 100% { transform: scaleY(0) } 95% { transform: scaleY(1) } }
   .portrait .pupils { transform: translate(0, 0); transition: transform .25s ease; }
   /* pensando: mira a los dados y de reojo */
-  .rival.active .portrait .pupils { animation: look 2.4s ease-in-out infinite; }
+  .backdrop.active .portrait .pupils { animation: look 2.4s ease-in-out infinite; }
   @keyframes look { 0%, 100% { transform: translate(0, 0) } 30% { transform: translate(-2px, 1.5px) } 60% { transform: translate(2px, 0) } }
   .portrait .arm { transform-origin: 0% 0%; transform: rotate(0deg); transition: transform .25s cubic-bezier(.3,1.4,.5,1); }
   .portrait .flash, .portrait .smoke { opacity: 0; }
   /* disparo: brazo arriba, fogonazo, humo */
-  .rival.firing .portrait .arm { transform: rotate(-78deg); }
-  .rival.firing .portrait .flash { animation: mflash .35s ease-out .25s; }
+  .backdrop.firing .portrait .arm { transform: rotate(-78deg); }
+  .backdrop.firing .portrait .flash { animation: mflash .35s ease-out .25s; }
   @keyframes mflash { 0% { opacity: 0; transform: scale(.4) } 30% { opacity: 1; transform: scale(1.2) } 100% { opacity: 0; transform: scale(1.6) } }
-  .rival.firing .portrait .smoke { animation: smoke 1.2s ease-out .5s; }
+  .backdrop.firing .portrait .smoke { animation: smoke 1.2s ease-out .5s; }
   @keyframes smoke { 0% { opacity: 0; transform: translateY(0) scale(.6) } 30% { opacity: .8 } 100% { opacity: 0; transform: translateY(-18px) scale(1.4) } }
-  .rival.firing .portrait .lids { animation: squint .9s ease-in-out; }
+  .backdrop.firing .portrait .lids { animation: squint .9s ease-in-out; }
   @keyframes squint { 0%, 100% { transform: scaleY(0) } 40%, 80% { transform: scaleY(.55) } }
   /* herido */
-  .rival.hit .portrait .body { animation: flinch .6s ease-out; }
+  .backdrop.hit .portrait .body { animation: flinch .6s ease-out; }
   @keyframes flinch { 0% { transform: translate(0) rotate(0) } 20% { transform: translate(-7px, 2px) rotate(-6deg) } 55% { transform: translate(4px) rotate(3deg) } 100% { transform: translate(0) rotate(0) } }
-  .rival.hit .portrait .lids { animation: shut 1s ease-out; }
+  .backdrop.hit .portrait .lids { animation: shut 1s ease-out; }
   @keyframes shut { 0%, 80% { transform: scaleY(1) } 100% { transform: scaleY(0) } }
-  .rival.hit .portrait .hat { animation: hatjump .6s ease-out; transform-origin: 50% 100%; }
+  .backdrop.hit .portrait .hat { animation: hatjump .6s ease-out; transform-origin: 50% 100%; }
   @keyframes hatjump { 0% { transform: translateY(0) rotate(0) } 30% { transform: translateY(-9px) rotate(-8deg) } 100% { transform: translateY(0) rotate(0) } }
-  .rival.hit .portrait .mouth-ouch { opacity: 1; } .rival.hit .portrait .mouth-idle { opacity: 0; }
+  .backdrop.hit .portrait .mouth-ouch { opacity: 1; } .backdrop.hit .portrait .mouth-idle { opacity: 0; }
   /* gana la ronda: toca el sombrero y sonríe */
-  .rival.won .portrait .hat { animation: tip 1s ease-in-out; transform-origin: 50% 100%; }
+  .backdrop.won .portrait .hat { animation: tip 1s ease-in-out; transform-origin: 50% 100%; }
   @keyframes tip { 0%, 100% { transform: rotate(0) translateY(0) } 40% { transform: rotate(-12deg) translateY(-4px) } }
-  .rival.won .portrait .mouth-smirk { opacity: 1; } .rival.won .portrait .mouth-idle { opacity: 0; }
+  .backdrop.won .portrait .mouth-smirk { opacity: 1; } .backdrop.won .portrait .mouth-idle { opacity: 0; }
   /* pierde la ronda: gruñe */
-  .rival.lost .portrait .mouth-ouch { opacity: 1; } .rival.lost .portrait .mouth-idle { opacity: 0; }
-  .rival.lost .portrait .brows { transform: translateY(2px); }
+  .backdrop.lost .portrait .mouth-ouch { opacity: 1; } .backdrop.lost .portrait .mouth-idle { opacity: 0; }
+  .backdrop.lost .portrait .brows { transform: translateY(2px); }
   .portrait .mouth-ouch, .portrait .mouth-smirk { opacity: 0; transition: opacity .2s; }
   .portrait .mouth-idle { transition: opacity .2s; }
   /* muerto: sombrero cae, ojos cerrados */
-  .rival.dead .portrait .hat { transform: translateY(14px) rotate(14deg); transition: transform .6s ease-in; }
-  .rival.dead .portrait .lids { transform: scaleY(1); animation: none; }
-  .rival.dead .portrait .body { animation: none; transform: rotate(10deg) translateY(6px); transition: transform .7s ease-in; }
-  .rival.dead .portrait .upper, .rival.dead .portrait .coat-l, .rival.dead .portrait .coat-r { animation: none; }
+  .backdrop.dead .portrait .hat { transform: translateY(14px) rotate(14deg); transition: transform .6s ease-in; }
+  .backdrop.dead .portrait .lids { transform: scaleY(1); animation: none; }
+  .backdrop.dead .portrait .body { animation: none; transform: rotate(10deg) translateY(6px); transition: transform .7s ease-in; }
+  .backdrop.dead .portrait .upper, .backdrop.dead .portrait .coat-l, .backdrop.dead .portrait .coat-r { animation: none; }
   .rival .name { font-family: "Rye", serif; font-size: 20px; color: var(--bone); }
   .rival .status { color: var(--bone-dim); font-style: italic; }
   .rival .mini { display: flex; gap: 6px; grid-column: 2 / -1; }
@@ -299,6 +294,7 @@
   .rival.active { border-color: var(--brass-deep); }
   /* --- movimiento --- */
   canvas#dust { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; opacity: .7; }
+  .backdrop { z-index: 0; } .table { z-index: 2; }
   .table { position: relative; z-index: 1; }
   .frame::after { /* brillo que recorre el marco */
     content: ""; position: absolute; inset: -4px; pointer-events: none; border: 4px solid transparent;
@@ -376,12 +372,8 @@
   </nav>
 
   <section class="rival" id="rival" hidden aria-label="Rival">
-    <div class="halo"></div>
-    <svg class="portrait" id="rv-portrait" viewBox="0 0 100 200" aria-hidden="true"></svg>
-    <div class="plate">
-      <div><div class="name" id="rv-name">El Sheriff</div><div class="status" id="rv-status">esperando</div></div>
-      <div class="hearts" id="rv-hearts"></div>
-    </div>
+    <div><div class="name" id="rv-name">El Sheriff</div><div class="status" id="rv-status">esperando</div></div>
+    <div class="hearts" id="rv-hearts"></div>
     <div class="mini" id="rv-dice"></div>
   </section>
 
@@ -448,6 +440,8 @@
 </div>
 
 <canvas id="dust" aria-hidden="true"></canvas>
+<div class="backdrop" id="backdrop" hidden aria-hidden="true"><div class="halo"></div><div class="stage" id="stage"><svg class="portrait" id="rv-portrait" viewBox="0 0 100 200"></svg></div></div>
+<div class="taunt" id="taunt" hidden></div>
 <button class="sound" id="btn-sound" type="button" aria-pressed="false">Sonido: off</button>
 <div class="bang-flash" id="flash"></div>
 <div class="splat" id="splat" aria-hidden="true"></div>
@@ -541,11 +535,31 @@ function splat() { const s = $("splat"); s.classList.add("on"); setTimeout(() =>
 const HAND_RANK = { "carta alta": 0, "pareja": 1, "dobles parejas": 2, "trío": 3, "escalera": 4, "full": 5, "póker": 6, "repóker": 7 };
 function bannerHand(h) {
   const r = HAND_RANK[h.hand] || 0; if (r < 3) return;
+  if (S && S.mode === "duel") { mood("lost", 1800); taunt("yourGood"); }
   const b = $("banner"); $("banner-t").textContent = h.hand.toUpperCase(); $("banner-m").textContent = `×${h.mult}`;
   b.classList.toggle("epic", r >= 6); b.hidden = false; setTimeout(() => { b.hidden = true; }, 1400);
   if (r >= 6) { shake(); SFX.fanfare(); } else SFX.coin();
   bump("mult", "pulse");
 }
+// ---------- el personaje reacciona a ti ----------
+const TAUNTS = {
+  poke: ["¿Algo que decir, forastero?", "Tres balas. Cuenta bien.", "Aprieta. Te miro.", "En este pueblo mando yo."],
+  yourBang: ["Ja. Te lo dije.", "Eso va a doler.", "Una menos.", "¿Sigues queriendo jugar?"],
+  yourGood: ["Suerte de principiante.", "Hmpf.", "No te acostumbres.", "Bonita mano. Pena de dueño."],
+};
+function taunt(kind) {
+  if (!S || S.mode !== "duel") return;
+  const list = TAUNTS[kind]; const t = $("taunt"); t.textContent = list[Math.floor(Math.random() * list.length)];
+  t.hidden = false; t.style.animation = "none"; void t.offsetWidth; t.style.animation = ""; setTimeout(() => { t.hidden = true; }, 2400);
+}
+(function parallax() {
+  if (reduced) return; const st = $("stage"); let tx = 0, ty = 0;
+  const apply = () => { st.style.transform = `translateX(calc(-50% + ${tx}px)) translateY(${ty}px)`; };
+  addEventListener("pointermove", e => { tx = (e.clientX / innerWidth - .5) * -24; ty = (e.clientY / innerHeight - .5) * -10; apply(); });
+  addEventListener("deviceorientation", e => { if (e.gamma == null) return; tx = Math.max(-24, Math.min(24, -e.gamma * .8)); ty = Math.max(-10, Math.min(10, (e.beta - 45) * -.2)); apply(); });
+  st.addEventListener("click", () => { taunt("poke"); mood("won", 1200); SFX.click(); });
+})();
+
 function drawBigCylinder(n, live) {
   let out = `<circle cx="50" cy="50" r="46" fill="#2a2b31" stroke="#000" stroke-width="4"/>`;
   for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 - Math.PI / 2, x = 50 + 30 * Math.cos(a), y = 50 + 30 * Math.sin(a);
@@ -689,7 +703,7 @@ function rig(key) {
 }
 
 function mood(cls, ms) {
-  const rv = $("rival");
+  const rv = $("backdrop");
   ["firing", "hit", "won", "lost"].forEach(c => rv.classList.remove(c));
   if (!cls) return;
   void rv.offsetWidth; rv.classList.add(cls);
@@ -699,11 +713,11 @@ function mood(cls, ms) {
 const hearts = (w, max) => `<span class="have">${"♥".repeat(max - w)}</span><span class="lost">${"♥".repeat(w)}</span>`;
 
 function renderRival(revealed) {
-  const o = S.opponent, rv = $("rival");
-  rv.hidden = false; rv.classList.toggle("active", !S.my_turn && !S.game_over);
+  const o = S.opponent, rv = $("rival"), bd = $("backdrop");
+  rv.hidden = false; bd.hidden = false; rv.classList.toggle("active", !S.my_turn && !S.game_over); bd.classList.toggle("active", !S.my_turn && !S.game_over);
   $("rv-name").textContent = S.rival_name;
   const por = $("rv-portrait"); if (por.dataset.key !== S.rival) { por.innerHTML = rig(S.rival); por.dataset.key = S.rival; mood(null); }
-  rv.classList.toggle("dead", S.game_over && S.victory);
+  bd.classList.toggle("dead", S.game_over && S.victory);
   $("rv-hearts").innerHTML = hearts(o.wounds, o.max_wounds);
   $("rv-status").textContent = o.played ? `ha jugado ${o.played.hand} por ${o.played.points}` : (S.my_turn ? "aún no ha jugado" : "está jugando...");
   const show = revealed || o.played;
@@ -725,7 +739,7 @@ function render() {
     renderRival(false);
     $("turn").textContent = S.game_over ? "" : S.my_turn ? "Tu turno" : `Turno de ${S.rival_name}`;
   } else {
-    $("rival").hidden = true; $("turn").textContent = "";
+    $("rival").hidden = true; $("backdrop").hidden = true; $("turn").textContent = "";
     $("lbl-lvl").textContent = "Nivel"; $("lvl-tile").innerHTML = `<span id="lvl">${S.level}</span>/8`;
     $("lbl-target").textContent = "Objetivo"; $("target").textContent = S.target;
     $("lbl-total").textContent = "Total"; $("score").textContent = S.score;
@@ -817,7 +831,7 @@ const fire = () => guarded(async () => {
   const { event } = await req;
   $("spin-ov").hidden = true;
   const msg = event.message || S.message;
-  if (event.wounded) { SFX.bang(); const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); shake(); splat(); log(msg, "bang"); }
+  if (event.wounded) { SFX.bang(); const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); shake(); splat(); log(msg, "bang"); if (S.mode === "duel") { mood("won", 2000); taunt("yourBang"); } }
   else if (event.shielded) { SFX.bang(); shake(); log(msg, "good"); }
   else { SFX.click(); log(msg, event.chamber === "EMPTY" || event.chamber === "BLANK" ? "" : "good"); await animateRoll(); bannerHand(S.hand); }
   if (event.wounded && !reduced) await sleep(700);
