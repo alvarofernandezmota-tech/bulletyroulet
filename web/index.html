@@ -1,0 +1,647 @@
+<title>Bones & Bullets</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap">
+<style>
+  :root {
+    --ground: #06070a;
+    --card: #15161a;
+    --card-2: #1d1e23;
+    --tile: #2a2b31;
+    --tile-2: #35363d;
+    --edge: #8d8f97;
+    --edge-dim: #4a4b52;
+    --ink: #e8e8e6;
+    --ink-dim: #8d8f97;
+    --teal: #1f7a6d; --teal-ink: #57e0c8;
+    --red: #8a1a2b; --red-ink: #ff5a6e;
+    --purple: #4a2a6a; --purple-ink: #c48cff;
+    --green: #35c94f; --green-deep: #1b6b2c;
+    --orange: #c8801c; --orange-deep: #7a4a0e;
+    --blood: #d8203a;
+    --bone: #f2efe6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground);
+    background-image: radial-gradient(ellipse at 50% 10%, #101a24 0%, var(--ground) 55%);
+    color: var(--ink);
+    font-family: "VT323", "Courier New", monospace; font-size: 22px; line-height: 1.2;
+    padding-block: 16px 40px; padding-inline: 16px; min-height: 100vh;
+    image-rendering: pixelated;
+  }
+  .px { font-family: "Press Start 2P", "VT323", monospace; font-size: 11px; letter-spacing: .02em; line-height: 1.6; }
+  .table { max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+  header { text-align: center; }
+  h1 {
+    font-family: "Press Start 2P", monospace; font-weight: 400; font-size: clamp(16px, 5vw, 22px);
+    margin: 0; color: var(--bone); text-shadow: 3px 3px 0 #000, 0 0 18px rgba(255,255,255,.15); text-wrap: balance;
+  }
+  header p { margin: 6px 0 0; color: var(--ink-dim); font-size: 20px; }
+  .mono { font-family: "VT323", monospace; font-variant-numeric: tabular-nums; }
+  .label { font-family: "Press Start 2P", monospace; font-size: 9px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-dim); }
+
+  /* marco de tarjeta con borde "dentado" */
+  .frame {
+    background: var(--card); padding: 10px;
+    border: 4px solid var(--edge-dim);
+    box-shadow: 0 0 0 2px #000, inset 0 0 0 2px #000;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .tile {
+    background: var(--tile); border: 3px solid var(--edge); box-shadow: 0 0 0 2px #000, inset 0 0 0 2px #000;
+    padding: 6px 8px; text-align: center;
+  }
+  .tile .label { display: block; margin-bottom: 4px; }
+  .tile .big { font-family: "VT323", monospace; font-size: 40px; line-height: .9; color: var(--ink); }
+  .tile.teal { background: var(--teal); border-color: #7fd9c8; } .tile.teal .big, .tile.teal .label { color: #eafff9; }
+  .tile.red { background: var(--red); border-color: #ff9aa8; } .tile.red .big, .tile.red .label { color: #ffe9ec; }
+  .tile.purple { background: var(--purple); border-color: #d2b0ff; } .tile.purple .big, .tile.purple .label { color: #f3e9ff; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .hearts { font-size: 26px; letter-spacing: 3px; line-height: 1; text-align: center; }
+  .hearts .lost { color: var(--edge-dim); } .hearts .have { color: var(--blood); text-shadow: 2px 2px 0 #000; }
+  .progress { height: 10px; background: #000; border: 2px solid var(--edge-dim); }
+  .progress > div { height: 100%; background: var(--teal-ink); width: 0%; transition: width .3s steps(6); }
+
+  /* modos */
+  .modes { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .modes button { font-family: "Press Start 2P", monospace; font-size: 9px; padding: 8px 10px; border: 3px solid var(--edge-dim); background: var(--card); color: var(--ink-dim); cursor: pointer; box-shadow: 0 0 0 2px #000; }
+  .modes button[aria-pressed="true"] { border-color: var(--edge); color: var(--ink); background: var(--tile); }
+  .modes button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+  /* escenario del rival: encima de la tarjeta, como el esqueleto */
+  .rival {
+    background: linear-gradient(180deg, #0b0d12, #15161a); border: 4px solid var(--edge-dim); border-bottom: none;
+    box-shadow: 0 0 0 2px #000; padding: 8px 10px 0; margin-bottom: -10px;
+    display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto 1fr; gap: 4px 12px; align-items: start;
+  }
+  .rival[hidden] { display: none !important; }
+  .rival .name { font-family: "Press Start 2P", monospace; font-size: 11px; color: var(--bone); text-shadow: 2px 2px 0 #000; margin-top: 6px; }
+  .rival .status { color: var(--ink-dim); font-size: 20px; }
+  .rival .hearts { text-align: left; font-size: 20px; }
+  .rival .mini { display: flex; gap: 5px; align-self: end; padding-bottom: 10px; }
+  .mini .d { width: 30px; height: 30px; background: var(--bone); border: 3px solid #000; display: grid; place-items: center; font-family: "VT323", monospace; font-size: 24px; color: #000; line-height: 1; }
+  .mini .d.hidden { color: transparent; background: repeating-linear-gradient(45deg, #3a3b42 0 4px, #15161a 4px 7px); border-color: var(--edge-dim); }
+  .rival .mini { min-height: 40px; }
+  .rival.active { border-color: var(--edge); }
+  .turn-banner { text-align: center; font-family: "Press Start 2P", monospace; font-size: 9px; color: var(--green); min-height: 1.4em; text-shadow: 2px 2px 0 #000; }
+
+  /* dados */
+  .dice { display: flex; gap: 6px; justify-content: center; }
+  .die {
+    width: 64px; height: 64px; flex: 0 0 auto;
+    background: var(--bone); border: 4px solid #000; box-shadow: 0 0 0 2px var(--edge-dim), inset -4px -4px 0 #cfcbc0;
+    display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+    padding: 7px; cursor: pointer; position: relative; transition: transform .08s steps(2);
+  }
+  .die:focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
+  .die.locked { transform: translateY(5px); box-shadow: 0 0 0 3px var(--green), inset -2px -2px 0 #cfcbc0; background: #d9f5df; }
+  .die.loaded { background: #ffe9a8; }
+  .die.rolling { animation: tumble .1s steps(2) infinite; }
+  @keyframes tumble { 0% { transform: translate(-2px, 1px) } 100% { transform: translate(2px, -1px) } }
+  .pip { display: flex; align-items: center; justify-content: center; }
+  .pip::after { content: ""; width: 10px; height: 10px; background: #000; opacity: 0; }
+  .pip.on::after { opacity: 1; }
+  .die .idx { position: absolute; bottom: -20px; left: 0; right: 0; text-align: center; font-size: 16px; color: var(--ink-dim); }
+  .die .lock { position: absolute; top: -12px; right: -8px; background: var(--green); color: #000; font-family: "Press Start 2P", monospace; font-size: 7px; padding: 3px 4px; border: 2px solid #000; display: none; }
+  .die.locked .lock { display: block; }
+  .dice-wrap { padding-bottom: 18px; }
+  .hand { text-align: center; font-size: 22px; color: var(--ink-dim); }
+  .hand b { color: var(--bone); font-weight: 400; }
+  .tags { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; min-height: 22px; }
+  .tag { font-family: "Press Start 2P", monospace; font-size: 8px; padding: 4px 6px; border: 2px solid var(--edge-dim); color: var(--ink-dim); background: #000; }
+  .tag.silver { border-color: #cfd6dc; color: #cfd6dc; }
+  .tag.streak { border-color: var(--green); color: var(--green); }
+  .tag.shield { border-color: var(--orange); color: var(--orange); }
+
+  /* revólver */
+  .revolver { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; background: var(--tile); border: 3px solid var(--edge-dim); box-shadow: 0 0 0 2px #000; padding: 8px 10px; }
+  .cyl { width: 72px; height: 72px; }
+  .cyl.spinning { animation: spin .8s steps(12); }
+  @keyframes spin { from { transform: rotate(0) } to { transform: rotate(720deg) } }
+  .risk { font-family: "VT323", monospace; font-size: 40px; line-height: .9; }
+  .risk.low { color: var(--green); } .risk.mid { color: var(--orange); } .risk.high { color: var(--red-ink); }
+  .chamber-list { color: var(--ink-dim); font-size: 19px; }
+
+  /* botones grandes */
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn {
+    font-family: "Press Start 2P", monospace; font-size: 11px; line-height: 1.5; color: #000;
+    padding: 16px 8px; border: 4px solid #000; box-shadow: 0 0 0 2px var(--edge-dim), inset -5px -5px 0 rgba(0,0,0,.35);
+    cursor: pointer; text-align: center; position: relative;
+  }
+  .btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 2px var(--edge-dim), inset -2px -2px 0 rgba(0,0,0,.35); }
+  .btn:focus-visible { outline: 3px solid var(--bone); outline-offset: 2px; }
+  .btn:disabled { filter: grayscale(.8) brightness(.5); cursor: default; }
+  .btn.play { background: var(--green); order: 1; }
+  .btn.fire { background: var(--orange); order: 2; }
+  .btn small { display: block; font-family: "VT323", monospace; font-size: 18px; margin-top: 4px; opacity: .8; text-transform: none; }
+
+  .log { min-height: 2.4em; border-left: 4px solid var(--edge-dim); padding-left: 10px; color: var(--ink-dim); font-size: 21px; }
+  .log.bang { color: var(--red-ink); border-color: var(--blood); }
+  .log.good { color: var(--green); border-color: var(--green); }
+
+  details { color: var(--ink-dim); font-size: 20px; }
+  summary { cursor: pointer; color: var(--ink); font-family: "Press Start 2P", monospace; font-size: 9px; }
+  details table { border-collapse: collapse; margin-top: 8px; }
+  details td { padding: 2px 12px 2px 0; }
+  details ul { padding-left: 20px; margin: 8px 0; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+  .overlay[hidden] { display: none !important; }
+  .panel { background: var(--card); border: 4px solid var(--edge); box-shadow: 0 0 0 2px #000; padding: 18px; max-width: 420px; width: 100%; display: flex; flex-direction: column; gap: 12px; }
+  .panel h2 { font-family: "Press Start 2P", monospace; font-weight: 400; color: var(--green); margin: 0; font-size: 14px; text-shadow: 2px 2px 0 #000; }
+  .panel h2.bad { color: var(--red-ink); }
+  .upgrade { text-align: left; font-family: "VT323", monospace; font-size: 22px; padding: 10px 12px; background: var(--tile); border: 3px solid var(--edge-dim); color: var(--ink); cursor: pointer; }
+  .upgrade:hover, .upgrade:focus-visible { border-color: var(--green); outline: none; }
+  .upgrade b { display: block; color: var(--green); font-family: "Press Start 2P", monospace; font-size: 9px; margin-bottom: 4px; }
+  .bang-flash { position: fixed; inset: 0; background: var(--blood); opacity: 0; pointer-events: none; z-index: 5; }
+  .bang-flash.on { animation: flash .4s steps(3); }
+  @keyframes flash { 0% { opacity: .9 } 100% { opacity: 0 } }
+  .seed { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; color: var(--ink-dim); font-size: 20px; }
+  .seed input { width: 110px; background: #000; border: 3px solid var(--edge-dim); color: var(--ink); padding: 4px 8px; font-family: "VT323", monospace; font-size: 22px; }
+  .seed button { background: var(--tile); border: 3px solid var(--edge-dim); color: var(--ink); padding: 6px 10px; cursor: pointer; font-family: "Press Start 2P", monospace; font-size: 8px; }
+  @media (prefers-reduced-motion: reduce) { .cyl.spinning, .die.rolling, .bang-flash.on { animation: none; } .progress > div { transition: none; } }
+  @media (max-width: 420px) { .actions { grid-template-columns: 1fr 1fr; } .tile .big { font-size: 32px; } .die { width: 54px; height: 54px; padding: 6px; } .pip::after { width: 8px; height: 8px; } .dice { gap: 5px; } }
+  .portrait { width: 96px; height: 192px; grid-row: 1 / span 3; align-self: end; overflow: visible; filter: drop-shadow(4px 4px 0 #000) contrast(1.05); }
+  .rival { grid-template-rows: auto auto 1fr; align-items: start; }
+  .rival .mini { align-self: end; }
+  @media (max-width: 420px) { .portrait { width: 80px; height: 160px; } }
+  .portrait * { transform-box: fill-box; }
+  /* reposo: respira y parpadea */
+  .portrait .body { transform-origin: 50% 100%; animation: breathe 2.6s ease-in-out infinite; }
+  @keyframes breathe { 0%, 100% { transform: scaleY(1) } 50% { transform: scaleY(1.008) translateY(-0.5px) } }
+  .portrait .upper { transform-origin: 50% 100%; animation: sway 3.4s ease-in-out infinite; }
+  @keyframes sway { 0%, 100% { transform: rotate(0) } 50% { transform: rotate(1.2deg) } }
+  .portrait .coat-l, .portrait .coat-r { transform-origin: 50% 0%; animation: coat 3.4s ease-in-out infinite; }
+  .portrait .coat-r { animation-delay: -1.7s; }
+  @keyframes coat { 0%, 100% { transform: rotate(0) } 50% { transform: rotate(-1.5deg) } }
+  .portrait .lids { transform-origin: 50% 0%; transform: scaleY(0); animation: blink 4.2s infinite; }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(0) } 95% { transform: scaleY(1) } }
+  .portrait .pupils { transform: translate(0, 0); transition: transform .25s ease; }
+  /* pensando: mira a los dados y de reojo */
+  .rival.active .portrait .pupils { animation: look 2.4s ease-in-out infinite; }
+  @keyframes look { 0%, 100% { transform: translate(0, 0) } 30% { transform: translate(-2px, 1.5px) } 60% { transform: translate(2px, 0) } }
+  .portrait .arm { transform-origin: 0% 0%; transform: rotate(0deg); transition: transform .25s cubic-bezier(.3,1.4,.5,1); }
+  .portrait .flash, .portrait .smoke { opacity: 0; }
+  /* disparo: brazo arriba, fogonazo, humo */
+  .rival.firing .portrait .arm { transform: rotate(-78deg); }
+  .rival.firing .portrait .flash { animation: mflash .35s ease-out .25s; }
+  @keyframes mflash { 0% { opacity: 0; transform: scale(.4) } 30% { opacity: 1; transform: scale(1.2) } 100% { opacity: 0; transform: scale(1.6) } }
+  .rival.firing .portrait .smoke { animation: smoke 1.2s ease-out .5s; }
+  @keyframes smoke { 0% { opacity: 0; transform: translateY(0) scale(.6) } 30% { opacity: .8 } 100% { opacity: 0; transform: translateY(-18px) scale(1.4) } }
+  .rival.firing .portrait .lids { animation: squint .9s ease-in-out; }
+  @keyframes squint { 0%, 100% { transform: scaleY(0) } 40%, 80% { transform: scaleY(.55) } }
+  /* herido */
+  .rival.hit .portrait .body { animation: flinch .6s ease-out; }
+  @keyframes flinch { 0% { transform: translate(0) rotate(0) } 20% { transform: translate(-7px, 2px) rotate(-6deg) } 55% { transform: translate(4px) rotate(3deg) } 100% { transform: translate(0) rotate(0) } }
+  .rival.hit .portrait .lids { animation: shut 1s ease-out; }
+  @keyframes shut { 0%, 80% { transform: scaleY(1) } 100% { transform: scaleY(0) } }
+  .rival.hit .portrait .hat { animation: hatjump .6s ease-out; transform-origin: 50% 100%; }
+  @keyframes hatjump { 0% { transform: translateY(0) rotate(0) } 30% { transform: translateY(-9px) rotate(-8deg) } 100% { transform: translateY(0) rotate(0) } }
+  .rival.hit .portrait .mouth-ouch { opacity: 1; } .rival.hit .portrait .mouth-idle { opacity: 0; }
+  /* gana la ronda: toca el sombrero y sonríe */
+  .rival.won .portrait .hat { animation: tip 1s ease-in-out; transform-origin: 50% 100%; }
+  @keyframes tip { 0%, 100% { transform: rotate(0) translateY(0) } 40% { transform: rotate(-12deg) translateY(-4px) } }
+  .rival.won .portrait .mouth-smirk { opacity: 1; } .rival.won .portrait .mouth-idle { opacity: 0; }
+  /* pierde la ronda: gruñe */
+  .rival.lost .portrait .mouth-ouch { opacity: 1; } .rival.lost .portrait .mouth-idle { opacity: 0; }
+  .rival.lost .portrait .brows { transform: translateY(2px); }
+  .portrait .mouth-ouch, .portrait .mouth-smirk { opacity: 0; transition: opacity .2s; }
+  .portrait .mouth-idle { transition: opacity .2s; }
+  /* muerto: sombrero cae, ojos cerrados */
+  .rival.dead .portrait .hat { transform: translateY(14px) rotate(14deg); transition: transform .6s ease-in; }
+  .rival.dead .portrait .lids { transform: scaleY(1); animation: none; }
+  .rival.dead .portrait .body { animation: none; transform: rotate(10deg) translateY(6px); transition: transform .7s ease-in; }
+  .rival.dead .portrait .upper, .rival.dead .portrait .coat-l, .rival.dead .portrait .coat-r { animation: none; }
+  .rival .name { font-family: "Rye", serif; font-size: 20px; color: var(--bone); }
+  .rival .status { color: var(--bone-dim); font-style: italic; }
+  .rival .mini { display: flex; gap: 6px; grid-column: 2 / -1; }
+  .mini .d { width: 30px; height: 30px; border-radius: 6px; background: var(--felt); border: 1px solid var(--line); display: grid; place-items: center; font-family: "IBM Plex Mono", monospace; font-weight: 600; color: var(--bone); font-size: 15px; }
+  .mini .d.hidden { color: transparent; background: repeating-linear-gradient(45deg, var(--felt) 0 4px, var(--line) 4px 6px); }
+  .turn-banner { text-align: center; font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); min-height: 1.2em; }
+  .rival.active { border-color: var(--brass-deep); }
+  @media (prefers-reduced-motion: reduce) { .cyl.spinning, .die.rolling, .bang-flash.on { animation: none; } .progress > div { transition: none; } }
+  @media (max-width: 420px) { .die { width: 60px; height: 60px; padding: 8px; border-radius: 10px; } .pip::after { width: 10px; height: 10px; } .actions { grid-template-columns: 1fr; } }
+</style>
+
+<div class="table">
+  <header>
+    <h1>Bones &amp; Bullets</h1>
+    <p>Cinco dados. Un revólver. Relanzar cuesta apretar el gatillo.</p>
+  </header>
+
+  <nav class="modes" aria-label="Modo de juego">
+    <button type="button" id="mode-solo" aria-pressed="true">Solitario</button>
+    <button type="button" id="mode-sheriff" aria-pressed="false">Duelo · Sheriff</button>
+  </nav>
+
+  <section class="rival" id="rival" hidden aria-label="Rival">
+    <svg class="portrait" id="rv-portrait" viewBox="0 0 100 200" aria-hidden="true"></svg>
+    <div><div class="name" id="rv-name">El Sheriff</div><div class="status" id="rv-status">esperando</div></div>
+    <div class="hearts" id="rv-hearts"></div>
+    <div class="mini" id="rv-dice"></div>
+  </section>
+
+  <div class="frame">
+    <div class="turn-banner" id="turn"></div>
+
+    <section class="row2" aria-label="Nivel y objetivo">
+      <div class="tile"><span class="label" id="lbl-lvl">Nivel</span><span class="big mono" id="lvl-tile"><span id="lvl">1</span>/8</span></div>
+      <div class="tile"><span class="label" id="lbl-target">Objetivo</span><span class="big mono" id="target">69</span></div>
+    </section>
+
+    <section class="row3" aria-label="Puntuación">
+      <div class="tile teal"><span class="label">Huesos</span><span class="big mono" id="sum">0</span></div>
+      <div class="tile red"><span class="label">Mult</span><span class="big mono" id="mult">1</span></div>
+      <div class="tile purple"><span class="label" id="lbl-total">Total</span><span class="big mono" id="score">0</span></div>
+    </section>
+
+    <div class="progress"><div id="bar"></div></div>
+    <div class="row2" style="align-items:center">
+      <div class="hearts" id="hearts" aria-label="Vida"></div>
+      <div class="label" style="text-align:center">Manos <span id="hands" class="mono" style="font-size:22px;color:var(--ink)">3</span></div>
+    </div>
+
+    <section class="dice-wrap" aria-label="Dados">
+      <div class="dice" id="dice"></div>
+    </section>
+    <div class="hand" id="hand"></div>
+    <div class="tags" id="tags"></div>
+
+    <div class="actions">
+      <button class="btn play" id="btn-play">Jugar mano<small>suma y gasta una mano</small></button>
+      <button class="btn fire" id="btn-fire">Relanzar<small id="fire-sub">gatillo · riesgo 17%</small></button>
+    </div>
+
+    <section class="revolver" aria-label="Revólver">
+      <svg class="cyl" id="cyl" viewBox="0 0 100 100" aria-hidden="true"></svg>
+      <div>
+        <div class="label">Riesgo de bala</div>
+        <div class="risk mono" id="risk">17%</div>
+        <div class="chamber-list" id="chambers"></div>
+      </div>
+    </section>
+
+    <div class="log" id="log">Toca un dado para bloquearlo. Los bloqueados no se relanzan.</div>
+  </div>
+
+  <details>
+    <summary>Reglas y multiplicadores</summary>
+    <ul>
+      <li>Cada mano suma <b>los cinco dados</b> (huesos) y multiplica según la combinación. Tres manos por nivel; llega al objetivo o pierdes.</li>
+      <li>El tambor tiene 6 recámaras y 1 bala. Cada apretón descarta una recámara al azar, así que el riesgo sube hasta que se recarga.</li>
+      <li>Bala: una herida, la mano vale cero y se gasta. Tres heridas y se acabó.</li>
+      <li>Racha: cada click seguro seguido suma +0,5 al multiplicador de esa mano.</li>
+      <li>Sangre fría: superar un nivel sin apretar el gatillo cura una herida.</li>
+    </ul>
+    <table id="mults" class="mono"></table>
+  </details>
+
+  <div class="seed">
+    <label for="seed">Semilla</label>
+    <input id="seed" class="mono" inputmode="numeric" placeholder="azar">
+    <button id="btn-new" type="button">Nueva partida</button>
+  </div>
+</div>
+
+<div class="bang-flash" id="flash"></div>
+
+<div class="overlay" id="ov-upgrade" hidden>
+  <div class="panel" role="dialog" aria-labelledby="up-title">
+    <h2 id="up-title">Nivel superado</h2>
+    <p id="up-sub" style="margin:0;color:var(--bone-dim)">Elige una mejora.</p>
+    <div id="up-list" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+
+<div class="overlay" id="ov-end" hidden>
+  <div class="panel" role="dialog" aria-labelledby="end-title">
+    <h2 id="end-title">Fin</h2>
+    <p id="end-text" style="margin:0"></p>
+    <button class="btn play" id="btn-again">Otra partida</button>
+  </div>
+</div>
+
+<script>
+// Cliente fino: las reglas viven en bones_bullets/game.py y llegan por la API JSON.
+const $ = id => document.getElementById(id);
+const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+const HANDS = ["carta alta", "pareja", "dobles parejas", "trío", "escalera", "full", "póker", "repóker"];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let S = null, token = null, busy = false, mode = "solo", rival = "sheriff";
+
+async function api(path, body) {
+  const res = await fetch("/api/" + path, { method: body === undefined ? "GET" : "POST", headers: { "Content-Type": "application/json", "X-Game": token || "" }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const data = await res.json();
+  if (data.token) token = data.token;
+  if (data.state) S = data.state;
+  if (!res.ok) throw new Error(data.error || (data.event && data.event.error) || "Error del servidor");
+  return data;
+}
+
+function dieEl(d, i) {
+  const b = document.createElement("button");
+  b.className = "die" + (d.locked ? " locked" : "") + (d.loaded ? " loaded" : "");
+  b.type = "button"; b.id = "die-" + i; b.setAttribute("aria-label", `Dado ${i + 1}: ${d.value}${d.locked ? ", bloqueado" : ""}`);
+  b.innerHTML = Array.from({ length: 9 }, (_, k) => `<span class="pip${PIPS[d.value].includes(k) ? " on" : ""}"></span>`).join("")
+    + `<span class="lock">FIJO</span><span class="idx">${i + 1}${d.loaded ? " · cargado" : ""}</span>`;
+  b.addEventListener("click", () => lock(i));
+  return b;
+}
+
+function drawCylinder() {
+  const n = S.cylinder.remaining, total = 6;
+  let out = `<circle cx="50" cy="50" r="46" fill="#2a2b31" stroke="#000" stroke-width="4"/>`;
+  for (let i = 0; i < total; i++) {
+    const a = (i / total) * Math.PI * 2 - Math.PI / 2, x = 50 + 30 * Math.cos(a), y = 50 + 30 * Math.sin(a);
+    out += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" fill="${i < n ? "#e8e8e6" : "#000"}" stroke="#000" stroke-width="3"/>`;
+  }
+  $("cyl").innerHTML = out + `<circle cx="50" cy="50" r="6" fill="#000"/>`;
+}
+
+// Personaje animado: un esqueleto común (cuerpo, brazo, revólver, ojos, boca) y una cabeza por rival.
+const SKIN = "#d9a878", SKIN2 = "#b9805a", DARK = "#1a1410", BRASS = "#c99a3f";
+const HEADS = {
+  sheriff: {
+    hair: `<path d="M32 66 Q50 92 68 66 Q60 80 50 80 Q40 80 32 66Z" fill="#6b4a33"/><path d="M36 63 Q50 74 64 63 Q58 66 50 65 Q42 66 36 63Z" fill="#4a3222"/>`,
+    brows: `<path d="M36 49 L46 51" stroke="#4a3222" stroke-width="2.5" stroke-linecap="round"/><path d="M64 49 L54 51" stroke="#4a3222" stroke-width="2.5" stroke-linecap="round"/>`,
+    hat: `<path d="M10 42 Q50 30 90 42 Q88 48 50 45 Q12 48 10 42Z" fill="#2b211a"/><path d="M28 42 Q30 16 50 14 Q70 16 72 42 Q50 38 28 42Z" fill="#2b211a"/><path d="M30 40 Q50 36 70 40" stroke="${BRASS}" stroke-width="2.5" fill="none"/>`,
+    extra: `<polygon points="38,84 40.5,90 47,90 42,94 43.5,100 38,96.5 32.5,100 34,94 29,90 35.5,90" fill="${BRASS}" stroke="#8a6524" stroke-width="1.2"/>`,
+    coat: "#3d2a1f",
+  },
+  cauto: {
+    hair: ``,
+    brows: `<path d="M37 48 Q42 46 47 48 M53 48 Q58 46 63 48" stroke="#4a3222" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+    hat: `<path d="M24 46 Q50 30 76 46 Q50 42 24 46Z" fill="#5a4636"/><rect x="30" y="34" width="40" height="12" rx="3" fill="#5a4636"/>`,
+    extra: `<circle cx="42" cy="55" r="7" fill="none" stroke="#b9c4cc" stroke-width="1.5"/><circle cx="58" cy="55" r="7" fill="none" stroke="#b9c4cc" stroke-width="1.5"/><path d="M49 55 L51 55" stroke="#b9c4cc" stroke-width="1.5"/>`,
+    coat: "#4a4a3a",
+  },
+  tahur: {
+    hair: `<path d="M38 66 Q50 70 62 66 Q56 64 50 64 Q44 64 38 66Z" fill="${DARK}"/>`,
+    brows: `<path d="M36 48 L46 50 M64 48 L54 50" stroke="#2a1a10" stroke-width="2.2" stroke-linecap="round"/>`,
+    hat: `<path d="M20 40 Q50 34 80 40 L78 45 Q50 40 22 45Z" fill="${DARK}"/><path d="M30 40 Q32 16 50 18 Q68 16 70 40Z" fill="${DARK}"/><rect x="30" y="34" width="40" height="5" fill="#b8262b"/>`,
+    extra: `<path d="M44 90 L50 84 L56 90 L50 98Z" fill="#b8262b"/>`,
+    coat: "#1f1a2a",
+  },
+  loco: {
+    hair: `<path d="M28 40 Q34 18 44 30 Q50 14 56 30 Q66 18 72 40Z" fill="#6b4a33"/>`,
+    brows: `<path d="M36 47 L46 51 M64 45 L54 50" stroke="#4a3222" stroke-width="2.5" stroke-linecap="round"/>`,
+    hat: `<path d="M62 36 L78 30 L74 40Z" fill="${BRASS}"/>`,
+    extra: ``,
+    coat: "#5a3a2a",
+    mouthIdle: `<path d="M38 66 Q50 82 64 64" stroke="#4a3222" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M42 70 L46 74 M50 74 L52 78 M56 70 L58 74" stroke="#e9dfc9" stroke-width="2" stroke-linecap="round"/>`,
+  },
+};
+
+function rig(key) {
+  const k = HEADS[key] || HEADS.tahur;
+  const coat = k.coat, coatDark = "#241a13";
+  return `
+  <!-- suelo -->
+  <ellipse cx="50" cy="194" rx="34" ry="5" fill="#000" opacity=".35"/>
+  <g class="body">
+    <!-- piernas y botas -->
+    <path d="M36 128 L33 178 L44 178 L46 130Z" fill="#2c2420"/>
+    <path d="M64 128 L67 178 L56 178 L54 130Z" fill="#2c2420"/>
+    <path d="M30 176 L45 176 L46 190 L24 190 Q22 184 30 176Z" fill="${DARK}"/>
+    <path d="M55 176 L70 176 Q78 184 76 190 L54 190Z" fill="${DARK}"/>
+    <circle cx="25" cy="186" r="2.6" fill="${BRASS}"/><circle cx="75" cy="186" r="2.6" fill="${BRASS}"/>
+    <!-- faldones del guardapolvo -->
+    <g class="coat-l"><path d="M28 118 L24 170 L40 168 L42 120Z" fill="${coat}"/></g>
+    <g class="coat-r"><path d="M72 118 L76 170 L60 168 L58 120Z" fill="${coat}"/></g>
+    <g class="upper">
+      <!-- torso / guardapolvo -->
+      <path d="M26 92 Q50 84 74 92 L76 122 L24 122Z" fill="${coat}"/>
+      <path d="M40 92 L50 130 L60 92Z" fill="${coatDark}"/>
+      <!-- camisa y chaleco -->
+      <path d="M42 92 L50 118 L58 92 Q50 88 42 92Z" fill="#8a7a63"/>
+      <path d="M36 94 L42 92 L50 124 L58 92 L64 94 L62 122 L38 122Z" fill="${coatDark}"/>
+      <!-- cinturón y hebilla -->
+      <rect x="26" y="121" width="48" height="7" fill="#3a2a1c"/>
+      <rect x="45" y="119.5" width="10" height="10" rx="1.5" fill="${BRASS}" stroke="#8a6524"/>
+      <!-- pistolera -->
+      <path d="M28 128 L27 146 Q33 150 36 146 L36 128Z" fill="#4a3222"/>
+      <!-- pañuelo -->
+      <path d="M40 90 Q50 100 60 90 Q50 96 40 90Z" fill="#8a2a24"/>
+      <!-- cuello -->
+      <rect x="45" y="78" width="10" height="12" fill="${SKIN2}"/>
+      <!-- cabeza -->
+      <ellipse cx="50" cy="58" rx="20" ry="24" fill="${SKIN}"/>
+      <ellipse cx="50" cy="63" rx="20" ry="19" fill="${SKIN2}" opacity=".25"/>
+      ${k.hair}
+      <g class="mouth-idle">${k.mouthIdle || `<path d="M42 71 Q50 74 58 71" stroke="#4a3222" stroke-width="2" fill="none" stroke-linecap="round"/>`}</g>
+      <g class="mouth-smirk"><path d="M40 70 Q52 78 60 68" stroke="#4a3222" stroke-width="2.2" fill="none" stroke-linecap="round"/></g>
+      <g class="mouth-ouch"><ellipse cx="50" cy="73" rx="5" ry="4" fill="#3a1a14"/></g>
+      <ellipse cx="42" cy="55" rx="4.2" ry="4" fill="#f3ead6"/><ellipse cx="58" cy="55" rx="4.2" ry="4" fill="#f3ead6"/>
+      <g class="pupils"><circle cx="42" cy="55" r="2.4" fill="${DARK}"/><circle cx="58" cy="55" r="2.4" fill="${DARK}"/></g>
+      <g class="lids"><ellipse cx="42" cy="55" rx="4.4" ry="4.2" fill="${SKIN}"/><ellipse cx="58" cy="55" rx="4.4" ry="4.2" fill="${SKIN}"/></g>
+      <g class="brows">${k.brows}</g>
+      ${k.extra ? `<g transform="translate(0,12)">${k.extra}</g>` : ""}
+      <g class="hat">${k.hat}</g>
+      <!-- brazo izquierdo (quieto) -->
+      <path d="M28 96 L22 134" stroke="${coat}" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="22" cy="136" r="4.5" fill="${SKIN}"/>
+      <!-- brazo derecho con revólver -->
+      <g class="arm">
+        <path d="M72 96 L82 128" stroke="${coat}" stroke-width="9" stroke-linecap="round"/>
+        <circle cx="83" cy="130" r="5" fill="${SKIN}"/>
+        <path d="M80 127 L96 127 L96 131 L88 131 L88 138 L83 138Z" fill="#4a4a4a" stroke="${DARK}" stroke-width=".8"/>
+        <g class="flash"><polygon points="98,125 108,119 102,127 112,129 102,131 106,137" fill="#ffd36b"/><circle cx="99" cy="129" r="3.5" fill="#fff3c4"/></g>
+        <g class="smoke"><circle cx="100" cy="123" r="4" fill="#bdb5a8"/><circle cx="105" cy="118" r="3" fill="#bdb5a8"/></g>
+      </g>
+    </g>
+  </g>`;
+}
+
+function mood(cls, ms) {
+  const rv = $("rival");
+  ["firing", "hit", "won", "lost"].forEach(c => rv.classList.remove(c));
+  if (!cls) return;
+  void rv.offsetWidth; rv.classList.add(cls);
+  if (ms) setTimeout(() => rv.classList.remove(cls), ms);
+}
+
+const hearts = (w, max) => `<span class="have">${"♥".repeat(max - w)}</span><span class="lost">${"♥".repeat(w)}</span>`;
+
+function renderRival(revealed) {
+  const o = S.opponent, rv = $("rival");
+  rv.hidden = false; rv.classList.toggle("active", !S.my_turn && !S.game_over);
+  $("rv-name").textContent = S.rival_name;
+  const por = $("rv-portrait"); if (por.dataset.key !== S.rival) { por.innerHTML = rig(S.rival); por.dataset.key = S.rival; mood(null); }
+  rv.classList.toggle("dead", S.game_over && S.victory);
+  $("rv-hearts").innerHTML = hearts(o.wounds, o.max_wounds);
+  $("rv-status").textContent = o.played ? `ha jugado ${o.played.hand} por ${o.played.points}` : (S.my_turn ? "aún no ha jugado" : "está jugando...");
+  const show = revealed || o.played;
+  $("rv-dice").innerHTML = o.dice.map(v => `<span class="d${show ? "" : " hidden"}">${v}</span>`).join("");
+}
+
+function render() {
+  if (!S) return;
+  const h = S.hand, duel = S.mode === "duel";
+  document.querySelectorAll(".modes button").forEach(b => b.setAttribute("aria-pressed", String(b.id === "mode-" + (duel ? S.rival : "solo"))));
+  if (duel) {
+    $("lbl-lvl").textContent = "Ronda"; $("lvl-tile").innerHTML = `<span id="lvl">${S.round}</span>`;
+    $("lbl-target").textContent = "Rival"; $("target").textContent = S.opponent.played ? S.opponent.played.points : "?";
+    $("lbl-total").textContent = "Rondas"; $("score").textContent = `${S.me.rounds_won}-${S.opponent.rounds_won}`;
+    $("hands").parentElement.hidden = true;
+    $("bar").style.width = "0%";
+    $("hearts").innerHTML = hearts(S.me.wounds, S.me.max_wounds);
+    $("dice").replaceChildren(...S.me.dice.map(dieEl));
+    renderRival(false);
+    $("turn").textContent = S.game_over ? "" : S.my_turn ? "Tu turno" : `Turno de ${S.rival_name}`;
+  } else {
+    $("rival").hidden = true; $("turn").textContent = "";
+    $("lbl-lvl").textContent = "Nivel"; $("lvl-tile").innerHTML = `<span id="lvl">${S.level}</span>/8`;
+    $("lbl-target").textContent = "Objetivo"; $("target").textContent = S.target;
+    $("lbl-total").textContent = "Total"; $("score").textContent = S.score;
+    $("hands").textContent = S.hands_left; $("hands").parentElement.hidden = false;
+    $("bar").style.width = Math.min(100, 100 * S.score / S.target) + "%";
+    $("hearts").innerHTML = hearts(S.wounds, S.max_wounds);
+    $("dice").replaceChildren(...S.dice.map(dieEl));
+  }
+  $("sum").textContent = h.total; $("mult").textContent = h.mult;
+  const me = duel ? S.me : S;
+  $("hand").innerHTML = `<b>${h.hand}</b> · ${h.total} × ${h.mult} = <b class="mono">${h.points}</b>`;
+  const tags = [];
+  if (me.streak) tags.push(`<span class="tag streak">racha ${me.streak} · +${me.streak * S.streak_bonus}</span>`);
+  if (me.silver) tags.push(`<span class="tag silver">plata ×3</span>`);
+  if (S.shield) tags.push(`<span class="tag shield">chaleco</span>`);
+  $("tags").innerHTML = tags.join("");
+  const r = S.cylinder.risk, rk = $("risk");
+  rk.textContent = Math.round(r * 100) + "%"; rk.className = "risk mono " + (r >= 0.34 ? "high" : r >= 0.2 ? "mid" : "low");
+  $("fire-sub").textContent = `gatillo · riesgo ${Math.round(r * 100)}%`;
+  const parts = [`${S.cylinder.remaining} recámaras`, `${S.cylinder.live} ${S.cylinder.live === 1 ? "bala" : "balas"}`];
+  [["fogueo", "blank"], ["plata", "silver"], ["rebote", "bounce"]].forEach(([n, k]) => { if (S.cylinder[k]) parts.push(`${S.cylinder[k]} ${n}`); });
+  $("chambers").textContent = parts.join(" · ");
+  drawCylinder();
+  $("mults").innerHTML = HANDS.map(k => `<tr><td>${k}</td><td>×${S.mults[k]}</td></tr>`).join("");
+  $("seed").value = S.seed;
+  const locked = busy || (duel && !S.my_turn);
+  $("btn-fire").disabled = locked; $("btn-play").disabled = locked;
+}
+
+function log(text, cls = "") { const l = $("log"); l.textContent = text; l.className = "log " + cls; }
+
+async function animateRoll() {
+  if (reduced) return;
+  const els = [...document.querySelectorAll(".die:not(.locked)")]; els.forEach(e => e.classList.add("rolling"));
+  for (let i = 0; i < 6; i++) {
+    els.forEach(e => { const v = 1 + Math.floor(Math.random() * 6); [...e.querySelectorAll(".pip")].forEach((p, k) => p.classList.toggle("on", PIPS[v].includes(k))); });
+    await sleep(70 + i * 25);
+  }
+}
+
+async function playAiEvents(event) {
+  if (!event || !event.ai_events) return;
+  const name = S.rival_name;
+  renderRival(false);
+  log(`${name}: "${event.ai_taunt}"`);
+  if (!reduced) await sleep(900);
+  for (const ev of event.ai_events) {
+    if (ev.type === "fire") {
+      const cyl = $("cyl"); cyl.classList.remove("spinning"); void cyl.offsetWidth; cyl.classList.add("spinning");
+      mood("firing", 1400);
+      log(`${name} aprieta el gatillo...`);
+      if (!reduced) await sleep(900);
+      if (ev.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); log(`¡BANG! ${name} recibe una herida.`, "bang"); mood("hit", 1500); }
+      else log(`${name}: click.`);
+      S.opponent.dice = ev.dice; $("rv-dice").innerHTML = ev.dice.map(v => `<span class="d">${v}</span>`).join("");
+    } else {
+      S.opponent.dice = ev.dice; $("rv-dice").innerHTML = ev.dice.map(v => `<span class="d">${v}</span>`).join("");
+      log(`${name} juega ${ev.hand} por ${ev.points} puntos.`, "good");
+    }
+    if (!reduced) await sleep(800);
+  }
+}
+
+async function guarded(fn) {
+  if (busy) return; busy = true; render();
+  try {
+    const ev = await fn();
+    if (ev && ev.ai_events) { await playAiEvents(ev); if (S.last_round) log(S.message.split(". ").slice(-2).join(". "), S.victory ? "good" : ""); }
+    if (S.mode === "duel" && S.last_round && !S.game_over) {
+      const [mine, theirs] = S.last_round.points;
+      if (S.last_round.round === S.round - 1) mood(theirs > mine ? "won" : theirs < mine ? "lost" : null, 2200);
+    }
+  } catch (e) { log(e.message, "bang"); }
+  busy = false; render(); afterMove();
+}
+
+const lock = i => guarded(async () => { await api("lock", { index: i }); });
+
+const fire = () => guarded(async () => {
+  const cyl = $("cyl"); cyl.classList.remove("spinning"); void cyl.offsetWidth; cyl.classList.add("spinning");
+  log(`Giras el tambor... riesgo ${Math.round(S.cylinder.risk * 100)}%`);
+  const req = api("fire", {});
+  if (!reduced) await sleep(900);
+  const { event } = await req;
+  const msg = event.message || S.message;
+  if (event.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); log(msg, "bang"); }
+  else if (event.shielded) log(msg, "good");
+  else { log(msg, event.chamber === "EMPTY" || event.chamber === "BLANK" ? "" : "good"); await animateRoll(); }
+  if (event.wounded && !reduced) await sleep(700);
+  return event;
+});
+
+const play = () => guarded(async () => { const { event } = await api("play", {}); log(event.message || S.message, "good"); if (!reduced && event.ai_events) await sleep(600); return event; });
+
+function afterMove() {
+  if (!S) return;
+  if (S.mode === "duel") {
+    if (S.game_over) return endGame(S.victory, S.victory ? `Has ganado el duelo a ${S.rival_name} en ${S.round} rondas.` : `${S.rival_name} te ha ganado en ${S.round} rondas.`);
+    return;
+  }
+  if (S.wounds >= S.max_wounds) return endGame(false, `Tres heridas en el nivel ${S.level}.`);
+  if (S.victory) return endGame(true, "Has superado los ocho niveles con el tambor girando. Victoria.");
+  if (S.cleared) return showUpgrades();
+  if (S.game_over) return endGame(false, `Sin manos y sin llegar a ${S.target} en el nivel ${S.level}.`);
+}
+
+function showUpgrades() {
+  if (!$("ov-upgrade").hidden) return;
+  $("up-title").textContent = `Nivel ${S.level} superado`;
+  $("up-sub").textContent = S.message.includes("Sangre fría") ? "Sangre fría: has curado una herida. Elige una mejora." : "Elige una mejora.";
+  const list = $("up-list"); list.replaceChildren(...S.pending_upgrades.map((u, i) => {
+    const b = document.createElement("button"); b.className = "upgrade"; b.type = "button"; b.id = "up-" + i;
+    b.innerHTML = `<b>${u.name}</b>${u.desc}`;
+    b.addEventListener("click", () => guarded(async () => { $("ov-upgrade").hidden = true; await api("upgrade", { id: u.id }); log(`Nivel ${S.level}. Objetivo ${S.target}. El tambor está recargado.`); }));
+    return b;
+  }));
+  $("ov-upgrade").hidden = false; list.firstChild.focus();
+}
+
+function endGame(win, text) {
+  if (!$("ov-end").hidden) return;
+  $("end-title").textContent = win ? "Victoria" : "Game over"; $("end-title").className = win ? "" : "bad";
+  $("end-text").textContent = text + ` Semilla ${S.seed}.`; $("ov-end").hidden = false; $("btn-again").focus();
+}
+
+async function newGame(seed) {
+  $("ov-upgrade").hidden = true; $("ov-end").hidden = true; token = null;
+  try { await api("new", { seed: seed === undefined || seed === "" ? null : seed, mode, rival }); }
+  catch (e) { return log("No se pudo hablar con el servidor. Arranca `python -m bones_bullets.server` y recarga.", "bang"); }
+  try { localStorage.setItem("bb-token", token); } catch (_) {}
+  log(mode === "duel" ? (S.rival === "sheriff" ? `El Sheriff. Tres balas en el tambor para los dos y cinco vidas para él. Una bala cuesta lo mismo a los dos.` : `Duelo contra ${S.rival_name}. Un tambor para los dos: si sobrevives al click, el riesgo se lo queda el siguiente.`) : "Toca un dado para bloquearlo. Los bloqueados no se relanzan.");
+  busy = false; render();
+}
+
+async function resume() {
+  let saved = null; try { saved = localStorage.getItem("bb-token"); } catch (_) {}
+  if (saved) { token = saved; try { await api("state"); mode = S.mode; if (S.rival) rival = S.rival; render(); log("Partida recuperada."); return afterMove(); } catch (_) { token = null; } }
+  await newGame();
+}
+
+$("btn-fire").addEventListener("click", fire);
+$("btn-play").addEventListener("click", play);
+$("btn-new").addEventListener("click", () => newGame($("seed").value));
+document.querySelectorAll(".modes button").forEach(b => b.addEventListener("click", () => {
+  const key = b.id.slice(5); mode = key === "solo" ? "solo" : "duel"; if (key !== "solo") rival = key; newGame();
+}));
+$("btn-again").addEventListener("click", () => newGame(S && S.seed !== undefined ? S.seed + 1 : undefined));
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || !$("ov-upgrade").hidden || !$("ov-end").hidden) return;
+  if (e.key >= "1" && e.key <= "5") lock(+e.key - 1); else if (e.key === "g") fire(); else if (e.key === "j") play();
+});
+resume();
+</script>

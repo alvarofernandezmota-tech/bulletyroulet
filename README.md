@@ -1,85 +1,135 @@
-<!--
-ARCHIVO: README.md
-ROL: Índice principal del proyecto. Estado actual, estructura completa y quick start.
-USO IA: Leer primero. Da el contexto global del proyecto.
-ACTUALIZAR: Cada vez que cambie el estado del proyecto o la estructura.
--->
+# Bones & Bullets
 
-# 🖨️ Impresión 3D — Anycubic Photon V1
+Juego de terminal en Python: *Dice of Kalma* + *Buckshot Roulette*.
+Tiras 5 dados, formas manos de póker y superas objetivos por nivel.
+Relanzar no es gratis: cada relanzamiento es apretar el gatillo de un revólver con una bala.
 
-## Estado actual
+## Cómo jugar
 
-| Campo | Valor |
-|-------|-------|
-| **Impresora** | Anycubic Photon V1 original (MSLA/LCD 2K, 405nm, 1 rail) |
-| **Estado** | 🟡 En progreso — primera impresión realizada |
-| **Primera impresión** | ✅ Dado D6 — 23 mayo 2026 |
-| **Resina activa** | ⏳ Por documentar |
-| **Slicer instalado** | ✅ Chitubox Free — instalado 23 mayo 2026 |
-| **Nivel** | Principiante activo — aprendiendo con cada sesión |
-
-> 📦 **Repo migrada desde `personal/05_proyectos/impresion-3d/`**
-> Todo el historial y documentación vive aquí a partir del 23 mayo 2026.
-
----
-
-## Estructura del proyecto
+### En el navegador
 
 ```
-impresion-3d/
-│
-├── README.md          ← ESTE ARCHIVO — índice y estado
-├── AGENTS.md          ← Instrucciones para cualquier IA
-├── CHANGELOG.md       ← Historial cronológico de todo
-│
-├── diarios/           ← Sesiones de trabajo documentadas
-│   ├── README.md
-│   └── 2026-05-23.md  ← Primera sesión + primera impresión
-│
-├── glosario/          ← Diccionario de términos y chuleta
-│   └── README.md
-│
-├── hardware/          ← Impresora: specs, parámetros, mantenimiento
-│   ├── README.md
-│   └── anycubic-photon-v1.md
-│
-├── software/          ← Slicers y herramientas
-│   ├── README.md
-│   └── slicers.md     ← Chitubox como principal
-│
-├── proceso/           ← Workflow completo paso a paso
-│   ├── README.md
-│   └── workflow-completo.md
-│
-├── resinas/           ← Una entrada por resina usada
-│   └── README.md
-│
-└── modelos/           ← Registro de cada modelo impreso
-    ├── README.md
-    └── dado-d6/       ← Primera impresión
-        └── README.md
+python -m bones_bullets.server          # puerto 8080
+python -m bones_bullets.server 9000     # otro puerto
 ```
 
----
+Abre `http://localhost:8080` (o la IP de la máquina desde otro equipo de la red).
+No hay dependencias: el servidor es la stdlib de Python y sirve `web/index.html`,
+que es un cliente fino. Las reglas se ejecutan en `game.py`, las mismas que en
+terminal. La partida se guarda en el servidor mientras esté en marcha y el
+navegador la recupera al recargar. Semilla opcional en el pie de página.
+Teclas: `1`-`5` bloquean dados, `g` gatillo, `j` jugar mano.
 
-## Quick start — antes de imprimir
+### Modo duelo
 
-1. ✅ Chitubox Free instalado
-2. ✅ Perfil impresora: Anycubic Photon
-3. ⏳ Perfil resina configurado
-4. ✅ Placa nivelada
-5. ✅ Ventilación activa + guantes
+Un rival controlado por la máquina, un solo tambor compartido y turnos.
+Cada ronda los dos jugáis una mano; el que menos puntos haga recibe una
+herida (si ya sangró por una bala esa ronda, no sangra dos veces). Con tres
+heridas, fuera. Empieza cada ronda quien perdió la anterior. Sin mejoras.
 
-## Flujo de trabajo
+De momento hay un solo rival: **El Sheriff**. Tres balas en el tambor para
+los dos y cinco vidas para él. Aprieta hasta un 50% de riesgo. En la web
+aparece de cuerpo entero y reacciona a lo que pasa en la mesa.
 
 ```
-1. DISEÑO     → Thingiverse / Printables  → descarga .STL
-2. SLICER     → Chitubox Free             → capas + soportes → .pwma
-3. USB        → copiar .pwma al USB
-4. IMPRESORA  → Anycubic Photon V1        → imprime
-5. POST       → lavar IPA + curar UV
+python -m bones_bullets --duelo        # contra El Sheriff
+python -m bones_bullets --duelo 42     # con semilla
 ```
 
----
+Hay otros tres rivales definidos en `bones_bullets/ai.py` (cauto, tahur,
+loco) que no se muestran en la interfaz; sirven para pruebas y balance y se
+pueden activar pasando su nombre: `python -m bones_bullets --duelo loco`.
 
-_Actualizado: 23 mayo 2026 · Perplexity AI MCP_
+En la web, los dos botones de modo bajo el título: Solitario y Duelo.
+
+### En la terminal
+
+Requiere Python 3.11+. Sin dependencias (pytest solo para tests).
+
+```
+python -m bones_bullets            # partida aleatoria
+python -m bones_bullets 42         # partida reproducible con semilla 42
+```
+
+Al arrancar se muestran las instrucciones completas. Comandos:
+
+| Tecla | Acción |
+|-------|--------|
+| `1`-`5` | Bloquear / desbloquear el dado (los bloqueados no se relanzan) |
+| `g` | Apretar el gatillo: si no sale bala, relanza los dados libres |
+| `j` | Jugar la mano actual |
+| `m` | Ver las manos y sus multiplicadores actuales |
+| `?` | Ayuda |
+| `q` | Salir |
+
+El HUD muestra nivel, objetivo, puntos acumulados, manos restantes, vida (♥♡),
+estado del tambor (recámaras, balas, fogueo, plata), riesgo en % y la mano actual.
+
+## Reglas
+
+- 5 dados d6. Puntuación de una mano = suma de LOS 5 dados × multiplicador de la mano.
+- Manos y multiplicadores base: carta alta x1, pareja x1.5, dobles parejas x2, trío x3, escalera x5, full x6, póker x8, repóker x12.
+- 8 niveles. Objetivo del nivel n = 40 + 25n + 4n². 3 manos por nivel. Si se acaban las manos sin llegar al objetivo: game over.
+- No hay rerolls gratis. Relanzar = apretar el gatillo de un revólver:
+  - Tambor de 6 recámaras, 1 bala. El jugador ve cuántas recámaras quedan y cuántas balas/fogueo/plata/rebote hay, nunca en qué posición.
+  - Apretar saca una recámara al azar y la DESCARTA (el riesgo sube en cada click dentro de la misma carga). Tipos:
+    - vacía: "click", se relanzan los dados no bloqueados.
+    - bala: "BANG", +1 herida, la mano actual puntúa 0 y se consume, el tambor se recarga entero.
+    - fogueo: como vacía (solo por mejora).
+    - plata: como vacía pero la mano actual vale x3 (solo por mejora).
+    - rebote: relanza dos veces y se queda con la mejor puntuación (solo por mejora).
+  - Si el tambor se vacía, se recarga.
+- Racha: cada click seguro seguido dentro de la misma mano suma +0.5 al multiplicador. Se pierde al jugar la mano o al recibir un BANG.
+- 3 heridas = game over.
+- Sangre fría: superar un nivel sin apretar el gatillo ni una vez cura 1 herida.
+- Al superar nivel: elegir 1 de 3 mejoras aleatorias entre: +1 al multiplicador de una mano (pareja, dobles, trío, escalera, full), +1 recámara de fogueo, +1 recámara de plata, +1 recámara de rebote, dado cargado (un dado pasa a caras 3-4-5-6-6-6), chaleco (la primera bala de cada nivel no hiere; una sola vez), mano extra (+1 mano por nivel), curar 1 herida (solo si hay heridas).
+- Entre niveles el tambor se recarga, el chaleco se recarga y los dados se relanzan.
+
+## Estructura
+
+```
+bones_bullets/
+  dice.py       Die, new_hand, roll_all, unlock_all, render
+  hands.py      HandType, BASE_MULT, evaluate, score
+  revolver.py   Chamber, Cylinder (reload, pull_trigger, known, live_probability)
+  game.py       GameState: toda la lógica de partida, sin I/O
+  cli.py        interfaz de terminal
+  server.py     servidor HTTP + API JSON para la versión web
+  duel.py       modo duelo (dos jugadores, tambor compartido), sin I/O
+  ai.py         rivales: personalidades y su turno
+  cli_duel.py   interfaz de terminal del duelo
+  __main__.py   python -m bones_bullets [semilla]
+tests/
+  test_hands.py test_revolver.py test_game.py test_duel.py test_server.py
+tools/
+  simulate.py   bot que juega partidas para calibrar el balance
+web/
+  index.html    cliente web (solo pinta lo que manda la API)
+```
+
+`game.py` no hace print ni input: la misma lógica sirve para pygame o web.
+Todo el azar pasa por un `random.Random` inyectado, por eso la semilla
+hace las partidas reproducibles.
+
+Tests: `python -m pytest -q`
+
+Colores: se activan solo en terminal. `NO_COLOR=1` los desactiva.
+
+## Balanceo
+
+Constantes en `bones_bullets/game.py`:
+
+- `MAX_LEVEL`, `HANDS_PER_LEVEL`, `MAX_WOUNDS`
+- `CYLINDER_SIZE`, `LIVE_ROUNDS` (tamaño del tambor y balas)
+- `SILVER_MULT` (bonus de la recámara de plata)
+- `STREAK_BONUS` (multiplicador extra por click seguro encadenado)
+- `LOADED_FACES` (caras del dado cargado)
+- `UPGRADE_CHOICES` (mejoras ofrecidas por nivel)
+- `level_target()` (curva de objetivos)
+- Rivales del duelo: `PERSONALITIES` en `bones_bullets/ai.py` (riesgo máximo y codicia)
+
+Para comprobar el efecto de un cambio: `python tools/simulate.py 2000 0.34`
+imprime en qué nivel muere un bot sencillo en 2000 partidas.
+
+Multiplicadores de mano en `bones_bullets/hands.py`: `BASE_MULT` y
+`UPGRADABLE_HANDS`.
