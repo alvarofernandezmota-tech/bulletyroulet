@@ -28,4 +28,4 @@ Solo stdlib (pytest únicamente para tests). Python 3.11+. Paquete `bones_bullet
 - `tools/simulate.py` bot que juega N partidas para calibrar el balance: `python tools/simulate.py 2000 0.34`.
 - Todo el RNG pasa por un `random.Random` inyectado, nunca `random` global.
 - Type hints y dataclasses. Sin dependencias.
-- `web/index.html`: versión navegador en JS puro. Las reglas están duplicadas ahí: cualquier cambio en `game.py` debe replicarse en el bloque `Game` de ese archivo.
+- `bones_bullets/server.py`: servidor HTTP stdlib (`python -m bones_bullets.server [puerto]`) que sirve `web/index.html` y expone la partida como API JSON (`/api/new`, `/api/lock`, `/api/fire`, `/api/play`, `/api/upgrade`, `/api/state`). El cliente web NO contiene reglas: si cambias `game.py`, cambia para terminal y web a la vez. Si añades campos al estado, amplía `serialize()` en server.py y el `render()` del HTML.

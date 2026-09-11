@@ -8,9 +8,16 @@ Relanzar no es gratis: cada relanzamiento es apretar el gatillo de un revólver 
 
 ### En el navegador
 
-Abre `web/index.html` con cualquier navegador (doble clic o `xdg-open web/index.html`).
-No necesita servidor ni instalación. Las mismas reglas que la versión de terminal,
-portadas a JavaScript en un solo archivo. Semilla opcional en el pie de página.
+```
+python -m bones_bullets.server          # puerto 8080
+python -m bones_bullets.server 9000     # otro puerto
+```
+
+Abre `http://localhost:8080` (o la IP de la máquina desde otro equipo de la red).
+No hay dependencias: el servidor es la stdlib de Python y sirve `web/index.html`,
+que es un cliente fino. Las reglas se ejecutan en `game.py`, las mismas que en
+terminal. La partida se guarda en el servidor mientras esté en marcha y el
+navegador la recupera al recargar. Semilla opcional en el pie de página.
 Teclas: `1`-`5` bloquean dados, `g` gatillo, `j` jugar mano.
 
 ### En la terminal
@@ -65,13 +72,14 @@ bones_bullets/
   revolver.py   Chamber, Cylinder (reload, pull_trigger, known, live_probability)
   game.py       GameState: toda la lógica de partida, sin I/O
   cli.py        interfaz de terminal
+  server.py     servidor HTTP + API JSON para la versión web
   __main__.py   python -m bones_bullets [semilla]
 tests/
-  test_hands.py test_revolver.py test_game.py
+  test_hands.py test_revolver.py test_game.py test_server.py
 tools/
   simulate.py   bot que juega partidas para calibrar el balance
 web/
-  index.html    versión para navegador (HTML+CSS+JS, sin dependencias)
+  index.html    cliente web (solo pinta lo que manda la API)
 ```
 
 `game.py` no hace print ni input: la misma lógica sirve para pygame o web.

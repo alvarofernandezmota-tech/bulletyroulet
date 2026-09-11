@@ -257,187 +257,68 @@
 </div>
 
 <script>
-// ---------- RNG con semilla (mulberry32) ----------
-function makeRng(seed) {
-  let a = seed >>> 0;
-  const next = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-  return {
-    random: next,
-    randrange: n => Math.floor(next() * n),
-    choice: arr => arr[Math.floor(next() * arr.length)],
-    shuffle: arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(next() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; },
-    sample: (arr, k) => { const c = arr.slice(); const out = []; while (out.length < k && c.length) out.push(c.splice(Math.floor(next() * c.length), 1)[0]); return out; },
-  };
-}
-
-// ---------- Reglas (espejo de bones_bullets/game.py) ----------
-const MAX_LEVEL = 8, HANDS_PER_LEVEL = 3, MAX_WOUNDS = 3, CYL_SIZE = 6, LIVE = 1, SILVER_MULT = 3, STREAK_BONUS = 0.5;
-const STD_FACES = [1, 2, 3, 4, 5, 6], LOADED_FACES = [3, 4, 5, 6, 6, 6];
-const target = n => 40 + 25 * n + 4 * n * n;
-const HANDS = ["carta alta", "pareja", "dobles parejas", "trío", "escalera", "full", "póker", "repóker"];
-const BASE_MULT = { "carta alta": 1, "pareja": 1.5, "dobles parejas": 2, "trío": 3, "escalera": 5, "full": 6, "póker": 8, "repóker": 12 };
-const CH = { EMPTY: "vacía", LIVE: "bala", BLANK: "fogueo", SILVER: "plata", BOUNCE: "rebote" };
-const UPGRADES = [
-  { id: "m_pair", name: "+1 mult. pareja", desc: "La pareja pasa a valer un punto más por dado.", hand: "pareja" },
-  { id: "m_two", name: "+1 mult. dobles parejas", desc: "", hand: "dobles parejas" },
-  { id: "m_three", name: "+1 mult. trío", desc: "", hand: "trío" },
-  { id: "m_straight", name: "+1 mult. escalera", desc: "", hand: "escalera" },
-  { id: "m_full", name: "+1 mult. full", desc: "", hand: "full" },
-  { id: "blank", name: "Fogueo", desc: "Una recámara más en el tambor que nunca hiere." },
-  { id: "silver", name: "Plata", desc: "Una recámara que triplica la mano en la que sale." },
-  { id: "bounce", name: "Rebote", desc: "Una recámara que relanza dos veces y se queda con lo mejor." },
-  { id: "loaded", name: "Dado cargado", desc: "Un dado pasa a tener caras 3-4-5-6-6-6." },
-  { id: "shield", name: "Chaleco", desc: "La primera bala de cada nivel no hiere." },
-  { id: "hand", name: "Mano extra", desc: "Una mano más en cada nivel." },
-  { id: "heal", name: "Curar una herida", desc: "" },
-];
-
-function evaluate(vals) {
-  const s = [...vals].sort((a, b) => a - b);
-  const cnt = {}; s.forEach(v => cnt[v] = (cnt[v] || 0) + 1);
-  const c = Object.values(cnt).sort((a, b) => b - a);
-  if (c[0] === 5) return "repóker";
-  if (c[0] === 4) return "póker";
-  if (c[0] === 3 && c[1] === 2) return "full";
-  if (new Set(s).size === 5 && s[4] - s[0] === 4) return "escalera";
-  if (c[0] === 3) return "trío";
-  if (c[0] === 2 && c[1] === 2) return "dobles parejas";
-  if (c[0] === 2) return "pareja";
-  return "carta alta";
-}
-
-class Cylinder {
-  constructor() { this.live = LIVE; this.blanks = 0; this.silver = 0; this.bounce = 0; this.chambers = []; }
-  reload(rng) {
-    const sp = [...Array(this.live).fill(CH.LIVE), ...Array(this.blanks).fill(CH.BLANK), ...Array(this.silver).fill(CH.SILVER), ...Array(this.bounce).fill(CH.BOUNCE)];
-    this.chambers = rng.shuffle([...sp, ...Array(Math.max(0, CYL_SIZE - sp.length)).fill(CH.EMPTY)]);
-  }
-  pull(rng) {
-    if (!this.chambers.length) this.reload(rng);
-    const ch = this.chambers.splice(rng.randrange(this.chambers.length), 1)[0];
-    if (ch === CH.LIVE || !this.chambers.length) this.reload(rng);
-    return ch;
-  }
-  count(t) { return this.chambers.filter(c => c === t).length; }
-  risk() { return this.chambers.length ? this.count(CH.LIVE) / this.chambers.length : 0; }
-}
-
-class Game {
-  constructor(seed) {
-    this.seed = seed; this.rng = makeRng(seed);
-    this.level = 1; this.score = 0; this.maxHands = HANDS_PER_LEVEL; this.handsLeft = HANDS_PER_LEVEL; this.wounds = 0;
-    this.dice = Array.from({ length: 5 }, () => ({ value: 1, locked: false, faces: STD_FACES }));
-    this.dice.forEach(d => d.value = this.rng.choice(d.faces));
-    this.cyl = new Cylinder(); this.cyl.reload(this.rng);
-    this.mults = { ...BASE_MULT }; this.silver = false; this.streak = 0; this.shieldMax = 0; this.shield = 0;
-    this.pulled = false; this.pending = []; this.msg = "";
-  }
-  get target() { return target(this.level); }
-  rollFree() { this.dice.forEach(d => { if (!d.locked) d.value = this.rng.choice(d.faces); }); }
-  hand() {
-    const vals = this.dice.map(d => d.value), h = evaluate(vals), total = vals.reduce((a, b) => a + b, 0);
-    let mult = this.mults[h] + this.streak * STREAK_BONUS; if (this.silver) mult *= SILVER_MULT;
-    return { hand: h, total, mult, points: Math.round(total * mult) };
-  }
-  resetHand() { this.silver = false; this.streak = 0; this.dice.forEach(d => d.locked = false); this.rollFree(); }
-  gameOver() { return this.wounds >= MAX_WOUNDS || (this.handsLeft <= 0 && this.score < this.target); }
-  cleared() { return this.score >= this.target; }
-  pullTrigger() {
-    this.pulled = true;
-    const ch = this.cyl.pull(this.rng);
-    if (ch === CH.LIVE) {
-      if (this.shield > 0) { this.shield--; this.rollFree(); this.msg = "¡BANG! ...el chaleco aguanta. Sin herida."; return { ch, shielded: true }; }
-      this.wounds++; this.handsLeft--; this.resetHand(); this.msg = "¡BANG! Herida. La mano se pierde y el tambor se recarga."; return { ch, wounded: true };
-    }
-    this.streak++;
-    if (ch === CH.SILVER) this.silver = true;
-    if (ch === CH.BOUNCE) {
-      this.rollFree(); const first = this.hand().points; const snap = this.dice.map(d => d.value);
-      this.rollFree(); if (this.hand().points < first) this.dice.forEach((d, i) => d.value = snap[i]);
-    } else this.rollFree();
-    const base = { [CH.EMPTY]: "Click.", [CH.BLANK]: "Fogueo.", [CH.SILVER]: "¡Plata! Esta mano vale x3.", [CH.BOUNCE]: "¡Rebote! Dos tiradas, te quedas la mejor." }[ch];
-    this.msg = `${base} Racha ${this.streak}: +${this.streak * STREAK_BONUS} al multiplicador.`;
-    return { ch };
-  }
-  playHand() {
-    const r = this.hand(); this.score += r.points; this.handsLeft--; this.resetHand();
-    this.msg = `${r.hand}: ${r.total} × ${r.mult} = ${r.points}`;
-    if (this.cleared()) {
-      if (!this.pulled && this.wounds > 0) { this.wounds--; this.msg += " Sangre fría: curas una herida."; }
-      let pool = UPGRADES.filter(u => !(u.id === "heal" && this.wounds === 0) && !(u.id === "shield" && this.shieldMax > 0) && !(u.id === "loaded" && this.dice.every(d => d.faces === LOADED_FACES)));
-      this.pending = this.rng.sample(pool, 3);
-    }
-    return r;
-  }
-  applyUpgrade(u) {
-    if (u.hand) this.mults[u.hand] += 1;
-    else if (u.id === "blank") this.cyl.blanks++;
-    else if (u.id === "silver") this.cyl.silver++;
-    else if (u.id === "bounce") this.cyl.bounce++;
-    else if (u.id === "loaded") { const d = this.dice.find(d => d.faces !== LOADED_FACES); if (d) d.faces = LOADED_FACES; }
-    else if (u.id === "shield") this.shieldMax++;
-    else if (u.id === "hand") this.maxHands++;
-    else if (u.id === "heal") this.wounds = Math.max(0, this.wounds - 1);
-    this.pending = [];
-  }
-  nextLevel() {
-    this.level++; this.score = 0; this.handsLeft = this.maxHands; this.shield = this.shieldMax; this.pulled = false; this.pending = [];
-    this.cyl.reload(this.rng); this.resetHand();
-  }
-}
-
-// ---------- Interfaz ----------
+// Cliente fino: las reglas viven en bones_bullets/game.py y llegan por la API JSON.
 const $ = id => document.getElementById(id);
 const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
-let g, busy = false;
+const HANDS = ["carta alta", "pareja", "dobles parejas", "trío", "escalera", "full", "póker", "repóker"];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let S = null, token = null, busy = false;
+
+async function api(path, body) {
+  const res = await fetch("/api/" + path, { method: body === undefined ? "GET" : "POST", headers: { "Content-Type": "application/json", "X-Game": token || "" }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const data = await res.json();
+  if (data.token) token = data.token;
+  if (data.state) S = data.state;
+  if (!res.ok) throw new Error(data.error || (data.event && data.event.error) || "Error del servidor");
+  return data;
+}
 
 function dieEl(d, i) {
   const b = document.createElement("button");
-  b.className = "die" + (d.locked ? " locked" : "") + (d.faces === LOADED_FACES ? " loaded" : "");
+  b.className = "die" + (d.locked ? " locked" : "") + (d.loaded ? " loaded" : "");
   b.type = "button"; b.id = "die-" + i; b.setAttribute("aria-label", `Dado ${i + 1}: ${d.value}${d.locked ? ", bloqueado" : ""}`);
   b.innerHTML = Array.from({ length: 9 }, (_, k) => `<span class="pip${PIPS[d.value].includes(k) ? " on" : ""}"></span>`).join("")
-    + `<span class="lock">FIJO</span><span class="idx">${i + 1}${d.faces === LOADED_FACES ? " · cargado" : ""}</span>`;
-  b.addEventListener("click", () => { if (busy) return; d.locked = !d.locked; render(); });
+    + `<span class="lock">FIJO</span><span class="idx">${i + 1}${d.loaded ? " · cargado" : ""}</span>`;
+  b.addEventListener("click", () => lock(i));
   return b;
 }
 
 function drawCylinder() {
-  const n = g.cyl.chambers.length, svg = $("cyl");
+  const n = S.cylinder.remaining, total = 6;
   let out = `<circle cx="50" cy="50" r="46" fill="#3a3129" stroke="#1a1410" stroke-width="2"/>`;
-  for (let i = 0; i < CYL_SIZE; i++) {
-    const a = (i / CYL_SIZE) * Math.PI * 2 - Math.PI / 2, x = 50 + 30 * Math.cos(a), y = 50 + 30 * Math.sin(a);
-    const filled = i < n;
-    out += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" fill="${filled ? "#c99a3f" : "#1a1410"}" stroke="#1a1410" stroke-width="1.5"/>`;
+  for (let i = 0; i < total; i++) {
+    const a = (i / total) * Math.PI * 2 - Math.PI / 2, x = 50 + 30 * Math.cos(a), y = 50 + 30 * Math.sin(a);
+    out += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" fill="${i < n ? "#c99a3f" : "#1a1410"}" stroke="#1a1410" stroke-width="1.5"/>`;
   }
-  out += `<circle cx="50" cy="50" r="6" fill="#1a1410"/>`;
-  svg.innerHTML = out;
+  $("cyl").innerHTML = out + `<circle cx="50" cy="50" r="6" fill="#1a1410"/>`;
 }
 
 function render() {
-  const h = g.hand();
-  $("lvl").textContent = g.level; $("score").textContent = g.score; $("target").textContent = g.target; $("hands").textContent = g.handsLeft;
-  $("bar").style.width = Math.min(100, 100 * g.score / g.target) + "%";
-  $("hearts").innerHTML = `<span class="have">${"♥".repeat(MAX_WOUNDS - g.wounds)}</span><span class="lost">${"♥".repeat(g.wounds)}</span>`;
-  const dice = $("dice"); dice.replaceChildren(...g.dice.map(dieEl));
+  if (!S) return;
+  const h = S.hand;
+  $("lvl").textContent = S.level; $("score").textContent = S.score; $("target").textContent = S.target; $("hands").textContent = S.hands_left;
+  $("bar").style.width = Math.min(100, 100 * S.score / S.target) + "%";
+  $("hearts").innerHTML = `<span class="have">${"♥".repeat(S.max_wounds - S.wounds)}</span><span class="lost">${"♥".repeat(S.wounds)}</span>`;
+  $("dice").replaceChildren(...S.dice.map(dieEl));
   $("hand").innerHTML = `<b>${h.hand}</b> · ${h.total} × ${h.mult} = <b class="mono">${h.points}</b>`;
   const tags = [];
-  if (g.streak) tags.push(`<span class="tag streak">racha ${g.streak} · +${g.streak * STREAK_BONUS}</span>`);
-  if (g.silver) tags.push(`<span class="tag silver">plata ×3</span>`);
-  if (g.shield) tags.push(`<span class="tag shield">chaleco</span>`);
+  if (S.streak) tags.push(`<span class="tag streak">racha ${S.streak} · +${S.streak * S.streak_bonus}</span>`);
+  if (S.silver) tags.push(`<span class="tag silver">plata ×3</span>`);
+  if (S.shield) tags.push(`<span class="tag shield">chaleco</span>`);
   $("tags").innerHTML = tags.join("");
-  const r = g.cyl.risk(), rk = $("risk");
+  const r = S.cylinder.risk, rk = $("risk");
   rk.textContent = Math.round(r * 100) + "%"; rk.className = "risk mono " + (r >= 0.34 ? "high" : r >= 0.2 ? "mid" : "low");
-  const parts = [`${g.cyl.chambers.length} recámaras`, `${g.cyl.count(CH.LIVE)} bala`];
-  [["fogueo", CH.BLANK], ["plata", CH.SILVER], ["rebote", CH.BOUNCE]].forEach(([n, t]) => { const k = g.cyl.count(t); if (k) parts.push(`${k} ${n}`); });
+  const parts = [`${S.cylinder.remaining} recámaras`, `${S.cylinder.live} bala`];
+  [["fogueo", "blank"], ["plata", "silver"], ["rebote", "bounce"]].forEach(([n, k]) => { if (S.cylinder[k]) parts.push(`${S.cylinder[k]} ${n}`); });
   $("chambers").textContent = parts.join(" · ");
   drawCylinder();
-  $("mults").innerHTML = HANDS.map(k => `<tr><td>${k}</td><td>×${g.mults[k]}</td></tr>`).join("");
+  $("mults").innerHTML = HANDS.map(k => `<tr><td>${k}</td><td>×${S.mults[k]}</td></tr>`).join("");
+  $("seed").value = S.seed;
   $("btn-fire").disabled = busy; $("btn-play").disabled = busy;
 }
 
 function log(text, cls = "") { const l = $("log"); l.textContent = text; l.className = "log " + cls; }
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 async function animateRoll() {
   if (reduced) return;
@@ -448,64 +329,75 @@ async function animateRoll() {
   }
 }
 
-async function fire() {
+async function guarded(fn) {
   if (busy) return; busy = true; render();
-  const cyl = $("cyl"); cyl.classList.remove("spinning"); void cyl.offsetWidth; cyl.classList.add("spinning");
-  log(`Giras el tambor... riesgo ${Math.round(g.cyl.risk() * 100)}%`);
-  if (!reduced) await sleep(900);
-  const res = g.pullTrigger();
-  if (res.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); log(g.msg, "bang"); }
-  else if (res.shielded) log(g.msg, "good");
-  else { log(g.msg, res.ch === CH.EMPTY || res.ch === CH.BLANK ? "" : "good"); await animateRoll(); }
+  try { await fn(); } catch (e) { log(e.message, "bang"); }
   busy = false; render(); afterMove();
 }
 
-function play() {
-  if (busy) return;
-  const r = g.playHand(); log(g.msg, "good"); render(); afterMove();
-}
+const lock = i => guarded(async () => { await api("lock", { index: i }); });
+
+const fire = () => guarded(async () => {
+  const cyl = $("cyl"); cyl.classList.remove("spinning"); void cyl.offsetWidth; cyl.classList.add("spinning");
+  log(`Giras el tambor... riesgo ${Math.round(S.cylinder.risk * 100)}%`);
+  const req = api("fire", {});
+  if (!reduced) await sleep(900);
+  const { event } = await req;
+  if (event.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); log(S.message, "bang"); }
+  else if (event.shielded) log(S.message, "good");
+  else { log(S.message, event.chamber === "EMPTY" || event.chamber === "BLANK" ? "" : "good"); await animateRoll(); }
+});
+
+const play = () => guarded(async () => { await api("play", {}); log(S.message, "good"); });
 
 function afterMove() {
-  if (g.wounds >= MAX_WOUNDS) return endGame(false, `Tres heridas en el nivel ${g.level}.`);
-  if (g.cleared()) {
-    if (g.level >= MAX_LEVEL) return endGame(true, "Has superado los ocho niveles con el tambor girando. Victoria.");
-    return showUpgrades();
-  }
-  if (g.gameOver()) return endGame(false, `Sin manos y sin llegar a ${g.target} en el nivel ${g.level}.`);
+  if (!S) return;
+  if (S.wounds >= S.max_wounds) return endGame(false, `Tres heridas en el nivel ${S.level}.`);
+  if (S.victory) return endGame(true, "Has superado los ocho niveles con el tambor girando. Victoria.");
+  if (S.cleared) return showUpgrades();
+  if (S.game_over) return endGame(false, `Sin manos y sin llegar a ${S.target} en el nivel ${S.level}.`);
 }
 
 function showUpgrades() {
-  $("up-title").textContent = `Nivel ${g.level} superado`;
-  $("up-sub").textContent = g.msg.includes("Sangre fría") ? "Sangre fría: has curado una herida. Elige una mejora." : "Elige una mejora.";
-  const list = $("up-list"); list.replaceChildren(...g.pending.map((u, i) => {
+  if (!$("ov-upgrade").hidden) return;
+  $("up-title").textContent = `Nivel ${S.level} superado`;
+  $("up-sub").textContent = S.message.includes("Sangre fría") ? "Sangre fría: has curado una herida. Elige una mejora." : "Elige una mejora.";
+  const list = $("up-list"); list.replaceChildren(...S.pending_upgrades.map((u, i) => {
     const b = document.createElement("button"); b.className = "upgrade"; b.type = "button"; b.id = "up-" + i;
-    b.innerHTML = `<b>${u.name}</b>${u.desc || (u.hand ? `El multiplicador de ${u.hand} sube en 1.` : "Recuperas un corazón.")}`;
-    b.addEventListener("click", () => { g.applyUpgrade(u); g.nextLevel(); $("ov-upgrade").hidden = true; log(`Nivel ${g.level}. Objetivo ${g.target}. El tambor está recargado.`); render(); });
+    b.innerHTML = `<b>${u.name}</b>${u.desc}`;
+    b.addEventListener("click", () => guarded(async () => { $("ov-upgrade").hidden = true; await api("upgrade", { id: u.id }); log(`Nivel ${S.level}. Objetivo ${S.target}. El tambor está recargado.`); }));
     return b;
   }));
   $("ov-upgrade").hidden = false; list.firstChild.focus();
 }
 
 function endGame(win, text) {
+  if (!$("ov-end").hidden) return;
   $("end-title").textContent = win ? "Victoria" : "Game over"; $("end-title").className = win ? "" : "bad";
-  $("end-text").textContent = text + ` Semilla ${g.seed}.`; $("ov-end").hidden = false; $("btn-again").focus();
+  $("end-text").textContent = text + ` Semilla ${S.seed}.`; $("ov-end").hidden = false; $("btn-again").focus();
 }
 
-function newGame(seed) {
-  if (seed === undefined || seed === "" || isNaN(+seed)) seed = Math.floor(Math.random() * 1e9);
-  g = new Game(+seed); busy = false; $("seed").value = seed;
-  $("ov-upgrade").hidden = true; $("ov-end").hidden = true;
-  log("Toca un dado para bloquearlo. Los bloqueados no se relanzan."); render();
+async function newGame(seed) {
+  $("ov-upgrade").hidden = true; $("ov-end").hidden = true; token = null;
+  try { await api("new", { seed: seed === undefined || seed === "" ? null : seed }); }
+  catch (e) { return log("No se pudo hablar con el servidor. Arranca `python -m bones_bullets.server` y recarga.", "bang"); }
+  try { localStorage.setItem("bb-token", token); } catch (_) {}
+  log("Toca un dado para bloquearlo. Los bloqueados no se relanzan."); busy = false; render();
+}
+
+async function resume() {
+  let saved = null; try { saved = localStorage.getItem("bb-token"); } catch (_) {}
+  if (saved) { token = saved; try { await api("state"); render(); log("Partida recuperada."); return afterMove(); } catch (_) { token = null; } }
+  await newGame();
 }
 
 $("btn-fire").addEventListener("click", fire);
 $("btn-play").addEventListener("click", play);
 $("btn-new").addEventListener("click", () => newGame($("seed").value));
-$("btn-again").addEventListener("click", () => newGame($("seed").value ? +$("seed").value + 1 : undefined));
+$("btn-again").addEventListener("click", () => newGame(S && S.seed !== undefined ? S.seed + 1 : undefined));
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT" || !$("ov-upgrade").hidden || !$("ov-end").hidden) return;
-  if (e.key >= "1" && e.key <= "5") { if (!busy) { g.dice[+e.key - 1].locked = !g.dice[+e.key - 1].locked; render(); } }
-  else if (e.key === "g") fire(); else if (e.key === "j") play();
+  if (e.key >= "1" && e.key <= "5") lock(+e.key - 1); else if (e.key === "g") fire(); else if (e.key === "j") play();
 });
-newGame();
+resume();
 </script>
