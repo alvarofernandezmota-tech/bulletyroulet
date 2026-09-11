@@ -19,6 +19,9 @@ class Personality:
     live_rounds: int = 1  # balas en el tambor compartido
 
 
+DEFAULT_RIVAL = "sheriff"
+
+# Solo el Sheriff está expuesto en la interfaz de momento; los demás quedan para pruebas y balance.
 PERSONALITIES: dict[str, Personality] = {
     "cauto": Personality("cauto", "El Cauto", 0.20, 0.9, "Prefiero llegar vivo a casa."),
     "tahur": Personality("tahur", "El Tahúr", 0.34, 1.1, "Las cartas no mienten. Los dados tampoco."),

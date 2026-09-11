@@ -59,8 +59,8 @@ def show_ai_turn(d: Duel, pers: Personality) -> None:
         pause(0.5)
 
 
-def run_duel(seed: int | None = None, rival_key: str = "tahur") -> int:
-    pers = PERSONALITIES.get(rival_key, PERSONALITIES["tahur"])
+def run_duel(seed: int | None = None, rival_key: str = "sheriff") -> int:
+    pers = PERSONALITIES.get(rival_key, PERSONALITIES["sheriff"])
     rng = random.Random(seed)
     fx = random.Random()
     d = make_duel(rng, pers)

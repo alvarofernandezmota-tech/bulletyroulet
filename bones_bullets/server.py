@@ -87,7 +87,7 @@ class Session:
     game: GameState | Duel
     seed: int
     mode: str = "solo"
-    rival: str = "tahur"
+    rival: str = "sheriff"
 
     def state(self) -> dict:
         if self.mode == "duel":
@@ -102,12 +102,12 @@ class Games:
         self._games: dict[str, Session] = {}
         self._lock = threading.Lock()
 
-    def new(self, seed: int | None, mode: str = "solo", rival: str = "tahur") -> tuple[str, Session]:
+    def new(self, seed: int | None, mode: str = "solo", rival: str = "sheriff") -> tuple[str, Session]:
         if seed is None:
             seed = random.SystemRandom().randrange(1_000_000_000)
         rng = random.Random(seed)
         if mode == "duel":
-            rival = rival if rival in PERSONALITIES else "tahur"
+            rival = rival if rival in PERSONALITIES else "sheriff"
             sess = Session(make_duel(rng, PERSONALITIES[rival]), seed, "duel", rival)
         else:
             sess = Session(GameState(rng), seed)
@@ -232,7 +232,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/new":
             seed = body.get("seed")
             seed = int(seed) if isinstance(seed, (int, str)) and str(seed).strip().lstrip("-").isdigit() else None
-            token, sess = GAMES.new(seed, str(body.get("mode", "solo")), str(body.get("rival", "tahur")))
+            token, sess = GAMES.new(seed, str(body.get("mode", "solo")), str(body.get("rival", "sheriff")))
             return self._json(200, {"token": token, "state": sess.state()})
         if path == "/api/rivals":
             return self._json(200, {"rivals": [{"key": p.key, "name": p.name, "taunt": p.taunt, "risk": p.max_risk, "lives": p.lives, "bullets": p.live_rounds} for p in PERSONALITIES.values()]})

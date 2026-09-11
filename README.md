@@ -27,22 +27,20 @@ Cada ronda los dos jugáis una mano; el que menos puntos haga recibe una
 herida (si ya sangró por una bala esa ronda, no sangra dos veces). Con tres
 heridas, fuera. Empieza cada ronda quien perdió la anterior. Sin mejoras.
 
-Tres rivales, cada uno con su tolerancia al riesgo:
-
-| Rival | Aprieta hasta | Carácter |
-|-------|---------------|----------|
-| El Cauto | 20% | No arriesga. Fácil si tú sí lo haces. |
-| El Tahúr | 34% | Busca full o póker con cabeza. |
-| El Loco | 50% | Aprieta mientras no le convenza la mano. Muere mucho; cuando no, arrasa. |
-| El Sheriff | 50% | Jefe final: tres balas en el tambor para los dos y cinco vidas para él. |
+De momento hay un solo rival: **El Sheriff**. Tres balas en el tambor para
+los dos y cinco vidas para él. Aprieta hasta un 50% de riesgo. En la web
+aparece de cuerpo entero y reacciona a lo que pasa en la mesa.
 
 ```
-python -m bones_bullets --duelo            # contra El Tahúr
-python -m bones_bullets --duelo loco 42    # rival y semilla
-python -m bones_bullets --duelo sheriff    # jefe final
+python -m bones_bullets --duelo        # contra El Sheriff
+python -m bones_bullets --duelo 42     # con semilla
 ```
 
-En la web, los botones de modo bajo el título.
+Hay otros tres rivales definidos en `bones_bullets/ai.py` (cauto, tahur,
+loco) que no se muestran en la interfaz; sirven para pruebas y balance y se
+pueden activar pasando su nombre: `python -m bones_bullets --duelo loco`.
+
+En la web, los dos botones de modo bajo el título: Solitario y Duelo.
 
 ### En la terminal
 

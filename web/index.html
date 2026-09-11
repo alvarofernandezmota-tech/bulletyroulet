@@ -255,10 +255,7 @@
 
   <nav class="modes" aria-label="Modo de juego">
     <button type="button" id="mode-solo" aria-pressed="true">Solitario</button>
-    <button type="button" id="mode-cauto" aria-pressed="false">Duelo · El Cauto</button>
-    <button type="button" id="mode-tahur" aria-pressed="false">Duelo · El Tahúr</button>
-    <button type="button" id="mode-loco" aria-pressed="false">Duelo · El Loco</button>
-    <button type="button" id="mode-sheriff" aria-pressed="false">Duelo · El Sheriff</button>
+    <button type="button" id="mode-sheriff" aria-pressed="false">Duelo contra El Sheriff</button>
   </nav>
 
   <section class="hud" aria-label="Estado de la partida">
@@ -348,7 +345,7 @@ const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6,
 const HANDS = ["carta alta", "pareja", "dobles parejas", "trío", "escalera", "full", "póker", "repóker"];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-let S = null, token = null, busy = false, mode = "solo", rival = "tahur";
+let S = null, token = null, busy = false, mode = "solo", rival = "sheriff";
 
 async function api(path, body) {
   const res = await fetch("/api/" + path, { method: body === undefined ? "GET" : "POST", headers: { "Content-Type": "application/json", "X-Game": token || "" }, body: body === undefined ? undefined : JSON.stringify(body) });
