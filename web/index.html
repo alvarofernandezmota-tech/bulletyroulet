@@ -1,194 +1,171 @@
 <title>Bones & Bullets</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rye&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap">
 <style>
   :root {
-    --ground: #17120e;
-    --table: #221b15;
-    --felt: #2b241c;
-    --line: #3d3328;
-    --bone: #e9dfc9;
-    --bone-dim: #a89d86;
-    --brass: #c99a3f;
-    --brass-deep: #8a6524;
-    --blood: #b8262b;
-    --silver: #b9c4cc;
-    --moss: #7f9a5c;
+    --ground: #06070a;
+    --card: #15161a;
+    --card-2: #1d1e23;
+    --tile: #2a2b31;
+    --tile-2: #35363d;
+    --edge: #8d8f97;
+    --edge-dim: #4a4b52;
+    --ink: #e8e8e6;
+    --ink-dim: #8d8f97;
+    --teal: #1f7a6d; --teal-ink: #57e0c8;
+    --red: #8a1a2b; --red-ink: #ff5a6e;
+    --purple: #4a2a6a; --purple-ink: #c48cff;
+    --green: #35c94f; --green-deep: #1b6b2c;
+    --orange: #c8801c; --orange-deep: #7a4a0e;
+    --blood: #d8203a;
+    --bone: #f2efe6;
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0;
-    background: var(--ground);
-    background-image: radial-gradient(ellipse at 50% 0%, #2a2018 0%, var(--ground) 60%);
-    color: var(--bone);
-    font-family: "Crimson Pro", Georgia, "Times New Roman", serif;
-    font-size: 18px;
-    line-height: 1.4;
-    padding-block: 24px 48px;
-    padding-inline: 16px;
-    min-height: 100vh;
+    margin: 0; background: var(--ground);
+    background-image: radial-gradient(ellipse at 50% 10%, #101a24 0%, var(--ground) 55%);
+    color: var(--ink);
+    font-family: "VT323", "Courier New", monospace; font-size: 22px; line-height: 1.2;
+    padding-block: 16px 40px; padding-inline: 16px; min-height: 100vh;
+    image-rendering: pixelated;
   }
-  .table {
-    max-width: 640px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-  }
+  .px { font-family: "Press Start 2P", "VT323", monospace; font-size: 11px; letter-spacing: .02em; line-height: 1.6; }
+  .table { max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
   header { text-align: center; }
   h1 {
-    font-family: "Rye", "Crimson Pro", serif;
-    font-weight: 400;
-    font-size: clamp(34px, 8vw, 52px);
-    letter-spacing: 0.02em;
-    margin: 0;
-    color: var(--brass);
-    text-shadow: 0 2px 0 var(--brass-deep), 0 6px 18px rgba(0,0,0,.6);
-    text-wrap: balance;
+    font-family: "Press Start 2P", monospace; font-weight: 400; font-size: clamp(16px, 5vw, 22px);
+    margin: 0; color: var(--bone); text-shadow: 3px 3px 0 #000, 0 0 18px rgba(255,255,255,.15); text-wrap: balance;
   }
-  header p {
-    margin: 4px 0 0;
-    color: var(--bone-dim);
-    font-style: italic;
-  }
-  .mono { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
-  .label {
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--bone-dim);
-  }
+  header p { margin: 6px 0 0; color: var(--ink-dim); font-size: 20px; }
+  .mono { font-family: "VT323", monospace; font-variant-numeric: tabular-nums; }
+  .label { font-family: "Press Start 2P", monospace; font-size: 9px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-dim); }
 
-  /* HUD */
-  .hud {
-    background: var(--table);
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    padding: 14px 16px;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 10px 16px;
-    align-items: end;
+  /* marco de tarjeta con borde "dentado" */
+  .frame {
+    background: var(--card); padding: 10px;
+    border: 4px solid var(--edge-dim);
+    box-shadow: 0 0 0 2px #000, inset 0 0 0 2px #000;
+    display: flex; flex-direction: column; gap: 10px;
   }
-  .hud .big { font-size: 28px; font-weight: 600; line-height: 1; }
-  .hearts { font-size: 26px; letter-spacing: 2px; line-height: 1; }
-  .hearts .lost { color: var(--line); }
-  .hearts .have { color: var(--blood); }
-  .progress { grid-column: 1 / -1; height: 8px; background: var(--felt); border-radius: 4px; overflow: hidden; }
-  .progress > div { height: 100%; background: var(--brass); width: 0%; transition: width .4s ease; }
-  .hud-row { display: flex; gap: 18px; flex-wrap: wrap; align-items: baseline; }
+  .tile {
+    background: var(--tile); border: 3px solid var(--edge); box-shadow: 0 0 0 2px #000, inset 0 0 0 2px #000;
+    padding: 6px 8px; text-align: center;
+  }
+  .tile .label { display: block; margin-bottom: 4px; }
+  .tile .big { font-family: "VT323", monospace; font-size: 40px; line-height: .9; color: var(--ink); }
+  .tile.teal { background: var(--teal); border-color: #7fd9c8; } .tile.teal .big, .tile.teal .label { color: #eafff9; }
+  .tile.red { background: var(--red); border-color: #ff9aa8; } .tile.red .big, .tile.red .label { color: #ffe9ec; }
+  .tile.purple { background: var(--purple); border-color: #d2b0ff; } .tile.purple .big, .tile.purple .label { color: #f3e9ff; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .hearts { font-size: 26px; letter-spacing: 3px; line-height: 1; text-align: center; }
+  .hearts .lost { color: var(--edge-dim); } .hearts .have { color: var(--blood); text-shadow: 2px 2px 0 #000; }
+  .progress { height: 10px; background: #000; border: 2px solid var(--edge-dim); }
+  .progress > div { height: 100%; background: var(--teal-ink); width: 0%; transition: width .3s steps(6); }
 
-  /* dice */
-  .dice { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  /* modos */
+  .modes { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .modes button { font-family: "Press Start 2P", monospace; font-size: 9px; padding: 8px 10px; border: 3px solid var(--edge-dim); background: var(--card); color: var(--ink-dim); cursor: pointer; box-shadow: 0 0 0 2px #000; }
+  .modes button[aria-pressed="true"] { border-color: var(--edge); color: var(--ink); background: var(--tile); }
+  .modes button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+  /* escenario del rival: encima de la tarjeta, como el esqueleto */
+  .rival {
+    background: linear-gradient(180deg, #0b0d12, #15161a); border: 4px solid var(--edge-dim); border-bottom: none;
+    box-shadow: 0 0 0 2px #000; padding: 8px 10px 0; margin-bottom: -10px;
+    display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto 1fr; gap: 4px 12px; align-items: start;
+  }
+  .rival[hidden] { display: none !important; }
+  .rival .name { font-family: "Press Start 2P", monospace; font-size: 11px; color: var(--bone); text-shadow: 2px 2px 0 #000; margin-top: 6px; }
+  .rival .status { color: var(--ink-dim); font-size: 20px; }
+  .rival .hearts { text-align: left; font-size: 20px; }
+  .rival .mini { display: flex; gap: 5px; align-self: end; padding-bottom: 10px; }
+  .mini .d { width: 30px; height: 30px; background: var(--bone); border: 3px solid #000; display: grid; place-items: center; font-family: "VT323", monospace; font-size: 24px; color: #000; line-height: 1; }
+  .mini .d.hidden { color: transparent; background: repeating-linear-gradient(45deg, #3a3b42 0 4px, #15161a 4px 7px); border-color: var(--edge-dim); }
+  .rival .mini { min-height: 40px; }
+  .rival.active { border-color: var(--edge); }
+  .turn-banner { text-align: center; font-family: "Press Start 2P", monospace; font-size: 9px; color: var(--green); min-height: 1.4em; text-shadow: 2px 2px 0 #000; }
+
+  /* dados */
+  .dice { display: flex; gap: 6px; justify-content: center; }
   .die {
-    width: 84px; height: 84px;
-    background: var(--bone);
-    color: #1a1410;
-    border-radius: 14px;
-    border: none;
-    box-shadow: inset 0 -4px 0 rgba(0,0,0,.18), 0 6px 14px rgba(0,0,0,.5);
+    width: 64px; height: 64px; flex: 0 0 auto;
+    background: var(--bone); border: 4px solid #000; box-shadow: 0 0 0 2px var(--edge-dim), inset -4px -4px 0 #cfcbc0;
     display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
-    padding: 12px; cursor: pointer; position: relative;
-    transition: transform .12s ease, box-shadow .12s ease;
+    padding: 7px; cursor: pointer; position: relative; transition: transform .08s steps(2);
   }
-  .die:focus-visible { outline: 3px solid var(--brass); outline-offset: 3px; }
-  .die.locked { transform: translateY(6px); box-shadow: inset 0 -2px 0 rgba(0,0,0,.18), 0 0 0 3px var(--brass), 0 2px 6px rgba(0,0,0,.5); }
-  .die.loaded { background: linear-gradient(160deg, #f2e6c8, #cdb98a); }
-  .die.rolling { animation: tumble .12s linear infinite; }
-  @keyframes tumble { 0% { transform: rotate(-6deg) } 50% { transform: rotate(6deg) } 100% { transform: rotate(-6deg) } }
-  .pip { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-  .pip::after { content: ""; width: 14px; height: 14px; border-radius: 50%; background: #1a1410; opacity: 0; }
+  .die:focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
+  .die.locked { transform: translateY(5px); box-shadow: 0 0 0 3px var(--green), inset -2px -2px 0 #cfcbc0; background: #d9f5df; }
+  .die.loaded { background: #ffe9a8; }
+  .die.rolling { animation: tumble .1s steps(2) infinite; }
+  @keyframes tumble { 0% { transform: translate(-2px, 1px) } 100% { transform: translate(2px, -1px) } }
+  .pip { display: flex; align-items: center; justify-content: center; }
+  .pip::after { content: ""; width: 10px; height: 10px; background: #000; opacity: 0; }
   .pip.on::after { opacity: 1; }
-  .die .idx { position: absolute; bottom: -22px; left: 0; right: 0; text-align: center; font-size: 12px; color: var(--bone-dim); }
-  .die .lock { position: absolute; top: -10px; right: -6px; background: var(--brass); color: #1a1410; font-size: 11px; padding: 2px 6px; border-radius: 3px; font-family: "IBM Plex Mono", monospace; display: none; }
+  .die .idx { position: absolute; bottom: -20px; left: 0; right: 0; text-align: center; font-size: 16px; color: var(--ink-dim); }
+  .die .lock { position: absolute; top: -12px; right: -8px; background: var(--green); color: #000; font-family: "Press Start 2P", monospace; font-size: 7px; padding: 3px 4px; border: 2px solid #000; display: none; }
   .die.locked .lock { display: block; }
-  .dice-wrap { padding-bottom: 22px; }
-  .hand {
-    text-align: center; font-size: 22px;
-  }
-  .hand b { color: var(--brass); font-weight: 600; }
-  .tags { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; min-height: 24px; }
-  .tag { font-family: "IBM Plex Mono", monospace; font-size: 12px; padding: 2px 8px; border-radius: 3px; border: 1px solid var(--line); color: var(--bone-dim); }
-  .tag.silver { border-color: var(--silver); color: var(--silver); }
-  .tag.streak { border-color: var(--moss); color: var(--moss); }
-  .tag.shield { border-color: var(--brass); color: var(--brass); }
+  .dice-wrap { padding-bottom: 18px; }
+  .hand { text-align: center; font-size: 22px; color: var(--ink-dim); }
+  .hand b { color: var(--bone); font-weight: 400; }
+  .tags { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; min-height: 22px; }
+  .tag { font-family: "Press Start 2P", monospace; font-size: 8px; padding: 4px 6px; border: 2px solid var(--edge-dim); color: var(--ink-dim); background: #000; }
+  .tag.silver { border-color: #cfd6dc; color: #cfd6dc; }
+  .tag.streak { border-color: var(--green); color: var(--green); }
+  .tag.shield { border-color: var(--orange); color: var(--orange); }
 
-  /* revolver */
-  .revolver {
-    background: var(--table); border: 1px solid var(--line); border-radius: 6px;
-    padding: 14px 16px; display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; align-items: center;
-  }
-  .cyl { width: 96px; height: 96px; }
-  .cyl.spinning { animation: spin .9s cubic-bezier(.2,.8,.3,1); }
+  /* revólver */
+  .revolver { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; background: var(--tile); border: 3px solid var(--edge-dim); box-shadow: 0 0 0 2px #000; padding: 8px 10px; }
+  .cyl { width: 72px; height: 72px; }
+  .cyl.spinning { animation: spin .8s steps(12); }
   @keyframes spin { from { transform: rotate(0) } to { transform: rotate(720deg) } }
-  .risk { font-size: 30px; font-weight: 600; line-height: 1; }
-  .risk.low { color: var(--moss); } .risk.mid { color: var(--brass); } .risk.high { color: var(--blood); }
-  .chamber-list { color: var(--bone-dim); font-size: 15px; }
+  .risk { font-family: "VT323", monospace; font-size: 40px; line-height: .9; }
+  .risk.low { color: var(--green); } .risk.mid { color: var(--orange); } .risk.high { color: var(--red-ink); }
+  .chamber-list { color: var(--ink-dim); font-size: 19px; }
 
-  /* actions */
-  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  /* botones grandes */
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .btn {
-    font-family: "Crimson Pro", serif; font-size: 20px; font-weight: 600;
-    padding: 14px 10px; border-radius: 6px; border: 1px solid var(--line);
-    background: var(--felt); color: var(--bone); cursor: pointer;
+    font-family: "Press Start 2P", monospace; font-size: 11px; line-height: 1.5; color: #000;
+    padding: 16px 8px; border: 4px solid #000; box-shadow: 0 0 0 2px var(--edge-dim), inset -5px -5px 0 rgba(0,0,0,.35);
+    cursor: pointer; text-align: center; position: relative;
   }
-  .btn:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
-  .btn:disabled { opacity: .45; cursor: default; }
-  .btn.fire { background: linear-gradient(180deg, #a3222a, #7a161c); border-color: #5e0f14; }
-  .btn.play { background: linear-gradient(180deg, #b58a37, var(--brass-deep)); border-color: #5f4418; color: #1a1410; }
-  .btn small { display: block; font-weight: 400; font-size: 13px; opacity: .85; }
+  .btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 2px var(--edge-dim), inset -2px -2px 0 rgba(0,0,0,.35); }
+  .btn:focus-visible { outline: 3px solid var(--bone); outline-offset: 2px; }
+  .btn:disabled { filter: grayscale(.8) brightness(.5); cursor: default; }
+  .btn.play { background: var(--green); order: 1; }
+  .btn.fire { background: var(--orange); order: 2; }
+  .btn small { display: block; font-family: "VT323", monospace; font-size: 18px; margin-top: 4px; opacity: .8; text-transform: none; }
 
-  .log {
-    min-height: 3em; border-left: 3px solid var(--line); padding-left: 12px; color: var(--bone-dim); font-style: italic;
-  }
-  .log.bang { color: var(--blood); border-color: var(--blood); font-style: normal; font-weight: 600; }
-  .log.good { color: var(--moss); border-color: var(--moss); }
+  .log { min-height: 2.4em; border-left: 4px solid var(--edge-dim); padding-left: 10px; color: var(--ink-dim); font-size: 21px; }
+  .log.bang { color: var(--red-ink); border-color: var(--blood); }
+  .log.good { color: var(--green); border-color: var(--green); }
 
-  details { color: var(--bone-dim); }
-  summary { cursor: pointer; color: var(--bone); }
+  details { color: var(--ink-dim); font-size: 20px; }
+  summary { cursor: pointer; color: var(--ink); font-family: "Press Start 2P", monospace; font-size: 9px; }
   details table { border-collapse: collapse; margin-top: 8px; }
   details td { padding: 2px 12px 2px 0; }
   details ul { padding-left: 20px; margin: 8px 0; }
 
-  /* overlays */
-  .overlay {
-    position: fixed; inset: 0; background: rgba(10,7,5,.82); display: flex; align-items: center; justify-content: center;
-    padding: 16px; z-index: 10;
-  }
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
   .overlay[hidden] { display: none !important; }
-  .panel {
-    background: var(--table); border: 1px solid var(--brass-deep); border-radius: 8px; padding: 22px; max-width: 460px; width: 100%;
-    display: flex; flex-direction: column; gap: 12px;
-  }
-  .panel h2 { font-family: "Rye", serif; font-weight: 400; color: var(--brass); margin: 0; font-size: 28px; }
-  .panel h2.bad { color: var(--blood); }
-  .upgrade {
-    text-align: left; font-family: "Crimson Pro", serif; font-size: 18px; padding: 12px 14px;
-    background: var(--felt); border: 1px solid var(--line); border-radius: 6px; color: var(--bone); cursor: pointer;
-  }
-  .upgrade:hover, .upgrade:focus-visible { border-color: var(--brass); outline: none; }
-  .upgrade b { display: block; color: var(--brass); }
+  .panel { background: var(--card); border: 4px solid var(--edge); box-shadow: 0 0 0 2px #000; padding: 18px; max-width: 420px; width: 100%; display: flex; flex-direction: column; gap: 12px; }
+  .panel h2 { font-family: "Press Start 2P", monospace; font-weight: 400; color: var(--green); margin: 0; font-size: 14px; text-shadow: 2px 2px 0 #000; }
+  .panel h2.bad { color: var(--red-ink); }
+  .upgrade { text-align: left; font-family: "VT323", monospace; font-size: 22px; padding: 10px 12px; background: var(--tile); border: 3px solid var(--edge-dim); color: var(--ink); cursor: pointer; }
+  .upgrade:hover, .upgrade:focus-visible { border-color: var(--green); outline: none; }
+  .upgrade b { display: block; color: var(--green); font-family: "Press Start 2P", monospace; font-size: 9px; margin-bottom: 4px; }
   .bang-flash { position: fixed; inset: 0; background: var(--blood); opacity: 0; pointer-events: none; z-index: 5; }
-  .bang-flash.on { animation: flash .5s ease-out; }
-  @keyframes flash { 0% { opacity: .85 } 100% { opacity: 0 } }
-  .seed { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; color: var(--bone-dim); font-size: 15px; }
-  .seed input { width: 90px; background: var(--felt); border: 1px solid var(--line); color: var(--bone); padding: 4px 8px; border-radius: 4px; font-family: "IBM Plex Mono", monospace; }
-  .seed button { background: none; border: 1px solid var(--line); color: var(--bone); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-family: inherit; }
-  /* modo y rival */
-  .modes { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-  .modes button { font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; padding: 6px 12px; border-radius: 4px; border: 1px solid var(--line); background: none; color: var(--bone-dim); cursor: pointer; }
-  .modes button[aria-pressed="true"] { border-color: var(--brass); color: var(--brass); }
-  .modes button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
-  .rival {
-    background: var(--table); border: 1px solid var(--line); border-radius: 6px; padding: 12px 16px;
-    display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: center;
-  }
-  .rival[hidden] { display: none !important; }
-  .rival { grid-template-columns: auto 1fr auto; }
-  .portrait { width: 110px; height: 220px; grid-row: 1 / span 3; align-self: end; overflow: visible; filter: drop-shadow(0 6px 10px rgba(0,0,0,.55)); }
+  .bang-flash.on { animation: flash .4s steps(3); }
+  @keyframes flash { 0% { opacity: .9 } 100% { opacity: 0 } }
+  .seed { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; color: var(--ink-dim); font-size: 20px; }
+  .seed input { width: 110px; background: #000; border: 3px solid var(--edge-dim); color: var(--ink); padding: 4px 8px; font-family: "VT323", monospace; font-size: 22px; }
+  .seed button { background: var(--tile); border: 3px solid var(--edge-dim); color: var(--ink); padding: 6px 10px; cursor: pointer; font-family: "Press Start 2P", monospace; font-size: 8px; }
+  @media (prefers-reduced-motion: reduce) { .cyl.spinning, .die.rolling, .bang-flash.on { animation: none; } .progress > div { transition: none; } }
+  @media (max-width: 420px) { .actions { grid-template-columns: 1fr 1fr; } .tile .big { font-size: 32px; } .die { width: 54px; height: 54px; padding: 6px; } .pip::after { width: 8px; height: 8px; } .dice { gap: 5px; } }
+  .portrait { width: 96px; height: 192px; grid-row: 1 / span 3; align-self: end; overflow: visible; filter: drop-shadow(4px 4px 0 #000) contrast(1.05); }
   .rival { grid-template-rows: auto auto 1fr; align-items: start; }
   .rival .mini { align-self: end; }
-  @media (max-width: 420px) { .portrait { width: 84px; height: 168px; } }
+  @media (max-width: 420px) { .portrait { width: 80px; height: 160px; } }
   .portrait * { transform-box: fill-box; }
   /* reposo: respira y parpadea */
   .portrait .body { transform-origin: 50% 100%; animation: breathe 2.6s ease-in-out infinite; }
@@ -250,61 +227,68 @@
 <div class="table">
   <header>
     <h1>Bones &amp; Bullets</h1>
-    <p>Cinco dados, un revólver, una bala. Relanzar cuesta apretar el gatillo.</p>
+    <p>Cinco dados. Un revólver. Relanzar cuesta apretar el gatillo.</p>
   </header>
 
   <nav class="modes" aria-label="Modo de juego">
     <button type="button" id="mode-solo" aria-pressed="true">Solitario</button>
-    <button type="button" id="mode-sheriff" aria-pressed="false">Duelo contra El Sheriff</button>
+    <button type="button" id="mode-sheriff" aria-pressed="false">Duelo · Sheriff</button>
   </nav>
-
-  <section class="hud" aria-label="Estado de la partida">
-    <div>
-      <div class="label">Nivel <span id="lvl" class="mono">1</span> de 8 · Objetivo</div>
-      <div class="hud-row">
-        <span class="big mono"><span id="score">0</span> / <span id="target">69</span></span>
-        <span class="label">Manos <span id="hands" class="mono">3</span></span>
-      </div>
-    </div>
-    <div class="hearts" id="hearts" aria-label="Vida"></div>
-    <div class="progress"><div id="bar"></div></div>
-  </section>
 
   <section class="rival" id="rival" hidden aria-label="Rival">
     <svg class="portrait" id="rv-portrait" viewBox="0 0 100 200" aria-hidden="true"></svg>
-    <div><div class="name" id="rv-name">El Tahúr</div><div class="status" id="rv-status">esperando</div></div>
+    <div><div class="name" id="rv-name">El Sheriff</div><div class="status" id="rv-status">esperando</div></div>
     <div class="hearts" id="rv-hearts"></div>
     <div class="mini" id="rv-dice"></div>
   </section>
-  <div class="turn-banner" id="turn"></div>
 
-  <section class="dice-wrap" aria-label="Dados">
-    <div class="dice" id="dice"></div>
-  </section>
+  <div class="frame">
+    <div class="turn-banner" id="turn"></div>
 
-  <div class="hand" id="hand"></div>
-  <div class="tags" id="tags"></div>
+    <section class="row2" aria-label="Nivel y objetivo">
+      <div class="tile"><span class="label" id="lbl-lvl">Nivel</span><span class="big mono" id="lvl-tile"><span id="lvl">1</span>/8</span></div>
+      <div class="tile"><span class="label" id="lbl-target">Objetivo</span><span class="big mono" id="target">69</span></div>
+    </section>
 
-  <section class="revolver" aria-label="Revólver">
-    <svg class="cyl" id="cyl" viewBox="0 0 100 100" aria-hidden="true"></svg>
-    <div>
-      <div class="label">Riesgo de bala</div>
-      <div class="risk mono" id="risk">17%</div>
-      <div class="chamber-list" id="chambers"></div>
+    <section class="row3" aria-label="Puntuación">
+      <div class="tile teal"><span class="label">Huesos</span><span class="big mono" id="sum">0</span></div>
+      <div class="tile red"><span class="label">Mult</span><span class="big mono" id="mult">1</span></div>
+      <div class="tile purple"><span class="label" id="lbl-total">Total</span><span class="big mono" id="score">0</span></div>
+    </section>
+
+    <div class="progress"><div id="bar"></div></div>
+    <div class="row2" style="align-items:center">
+      <div class="hearts" id="hearts" aria-label="Vida"></div>
+      <div class="label" style="text-align:center">Manos <span id="hands" class="mono" style="font-size:22px;color:var(--ink)">3</span></div>
     </div>
-  </section>
 
-  <div class="actions">
-    <button class="btn fire" id="btn-fire">Apretar el gatillo<small>relanza los dados libres · si no hay bala</small></button>
-    <button class="btn play" id="btn-play">Jugar la mano<small>suma los puntos y gasta una mano</small></button>
+    <section class="dice-wrap" aria-label="Dados">
+      <div class="dice" id="dice"></div>
+    </section>
+    <div class="hand" id="hand"></div>
+    <div class="tags" id="tags"></div>
+
+    <div class="actions">
+      <button class="btn play" id="btn-play">Jugar mano<small>suma y gasta una mano</small></button>
+      <button class="btn fire" id="btn-fire">Relanzar<small id="fire-sub">gatillo · riesgo 17%</small></button>
+    </div>
+
+    <section class="revolver" aria-label="Revólver">
+      <svg class="cyl" id="cyl" viewBox="0 0 100 100" aria-hidden="true"></svg>
+      <div>
+        <div class="label">Riesgo de bala</div>
+        <div class="risk mono" id="risk">17%</div>
+        <div class="chamber-list" id="chambers"></div>
+      </div>
+    </section>
+
+    <div class="log" id="log">Toca un dado para bloquearlo. Los bloqueados no se relanzan.</div>
   </div>
-
-  <div class="log" id="log">Toca un dado para bloquearlo. Los bloqueados no se relanzan.</div>
 
   <details>
     <summary>Reglas y multiplicadores</summary>
     <ul>
-      <li>Cada mano suma <b>los cinco dados</b> y multiplica según la combinación. Tres manos por nivel; llega al objetivo o pierdes.</li>
+      <li>Cada mano suma <b>los cinco dados</b> (huesos) y multiplica según la combinación. Tres manos por nivel; llega al objetivo o pierdes.</li>
       <li>El tambor tiene 6 recámaras y 1 bala. Cada apretón descarta una recámara al azar, así que el riesgo sube hasta que se recarga.</li>
       <li>Bala: una herida, la mano vale cero y se gasta. Tres heridas y se acabó.</li>
       <li>Racha: cada click seguro seguido suma +0,5 al multiplicador de esa mano.</li>
@@ -368,12 +352,12 @@ function dieEl(d, i) {
 
 function drawCylinder() {
   const n = S.cylinder.remaining, total = 6;
-  let out = `<circle cx="50" cy="50" r="46" fill="#3a3129" stroke="#1a1410" stroke-width="2"/>`;
+  let out = `<circle cx="50" cy="50" r="46" fill="#2a2b31" stroke="#000" stroke-width="4"/>`;
   for (let i = 0; i < total; i++) {
     const a = (i / total) * Math.PI * 2 - Math.PI / 2, x = 50 + 30 * Math.cos(a), y = 50 + 30 * Math.sin(a);
-    out += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" fill="${i < n ? "#c99a3f" : "#1a1410"}" stroke="#1a1410" stroke-width="1.5"/>`;
+    out += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" fill="${i < n ? "#e8e8e6" : "#000"}" stroke="#000" stroke-width="3"/>`;
   }
-  $("cyl").innerHTML = out + `<circle cx="50" cy="50" r="6" fill="#1a1410"/>`;
+  $("cyl").innerHTML = out + `<circle cx="50" cy="50" r="6" fill="#000"/>`;
 }
 
 // Personaje animado: un esqueleto común (cuerpo, brazo, revólver, ojos, boca) y una cabeza por rival.
@@ -497,8 +481,9 @@ function render() {
   const h = S.hand, duel = S.mode === "duel";
   document.querySelectorAll(".modes button").forEach(b => b.setAttribute("aria-pressed", String(b.id === "mode-" + (duel ? S.rival : "solo"))));
   if (duel) {
-    document.querySelector(".hud .label").innerHTML = `Ronda <span id="lvl" class="mono">${S.round}</span> · Rondas ganadas tú / rival`;
-    $("score").textContent = S.me.rounds_won; $("target").textContent = S.opponent.rounds_won;
+    $("lbl-lvl").textContent = "Ronda"; $("lvl-tile").innerHTML = `<span id="lvl">${S.round}</span>`;
+    $("lbl-target").textContent = "Rival"; $("target").textContent = S.opponent.played ? S.opponent.played.points : "?";
+    $("lbl-total").textContent = "Rondas"; $("score").textContent = `${S.me.rounds_won}-${S.opponent.rounds_won}`;
     $("hands").parentElement.hidden = true;
     $("bar").style.width = "0%";
     $("hearts").innerHTML = hearts(S.me.wounds, S.me.max_wounds);
@@ -507,12 +492,15 @@ function render() {
     $("turn").textContent = S.game_over ? "" : S.my_turn ? "Tu turno" : `Turno de ${S.rival_name}`;
   } else {
     $("rival").hidden = true; $("turn").textContent = "";
-    document.querySelector(".hud .label").innerHTML = `Nivel <span id="lvl" class="mono">${S.level}</span> de 8 · Objetivo`;
-    $("score").textContent = S.score; $("target").textContent = S.target; $("hands").textContent = S.hands_left; $("hands").parentElement.hidden = false;
+    $("lbl-lvl").textContent = "Nivel"; $("lvl-tile").innerHTML = `<span id="lvl">${S.level}</span>/8`;
+    $("lbl-target").textContent = "Objetivo"; $("target").textContent = S.target;
+    $("lbl-total").textContent = "Total"; $("score").textContent = S.score;
+    $("hands").textContent = S.hands_left; $("hands").parentElement.hidden = false;
     $("bar").style.width = Math.min(100, 100 * S.score / S.target) + "%";
     $("hearts").innerHTML = hearts(S.wounds, S.max_wounds);
     $("dice").replaceChildren(...S.dice.map(dieEl));
   }
+  $("sum").textContent = h.total; $("mult").textContent = h.mult;
   const me = duel ? S.me : S;
   $("hand").innerHTML = `<b>${h.hand}</b> · ${h.total} × ${h.mult} = <b class="mono">${h.points}</b>`;
   const tags = [];
@@ -522,6 +510,7 @@ function render() {
   $("tags").innerHTML = tags.join("");
   const r = S.cylinder.risk, rk = $("risk");
   rk.textContent = Math.round(r * 100) + "%"; rk.className = "risk mono " + (r >= 0.34 ? "high" : r >= 0.2 ? "mid" : "low");
+  $("fire-sub").textContent = `gatillo · riesgo ${Math.round(r * 100)}%`;
   const parts = [`${S.cylinder.remaining} recámaras`, `${S.cylinder.live} ${S.cylinder.live === 1 ? "bala" : "balas"}`];
   [["fogueo", "blank"], ["plata", "silver"], ["rebote", "bounce"]].forEach(([n, k]) => { if (S.cylinder[k]) parts.push(`${S.cylinder[k]} ${n}`); });
   $("chambers").textContent = parts.join(" · ");
