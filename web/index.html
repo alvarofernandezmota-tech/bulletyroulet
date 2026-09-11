@@ -174,6 +174,23 @@
   .seed { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; color: var(--bone-dim); font-size: 15px; }
   .seed input { width: 90px; background: var(--felt); border: 1px solid var(--line); color: var(--bone); padding: 4px 8px; border-radius: 4px; font-family: "IBM Plex Mono", monospace; }
   .seed button { background: none; border: 1px solid var(--line); color: var(--bone); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-family: inherit; }
+  /* modo y rival */
+  .modes { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .modes button { font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; padding: 6px 12px; border-radius: 4px; border: 1px solid var(--line); background: none; color: var(--bone-dim); cursor: pointer; }
+  .modes button[aria-pressed="true"] { border-color: var(--brass); color: var(--brass); }
+  .modes button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .rival {
+    background: var(--table); border: 1px solid var(--line); border-radius: 6px; padding: 12px 16px;
+    display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: center;
+  }
+  .rival[hidden] { display: none !important; }
+  .rival .name { font-family: "Rye", serif; font-size: 20px; color: var(--bone); }
+  .rival .status { color: var(--bone-dim); font-style: italic; }
+  .rival .mini { display: flex; gap: 6px; grid-column: 1 / -1; }
+  .mini .d { width: 30px; height: 30px; border-radius: 6px; background: var(--felt); border: 1px solid var(--line); display: grid; place-items: center; font-family: "IBM Plex Mono", monospace; font-weight: 600; color: var(--bone); font-size: 15px; }
+  .mini .d.hidden { color: transparent; background: repeating-linear-gradient(45deg, var(--felt) 0 4px, var(--line) 4px 6px); }
+  .turn-banner { text-align: center; font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); min-height: 1.2em; }
+  .rival.active { border-color: var(--brass-deep); }
   @media (prefers-reduced-motion: reduce) { .cyl.spinning, .die.rolling, .bang-flash.on { animation: none; } .progress > div { transition: none; } }
   @media (max-width: 420px) { .die { width: 60px; height: 60px; padding: 8px; border-radius: 10px; } .pip::after { width: 10px; height: 10px; } .actions { grid-template-columns: 1fr; } }
 </style>
@@ -183,6 +200,13 @@
     <h1>Bones &amp; Bullets</h1>
     <p>Cinco dados, un revólver, una bala. Relanzar cuesta apretar el gatillo.</p>
   </header>
+
+  <nav class="modes" aria-label="Modo de juego">
+    <button type="button" id="mode-solo" aria-pressed="true">Solitario</button>
+    <button type="button" id="mode-cauto" aria-pressed="false">Duelo · El Cauto</button>
+    <button type="button" id="mode-tahur" aria-pressed="false">Duelo · El Tahúr</button>
+    <button type="button" id="mode-loco" aria-pressed="false">Duelo · El Loco</button>
+  </nav>
 
   <section class="hud" aria-label="Estado de la partida">
     <div>
@@ -195,6 +219,13 @@
     <div class="hearts" id="hearts" aria-label="Vida"></div>
     <div class="progress"><div id="bar"></div></div>
   </section>
+
+  <section class="rival" id="rival" hidden aria-label="Rival">
+    <div><div class="name" id="rv-name">El Tahúr</div><div class="status" id="rv-status">esperando</div></div>
+    <div class="hearts" id="rv-hearts"></div>
+    <div class="mini" id="rv-dice"></div>
+  </section>
+  <div class="turn-banner" id="turn"></div>
 
   <section class="dice-wrap" aria-label="Dados">
     <div class="dice" id="dice"></div>
@@ -263,7 +294,7 @@ const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6,
 const HANDS = ["carta alta", "pareja", "dobles parejas", "trío", "escalera", "full", "póker", "repóker"];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-let S = null, token = null, busy = false;
+let S = null, token = null, busy = false, mode = "solo", rival = "tahur";
 
 async function api(path, body) {
   const res = await fetch("/api/" + path, { method: body === undefined ? "GET" : "POST", headers: { "Content-Type": "application/json", "X-Game": token || "" }, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -294,17 +325,44 @@ function drawCylinder() {
   $("cyl").innerHTML = out + `<circle cx="50" cy="50" r="6" fill="#1a1410"/>`;
 }
 
+const hearts = (w, max) => `<span class="have">${"♥".repeat(max - w)}</span><span class="lost">${"♥".repeat(w)}</span>`;
+
+function renderRival(revealed) {
+  const o = S.opponent, rv = $("rival");
+  rv.hidden = false; rv.classList.toggle("active", !S.my_turn && !S.game_over);
+  $("rv-name").textContent = S.rival_name;
+  $("rv-hearts").innerHTML = hearts(o.wounds, S.max_wounds);
+  $("rv-status").textContent = o.played ? `ha jugado ${o.played.hand} por ${o.played.points}` : (S.my_turn ? "aún no ha jugado" : "está jugando...");
+  const show = revealed || o.played;
+  $("rv-dice").innerHTML = o.dice.map(v => `<span class="d${show ? "" : " hidden"}">${v}</span>`).join("");
+}
+
 function render() {
   if (!S) return;
-  const h = S.hand;
-  $("lvl").textContent = S.level; $("score").textContent = S.score; $("target").textContent = S.target; $("hands").textContent = S.hands_left;
-  $("bar").style.width = Math.min(100, 100 * S.score / S.target) + "%";
-  $("hearts").innerHTML = `<span class="have">${"♥".repeat(S.max_wounds - S.wounds)}</span><span class="lost">${"♥".repeat(S.wounds)}</span>`;
-  $("dice").replaceChildren(...S.dice.map(dieEl));
+  const h = S.hand, duel = S.mode === "duel";
+  document.querySelectorAll(".modes button").forEach(b => b.setAttribute("aria-pressed", String(b.id === "mode-" + (duel ? S.rival : "solo"))));
+  if (duel) {
+    document.querySelector(".hud .label").innerHTML = `Ronda <span id="lvl" class="mono">${S.round}</span> · Rondas ganadas tú / rival`;
+    $("score").textContent = S.me.rounds_won; $("target").textContent = S.opponent.rounds_won;
+    $("hands").parentElement.hidden = true;
+    $("bar").style.width = "0%";
+    $("hearts").innerHTML = hearts(S.me.wounds, S.max_wounds);
+    $("dice").replaceChildren(...S.me.dice.map(dieEl));
+    renderRival(false);
+    $("turn").textContent = S.game_over ? "" : S.my_turn ? "Tu turno" : `Turno de ${S.rival_name}`;
+  } else {
+    $("rival").hidden = true; $("turn").textContent = "";
+    document.querySelector(".hud .label").innerHTML = `Nivel <span id="lvl" class="mono">${S.level}</span> de 8 · Objetivo`;
+    $("score").textContent = S.score; $("target").textContent = S.target; $("hands").textContent = S.hands_left; $("hands").parentElement.hidden = false;
+    $("bar").style.width = Math.min(100, 100 * S.score / S.target) + "%";
+    $("hearts").innerHTML = hearts(S.wounds, S.max_wounds);
+    $("dice").replaceChildren(...S.dice.map(dieEl));
+  }
+  const me = duel ? S.me : S;
   $("hand").innerHTML = `<b>${h.hand}</b> · ${h.total} × ${h.mult} = <b class="mono">${h.points}</b>`;
   const tags = [];
-  if (S.streak) tags.push(`<span class="tag streak">racha ${S.streak} · +${S.streak * S.streak_bonus}</span>`);
-  if (S.silver) tags.push(`<span class="tag silver">plata ×3</span>`);
+  if (me.streak) tags.push(`<span class="tag streak">racha ${me.streak} · +${me.streak * S.streak_bonus}</span>`);
+  if (me.silver) tags.push(`<span class="tag silver">plata ×3</span>`);
   if (S.shield) tags.push(`<span class="tag shield">chaleco</span>`);
   $("tags").innerHTML = tags.join("");
   const r = S.cylinder.risk, rk = $("risk");
@@ -315,7 +373,8 @@ function render() {
   drawCylinder();
   $("mults").innerHTML = HANDS.map(k => `<tr><td>${k}</td><td>×${S.mults[k]}</td></tr>`).join("");
   $("seed").value = S.seed;
-  $("btn-fire").disabled = busy; $("btn-play").disabled = busy;
+  const locked = busy || (duel && !S.my_turn);
+  $("btn-fire").disabled = locked; $("btn-play").disabled = locked;
 }
 
 function log(text, cls = "") { const l = $("log"); l.textContent = text; l.className = "log " + cls; }
@@ -329,9 +388,34 @@ async function animateRoll() {
   }
 }
 
+async function playAiEvents(event) {
+  if (!event || !event.ai_events) return;
+  const name = S.rival_name;
+  renderRival(false);
+  log(`${name}: "${event.ai_taunt}"`);
+  if (!reduced) await sleep(900);
+  for (const ev of event.ai_events) {
+    if (ev.type === "fire") {
+      const cyl = $("cyl"); cyl.classList.remove("spinning"); void cyl.offsetWidth; cyl.classList.add("spinning");
+      log(`${name} aprieta el gatillo...`);
+      if (!reduced) await sleep(900);
+      if (ev.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); log(`¡BANG! ${name} recibe una herida.`, "bang"); }
+      else log(`${name}: click.`);
+      S.opponent.dice = ev.dice; $("rv-dice").innerHTML = ev.dice.map(v => `<span class="d">${v}</span>`).join("");
+    } else {
+      S.opponent.dice = ev.dice; $("rv-dice").innerHTML = ev.dice.map(v => `<span class="d">${v}</span>`).join("");
+      log(`${name} juega ${ev.hand} por ${ev.points} puntos.`, "good");
+    }
+    if (!reduced) await sleep(800);
+  }
+}
+
 async function guarded(fn) {
   if (busy) return; busy = true; render();
-  try { await fn(); } catch (e) { log(e.message, "bang"); }
+  try {
+    const ev = await fn();
+    if (ev && ev.ai_events) { await playAiEvents(ev); if (S.last_round) log(S.message.split(". ").slice(-2).join(". "), S.victory ? "good" : ""); }
+  } catch (e) { log(e.message, "bang"); }
   busy = false; render(); afterMove();
 }
 
@@ -343,15 +427,22 @@ const fire = () => guarded(async () => {
   const req = api("fire", {});
   if (!reduced) await sleep(900);
   const { event } = await req;
-  if (event.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); log(S.message, "bang"); }
-  else if (event.shielded) log(S.message, "good");
-  else { log(S.message, event.chamber === "EMPTY" || event.chamber === "BLANK" ? "" : "good"); await animateRoll(); }
+  const msg = event.message || S.message;
+  if (event.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); log(msg, "bang"); }
+  else if (event.shielded) log(msg, "good");
+  else { log(msg, event.chamber === "EMPTY" || event.chamber === "BLANK" ? "" : "good"); await animateRoll(); }
+  if (event.wounded && !reduced) await sleep(700);
+  return event;
 });
 
-const play = () => guarded(async () => { await api("play", {}); log(S.message, "good"); });
+const play = () => guarded(async () => { const { event } = await api("play", {}); log(event.message || S.message, "good"); if (!reduced && event.ai_events) await sleep(600); return event; });
 
 function afterMove() {
   if (!S) return;
+  if (S.mode === "duel") {
+    if (S.game_over) return endGame(S.victory, S.victory ? `Has ganado el duelo a ${S.rival_name} en ${S.round} rondas.` : `${S.rival_name} te ha ganado en ${S.round} rondas.`);
+    return;
+  }
   if (S.wounds >= S.max_wounds) return endGame(false, `Tres heridas en el nivel ${S.level}.`);
   if (S.victory) return endGame(true, "Has superado los ocho niveles con el tambor girando. Victoria.");
   if (S.cleared) return showUpgrades();
@@ -379,21 +470,25 @@ function endGame(win, text) {
 
 async function newGame(seed) {
   $("ov-upgrade").hidden = true; $("ov-end").hidden = true; token = null;
-  try { await api("new", { seed: seed === undefined || seed === "" ? null : seed }); }
+  try { await api("new", { seed: seed === undefined || seed === "" ? null : seed, mode, rival }); }
   catch (e) { return log("No se pudo hablar con el servidor. Arranca `python -m bones_bullets.server` y recarga.", "bang"); }
   try { localStorage.setItem("bb-token", token); } catch (_) {}
-  log("Toca un dado para bloquearlo. Los bloqueados no se relanzan."); busy = false; render();
+  log(mode === "duel" ? `Duelo contra ${S.rival_name}. Un tambor para los dos: si sobrevives al click, el riesgo se lo queda el siguiente.` : "Toca un dado para bloquearlo. Los bloqueados no se relanzan.");
+  busy = false; render();
 }
 
 async function resume() {
   let saved = null; try { saved = localStorage.getItem("bb-token"); } catch (_) {}
-  if (saved) { token = saved; try { await api("state"); render(); log("Partida recuperada."); return afterMove(); } catch (_) { token = null; } }
+  if (saved) { token = saved; try { await api("state"); mode = S.mode; if (S.rival) rival = S.rival; render(); log("Partida recuperada."); return afterMove(); } catch (_) { token = null; } }
   await newGame();
 }
 
 $("btn-fire").addEventListener("click", fire);
 $("btn-play").addEventListener("click", play);
 $("btn-new").addEventListener("click", () => newGame($("seed").value));
+document.querySelectorAll(".modes button").forEach(b => b.addEventListener("click", () => {
+  const key = b.id.slice(5); mode = key === "solo" ? "solo" : "duel"; if (key !== "solo") rival = key; newGame();
+}));
 $("btn-again").addEventListener("click", () => newGame(S && S.seed !== undefined ? S.seed + 1 : undefined));
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT" || !$("ov-upgrade").hidden || !$("ov-end").hidden) return;

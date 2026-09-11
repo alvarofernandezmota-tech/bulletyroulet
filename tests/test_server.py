@@ -58,3 +58,15 @@ def test_unknown_token_and_bad_upgrade(base_url):
     _, r = call(base_url, "/api/new", {"seed": 1})
     st, r = call(base_url, "/api/upgrade", {"id": "SHIELD"}, r["token"])
     assert st == 400 and "error" in r["event"]
+
+
+def test_duel_flow_runs_ai_turn(base_url):
+    st, r = call(base_url, "/api/new", {"seed": 4, "mode": "duel", "rival": "loco"})
+    assert st == 200 and r["state"]["mode"] == "duel" and r["state"]["my_turn"] is True
+    tok = r["token"]
+    st, r = call(base_url, "/api/play", {}, tok)
+    assert st == 200
+    assert "ai_events" in r["event"] and r["event"]["ai_events"]
+    assert r["state"]["round"] >= 1
+    st, r = call(base_url, "/api/lock", {"index": 9}, tok)
+    assert st == 400

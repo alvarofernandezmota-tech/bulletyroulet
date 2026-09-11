@@ -10,12 +10,14 @@ import random
 import secrets
 import sys
 import threading
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from .ai import PERSONALITIES, take_turn
 from .dice import FACES
+from .duel import Duel, new_duel
 from .game import MAX_LEVEL, MAX_WOUNDS, STREAK_BONUS, GameState, Upgrade
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
@@ -56,30 +58,96 @@ def serialize(g: GameState, seed: int) -> dict:
     }
 
 
+def serialize_duel(d: Duel, seed: int, rival_key: str) -> dict:
+    me, rival = d.players
+    k = d.cylinder.known()
+    h = d.hand_of(me)
+    w = d.winner()
+    return {
+        "mode": "duel", "seed": seed, "rival": rival_key, "rival_name": rival.name,
+        "round": d.round, "my_turn": d.current is me and not d.game_over(),
+        "max_wounds": MAX_WOUNDS,
+        "me": {"wounds": me.wounds, "streak": me.streak, "silver": me.silver_active, "rounds_won": me.rounds_won,
+               "dice": [{"value": x.value, "locked": x.locked, "loaded": False} for x in me.dice],
+               "played": asdict(me.played) | {"hand": me.played.hand.value} if me.played else None},
+        "opponent": {"wounds": rival.wounds, "rounds_won": rival.rounds_won,
+                     "dice": [x.value for x in rival.dice],
+                     "played": asdict(rival.played) | {"hand": rival.played.hand.value} if rival.played else None},
+        "hand": asdict(h) | {"hand": h.hand.value},
+        "mults": {ht.value: m for ht, m in d.mults.items()},
+        "cylinder": k | {"risk": d.cylinder.live_probability()},
+        "streak_bonus": STREAK_BONUS,
+        "message": d.last_message, "last_round": d.last_round,
+        "game_over": d.game_over(), "victory": w is me,
+    }
+
+
+@dataclass
+class Session:
+    game: GameState | Duel
+    seed: int
+    mode: str = "solo"
+    rival: str = "tahur"
+
+    def state(self) -> dict:
+        if self.mode == "duel":
+            return serialize_duel(self.game, self.seed, self.rival)  # type: ignore[arg-type]
+        return serialize(self.game, self.seed) | {"mode": "solo"}  # type: ignore[arg-type]
+
+
 class Games:
     """Partidas en memoria, identificadas por un token que guarda el navegador."""
 
     def __init__(self) -> None:
-        self._games: dict[str, tuple[GameState, int]] = {}
+        self._games: dict[str, Session] = {}
         self._lock = threading.Lock()
 
-    def new(self, seed: int | None) -> tuple[str, GameState, int]:
+    def new(self, seed: int | None, mode: str = "solo", rival: str = "tahur") -> tuple[str, Session]:
         if seed is None:
             seed = random.SystemRandom().randrange(1_000_000_000)
-        g = GameState(random.Random(seed))
+        rng = random.Random(seed)
+        if mode == "duel":
+            rival = rival if rival in PERSONALITIES else "tahur"
+            sess = Session(new_duel(rng, "Tú", PERSONALITIES[rival].name), seed, "duel", rival)
+        else:
+            sess = Session(GameState(rng), seed)
         token = secrets.token_urlsafe(16)
         with self._lock:
             if len(self._games) >= MAX_GAMES:
                 self._games.pop(next(iter(self._games)))
-            self._games[token] = (g, seed)
-        return token, g, seed
+            self._games[token] = sess
+        return token, sess
 
-    def get(self, token: str | None) -> tuple[GameState, int] | None:
+    def get(self, token: str | None) -> Session | None:
         with self._lock:
             return self._games.get(token or "")
 
 
 GAMES = Games()
+
+
+def apply_duel_action(d: Duel, rival_key: str, action: str, body: dict) -> dict:
+    if d.game_over():
+        return {"error": "El duelo ha terminado. Empieza otro."}
+    if d.current.is_ai:
+        return {"error": "No es tu turno."}
+    if action == "lock":
+        idx = int(body.get("index", -1))
+        if not 0 <= idx < 5:
+            return {"error": "Índice de dado inválido."}
+        return {"locked": d.toggle_lock(idx)}
+    if action == "fire":
+        r = d.pull_trigger()
+        event: dict = {"chamber": r.chamber.name, "wounded": r.wounded, "shielded": False, "message": d.last_message}
+    elif action == "play":
+        r2 = d.play_hand()
+        event = {"played": asdict(r2) | {"hand": r2.hand.value}, "message": d.last_message}
+    else:
+        return {"error": "Acción desconocida."}
+    if not d.game_over() and d.current.is_ai:
+        event["ai_events"] = take_turn(d, PERSONALITIES[rival_key])
+        event["ai_taunt"] = PERSONALITIES[rival_key].taunt
+    return event
 
 
 def apply_action(g: GameState, action: str, body: dict) -> dict:
@@ -152,10 +220,10 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(page)
             return
         if path == "/api/state":
-            found = GAMES.get(self.headers.get("X-Game"))
-            if not found:
+            sess = GAMES.get(self.headers.get("X-Game"))
+            if not sess:
                 return self._json(404, {"error": "Partida no encontrada."})
-            return self._json(200, {"state": serialize(*found)})
+            return self._json(200, {"state": sess.state()})
         self._json(404, {"error": "No encontrado."})
 
     def do_POST(self) -> None:
@@ -164,16 +232,20 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/new":
             seed = body.get("seed")
             seed = int(seed) if isinstance(seed, (int, str)) and str(seed).strip().lstrip("-").isdigit() else None
-            token, g, seed = GAMES.new(seed)
-            return self._json(200, {"token": token, "state": serialize(g, seed)})
+            token, sess = GAMES.new(seed, str(body.get("mode", "solo")), str(body.get("rival", "tahur")))
+            return self._json(200, {"token": token, "state": sess.state()})
+        if path == "/api/rivals":
+            return self._json(200, {"rivals": [{"key": p.key, "name": p.name, "taunt": p.taunt, "risk": p.max_risk} for p in PERSONALITIES.values()]})
         if path.startswith("/api/"):
-            found = GAMES.get(self.headers.get("X-Game"))
-            if not found:
+            sess = GAMES.get(self.headers.get("X-Game"))
+            if not sess:
                 return self._json(404, {"error": "Partida no encontrada. Empieza una nueva."})
-            g, seed = found
-            event = apply_action(g, path[5:], body)
+            if sess.mode == "duel":
+                event = apply_duel_action(sess.game, sess.rival, path[5:], body)  # type: ignore[arg-type]
+            else:
+                event = apply_action(sess.game, path[5:], body)  # type: ignore[arg-type]
             status = 400 if "error" in event else 200
-            return self._json(status, {"event": event, "state": serialize(g, seed)})
+            return self._json(status, {"event": event, "state": sess.state()})
         self._json(404, {"error": "No encontrado."})
 
 

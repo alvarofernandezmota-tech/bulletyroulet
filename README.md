@@ -20,6 +20,28 @@ terminal. La partida se guarda en el servidor mientras esté en marcha y el
 navegador la recupera al recargar. Semilla opcional en el pie de página.
 Teclas: `1`-`5` bloquean dados, `g` gatillo, `j` jugar mano.
 
+### Modo duelo
+
+Un rival controlado por la máquina, un solo tambor compartido y turnos.
+Cada ronda los dos jugáis una mano; el que menos puntos haga recibe una
+herida (si ya sangró por una bala esa ronda, no sangra dos veces). Con tres
+heridas, fuera. Empieza cada ronda quien perdió la anterior. Sin mejoras.
+
+Tres rivales, cada uno con su tolerancia al riesgo:
+
+| Rival | Aprieta hasta | Carácter |
+|-------|---------------|----------|
+| El Cauto | 20% | No arriesga. Fácil si tú sí lo haces. |
+| El Tahúr | 34% | Busca full o póker con cabeza. |
+| El Loco | 50% | Aprieta mientras no le convenza la mano. Muere mucho; cuando no, arrasa. |
+
+```
+python -m bones_bullets --duelo            # contra El Tahúr
+python -m bones_bullets --duelo loco 42    # rival y semilla
+```
+
+En la web, los botones de modo bajo el título.
+
 ### En la terminal
 
 Requiere Python 3.11+. Sin dependencias (pytest solo para tests).
@@ -73,9 +95,12 @@ bones_bullets/
   game.py       GameState: toda la lógica de partida, sin I/O
   cli.py        interfaz de terminal
   server.py     servidor HTTP + API JSON para la versión web
+  duel.py       modo duelo (dos jugadores, tambor compartido), sin I/O
+  ai.py         rivales: personalidades y su turno
+  cli_duel.py   interfaz de terminal del duelo
   __main__.py   python -m bones_bullets [semilla]
 tests/
-  test_hands.py test_revolver.py test_game.py test_server.py
+  test_hands.py test_revolver.py test_game.py test_duel.py test_server.py
 tools/
   simulate.py   bot que juega partidas para calibrar el balance
 web/
@@ -101,6 +126,7 @@ Constantes en `bones_bullets/game.py`:
 - `LOADED_FACES` (caras del dado cargado)
 - `UPGRADE_CHOICES` (mejoras ofrecidas por nivel)
 - `level_target()` (curva de objetivos)
+- Rivales del duelo: `PERSONALITIES` en `bones_bullets/ai.py` (riesgo máximo y codicia)
 
 Para comprobar el efecto de un cambio: `python tools/simulate.py 2000 0.34`
 imprime en qué nivel muere un bot sencillo en 2000 partidas.

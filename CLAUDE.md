@@ -22,8 +22,13 @@ Solo stdlib (pytest únicamente para tests). Python 3.11+. Paquete `bones_bullet
 - Al superar nivel: elegir 1 de 3 mejoras aleatorias entre: +1 al multiplicador de una mano (pareja, dobles, trío, escalera, full), +1 recámara de fogueo, +1 recámara de plata, +1 recámara de rebote, dado cargado (un dado pasa a caras 3-4-5-6-6-6), chaleco (la primera bala de cada nivel no hiere; una sola vez), mano extra (+1 mano por nivel), curar 1 herida (solo si hay heridas).
 - Entre niveles el tambor se recarga, el chaleco se recarga y los dados se relanzan.
 
+## Modo duelo
+- Dos jugadores (humano y máquina), un tambor compartido, por turnos. Cada ronda ambos juegan una mano; el que menos puntos hace recibe 1 herida, salvo que ya haya sangrado por una bala esa ronda. 3 heridas = derrota. Empate: nadie sangra. Empieza cada ronda quien perdió la anterior. Sin mejoras.
+- Rivales en `ai.py` (`PERSONALITIES`): cauto (riesgo ≤20%), tahur (≤34%), loco (≤50%). El turno de la IA se corta al cerrar la ronda para que el humano vea el resumen.
+- Terminal: `python -m bones_bullets --duelo [cauto|tahur|loco] [semilla]`. Web: `/api/new` con `{"mode":"duel","rival":"loco"}`; las acciones del humano devuelven `ai_events` con la jugada completa del rival para animarla.
+
 ## Estructura
-- `bones_bullets/dice.py` Die + helpers; `hands.py` evaluación/puntuación; `revolver.py` Cylinder; `game.py` GameState SIN I/O; `cli.py` interfaz; `__main__.py`.
+- `bones_bullets/dice.py` Die + helpers; `hands.py` evaluación/puntuación; `revolver.py` Cylinder; `game.py` GameState SIN I/O; `duel.py` Duel SIN I/O; `ai.py` rivales; `cli.py` y `cli_duel.py` interfaces; `__main__.py`.
 - `tests/` con pytest: `python -m pytest -q`.
 - `tools/simulate.py` bot que juega N partidas para calibrar el balance: `python tools/simulate.py 2000 0.34`.
 - Todo el RNG pasa por un `random.Random` inyectado, nunca `random` global.
