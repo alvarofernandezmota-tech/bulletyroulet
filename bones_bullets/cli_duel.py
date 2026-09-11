@@ -14,8 +14,10 @@ HELP = """DUELO
   Apretar el gatillo relanza tus dados libres y suma racha... y si sobrevives,
   el riesgo se queda ahí para el siguiente que apriete.
   Empieza cada ronda el que perdió la anterior.
+  También puedes apuntar al rival (r): si sale bala, la herida es suya y su
+  mano vale cero; si sale click, pierdes el turno y juegas lo que tengas.
 
-COMANDOS: 1-5 bloquear dado · g gatillo · j jugar mano · ? ayuda · q salir"""
+COMANDOS: 1-5 bloquear dado · g gatillo (a ti) · r disparar al rival · j jugar mano · ? ayuda · q salir"""
 
 
 def life(p: Player) -> str:
@@ -36,7 +38,7 @@ def hud(d: Duel) -> str:
         f"{rival.name}: {rv}\n"
         f"{render_dice(me.dice)}\n"
         f"Tu mano: {c(BOLD, h.hand.value)} ({h.total} × {h.mult:g} = {c(BOLD, str(h.points))}){extras}\n"
-        f"{c(DIM, '[1-5 bloquear | g gatillo | j jugar | ? ayuda | q salir]')}"
+        f"{c(DIM, '[1-5 bloquear | g gatillo a ti | r disparar al rival | j jugar | ? ayuda | q salir]')}"
     )
 
 
@@ -47,7 +49,8 @@ def show_ai_turn(d: Duel, pers: Personality) -> None:
     print(c(DIM, f'"{pers.taunt}"'))
     for ev in take_turn(d, pers):
         if ev["type"] == "fire":
-            print(c(DIM, f"{rival.name} aprieta el gatillo... "), end="", flush=True)
+            aim = "te apunta a ti" if ev.get("target") == "rival" else "se apunta"
+            print(c(DIM, f"{rival.name} {aim} y aprieta el gatillo... "), end="", flush=True)
             pause(0.7)
             if ev["wounded"]:
                 print(c(RED + ";1", "¡BANG!"))
@@ -111,6 +114,10 @@ def run_duel(seed: int | None = None, rival_key: str = "sheriff") -> int:
             else:
                 print(c(GREEN, "click."))
                 roll_dice_animation_duel(d, fx)
+        elif cmd == "r":
+            spin_cylinder_duel(d)
+            r = d.pull_trigger("rival")
+            print(c(RED + ";1", "\n\n   ██  BANG  ██\n") if r.wounded else c(GREEN, "click. Pierdes el turno."))
         elif cmd == "j":
             d.play_hand()
         else:

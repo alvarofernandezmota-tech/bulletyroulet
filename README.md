@@ -23,12 +23,19 @@ Teclas: `1`-`5` bloquean dados, `g` gatillo, `j` jugar mano.
 ### Modo duelo
 
 Un rival controlado por la máquina, un solo tambor compartido y turnos.
+En tu turno eliges a quién apuntas: a ti (click relanza con racha; bala,
+herida y mano a cero) o al rival (bala: la herida es suya y sigues; click:
+tu mano vale cero esta ronda). Con el riesgo alto, apuntar al otro es la
+jugada.
 Cada ronda los dos jugáis una mano; el que menos puntos haga recibe una
 herida (si ya sangró por una bala esa ronda, no sangra dos veces). Con tres
 heridas, fuera. Empieza cada ronda quien perdió la anterior. Sin mejoras.
 
 De momento hay un solo rival: **El Sheriff**. Tres balas en el tambor para
-los dos y cinco vidas para él. Aprieta hasta un 50% de riesgo. En la web
+los dos y cuatro vidas para él. Piensa: evalúa qué dados guardar simulando
+relanzamientos, estima su probabilidad de ganar la ronda y solo aprieta el
+gatillo cuando le compensa frente a plantarse. Guarda dados y relanza el resto
+como haría un jugador. En la web
 aparece de cuerpo entero y reacciona a lo que pasa en la mesa.
 
 ```

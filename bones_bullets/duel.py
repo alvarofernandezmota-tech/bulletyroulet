@@ -77,8 +77,12 @@ class Duel:
         d[index].locked = not d[index].locked
         return d[index].locked
 
-    def pull_trigger(self) -> TriggerResult:
+    def pull_trigger(self, target: str = "self") -> TriggerResult:
+        """target='self': relanza si hay click. target='rival': si hay bala, hiere al rival y sigues;
+        si hay click, tu mano vale cero esta ronda y pasa el turno."""
         p = self.current
+        if target == "rival":
+            return self._shoot_rival()
         chamber = self.cylinder.pull_trigger(self.rng)
         if chamber is Chamber.LIVE:
             p.wounds += 1
@@ -94,6 +98,22 @@ class Duel:
         roll_all(p.dice, self.rng)
         head = "Click" if p.name == "Tú" else p.name + ": click"
         self.last_message = f"{head}. Racha {p.streak}."
+        return TriggerResult(chamber)
+
+    def _shoot_rival(self) -> TriggerResult:
+        p = self.current
+        other = next(q for q in self.players if q is not p)
+        chamber = self.cylinder.pull_trigger(self.rng)
+        if chamber is Chamber.LIVE:
+            other.wounds += 1
+            self.last_message = f"¡BANG! {who(other, 'recibe', 'recibes')} la bala: una herida."
+            if not other.alive():
+                self.last_message += f" {who(p, 'gana', 'ganas')} el duelo."
+            return TriggerResult(chamber, wounded=True)
+        head = "Click" if p.name == "Tú" else p.name + ": click"
+        self.last_message = f"{head}. El disparo falla: {'tu' if p.name == 'Tú' else 'su'} mano vale cero esta ronda."
+        p.played = HandResult(HandType.HIGH_CARD, 0, 0.0, 0)
+        self._end_turn()
         return TriggerResult(chamber)
 
     def play_hand(self) -> HandResult:
@@ -130,7 +150,14 @@ class Duel:
             else:
                 loser.wounds += 1
                 summary += f" {who(loser, 'recibe', 'recibes')} una herida."
-        self.last_round = {"round": self.round, "points": [pa, pb], "loser": loser.name if loser else None}
+        self.last_round = {
+            "round": self.round, "points": [pa, pb], "loser": loser.name if loser else None,
+            "hands": [
+                {"hand": p.played.hand.value, "total": p.played.total, "mult": p.played.mult,  # type: ignore[union-attr]
+                 "points": p.played.points, "dice": [d.value for d in p.dice], "banged": p.banged}  # type: ignore[union-attr]
+                for p in self.players
+            ],
+        }
         self.last_message += " " + summary
         if self.game_over():
             self.last_message += f" {who(self.winner(), 'gana', 'ganas')} el duelo."  # type: ignore[arg-type]

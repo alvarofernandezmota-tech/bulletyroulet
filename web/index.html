@@ -138,6 +138,8 @@
   .btn:disabled { filter: grayscale(.7) brightness(.55); cursor: default; }
   .btn.play { background: linear-gradient(180deg, #e2c169, var(--brass) 60%, #9c7328); order: 1; }
   .btn.fire { background: linear-gradient(180deg, #d9464f, var(--blood) 60%, #7a1018); color: var(--bone); order: 2; }
+  .btn.aim { background: linear-gradient(180deg, #4a4a52, #2a2a30 60%, #141418); color: var(--bone); order: 3; grid-column: 1 / -1; }
+  .btn.aim[hidden] { display: none !important; }
   .btn small { display: block; font-family: "Special Elite", monospace; font-size: 12px; margin-top: 3px; opacity: .85; }
   .log { min-height: 2.6em; margin-top: 12px; padding: 8px 12px; background: rgba(0,0,0,.35); border-left: 3px solid var(--brass-deep); color: var(--ink-dim); font-size: 15px; border-radius: 0 4px 4px 0; }
   .log.bang { color: var(--red-ink); border-color: var(--blood); } .log.good { color: var(--green); border-color: var(--green); }
@@ -217,7 +219,54 @@
   .taunt[hidden] { display: none !important; }
   @keyframes tauntIn { 0% { opacity: 0; transform: translate(-50%, 8px) } 10%, 80% { opacity: 1; transform: translate(-50%, 0) } 100% { opacity: 0 } }
   @keyframes halo { 0%, 100% { opacity: .6 } 50% { opacity: 1 } }
-  @media (prefers-reduced-motion: reduce) { .cyl.spinning, .die.rolling, .die.toss, .bang-flash.on, body.shake, .backdrop .halo, .bump, .pulse .big, .upgrade { animation: none !important; } .fly, .progress > div, .table-gun, .cup .leather { transition: none; } canvas#dust { display: none; } }
+  /* dados del rival con puntos y marca de guardado */
+  .cup .d { width: 22px; height: 22px; display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr); padding: 3px; }
+  .cup .d .pip::after { width: 4px; height: 4px; }
+  .cup .d.keep { box-shadow: 0 0 0 2px var(--brass), 1px 2px 0 rgba(0,0,0,.6); }
+  /* provocar */
+  .poke { position: absolute; left: 12px; bottom: 10px; z-index: 6; pointer-events: auto; font-family: "Rye", serif; font-size: 11px; padding: 5px 9px; background: rgba(0,0,0,.45); color: var(--brass); border: 1px solid var(--brass-deep); border-radius: 3px; cursor: pointer; }
+  .poke[hidden] { display: none !important; }
+  .me-bubble { position: fixed; left: 50%; bottom: 16%; transform: translateX(-50%); z-index: 6; max-width: 280px; background: #1a1410; color: var(--bone); font-family: "Special Elite", monospace; font-size: 14px; padding: 6px 10px; border: 2px solid var(--brass); border-radius: 8px; box-shadow: 3px 3px 0 #000; pointer-events: none; animation: tauntIn 2s ease-out both; }
+  .me-bubble[hidden] { display: none !important; }
+  /* enfrentamiento de tiradas */
+  .showdown { position: fixed; inset: 0; z-index: 22; background: rgba(8,5,3,.82); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .showdown[hidden] { display: none !important; }
+  .sd { background: var(--wood); border: 3px solid var(--brass-deep); border-radius: 8px; box-shadow: 0 10px 30px #000; padding: 16px; max-width: 460px; width: 100%; display: flex; flex-direction: column; gap: 10px; }
+  .sd h2 { font-family: "Rye", serif; font-weight: 400; margin: 0; color: var(--brass); font-size: 22px; text-align: center; }
+  .sd .side { display: grid; grid-template-columns: 70px 1fr auto; gap: 8px 10px; align-items: center; padding: 8px 10px; border-radius: 6px; background: rgba(0,0,0,.3); border: 2px solid transparent; animation: rise .4s cubic-bezier(.2,1.2,.4,1) both; }
+  .sd .side.rival { animation-delay: .25s; }
+  .sd .side.win { border-color: var(--brass); background: rgba(201,154,63,.12); }
+  .sd .side.bang { border-color: var(--blood); }
+  .sd .who { font-family: "Rye", serif; color: var(--bone); }
+  .sd .mini-dice { display: flex; gap: 4px; grid-column: 1 / -1; }
+  .sd .mini-dice .d { width: 30px; height: 30px; background: var(--bone); border: 2px solid #1a1410; border-radius: 6px; display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr); padding: 4px; }
+  .sd .mini-dice .d .pip::after { width: 5px; height: 5px; }
+  .sd .pts { font-family: "Caveat", cursive; font-size: 34px; color: var(--teal-ink); line-height: 1; }
+  .sd .desc { color: var(--ink-dim); font-size: 14px; }
+  .sd .desc b { color: var(--bone); font-family: "Rye", serif; font-weight: 400; }
+  .sd .verdict { text-align: center; font-family: "Caveat", cursive; font-size: 26px; color: var(--chalk); animation: rise .4s .5s both; }
+  .sd .verdict.blood { color: var(--red-ink); }
+  .sd .hint { text-align: center; font-size: 12px; color: var(--ink-dim); }
+  /* revólver en primera persona: mirando al cañón */
+  .fp { width: min(92vw, 380px); height: auto; overflow: visible; }
+  .fp * { transform-box: fill-box; }
+  .fp .cyl-ring { transform-origin: 50% 50%; }
+  .fp.spin .cyl-ring { animation: cylspin 1.1s cubic-bezier(.15,.7,.2,1) both; }
+  .fp .hammer { transform-origin: 50% 100%; }
+  .fp.cock .hammer { animation: fpcock .45s ease-out both; }
+  @keyframes fpcock { from { transform: translateY(0) scaleY(1) } to { transform: translateY(-16px) scaleY(1.25) } }
+  .fp .flash, .fp .smoke { opacity: 0; }
+  .fp.bang .hammer { animation: fpslam .08s ease-in both; }
+  @keyframes fpslam { from { transform: translateY(-16px) scaleY(1.25) } to { transform: translateY(2px) scaleY(1) } }
+  .fp.bang .whole { animation: fprecoil .5s cubic-bezier(.2,1.2,.4,1) both; transform-origin: 50% 60%; }
+  @keyframes fprecoil { 0% { transform: scale(1) } 12% { transform: scale(1.25) translateY(10px) } 100% { transform: scale(1) } }
+  .fp.bang .flash { animation: fpflash .4s ease-out both; transform-origin: 50% 50%; }
+  @keyframes fpflash { 0% { opacity: 0; transform: scale(.2) } 15% { opacity: 1; transform: scale(2.2) } 100% { opacity: 0; transform: scale(4) } }
+  .fp.bang .smoke { animation: fpsmoke 1.6s ease-out both .15s; transform-origin: 50% 50%; }
+  @keyframes fpsmoke { 0% { opacity: 0; transform: scale(.3) } 25% { opacity: .85 } 100% { opacity: 0; transform: scale(3) translateY(-30px) } }
+  .fp.click .hammer { animation: fpslam .08s ease-in both; }
+  .fp.click .whole { animation: dry .2s steps(3) both; }
+  @media (prefers-reduced-motion: reduce) { .cyl.spinning, .die.rolling, .die.toss, .bang-flash.on, body.shake, .backdrop .halo, .bump, .pulse .big, .upgrade, .sd .side, .sd .verdict { animation: none !important; } .fly, .progress > div, .table-gun, .cup .leather { transition: none; } canvas#dust { display: none; } }
   @media (max-width: 420px) { .die { width: 52px; height: 52px; padding: 6px; } .pip::after { width: 9px; height: 9px; } .dice { gap: 7px; } .far { height: 190px; } .board .big { font-size: 28px; } .table-gun { width: 120px; height: 64px; } }
   .portrait * { transform-box: fill-box; }
   /* reposo: respira y parpadea */
@@ -290,6 +339,7 @@
       </section>
       <div class="cup" id="rv-cup" hidden><div class="dice-row" id="rv-dice"></div><div class="leather"></div></div>
       <div class="taunt" id="taunt" hidden></div>
+      <button class="poke" id="btn-poke" type="button" hidden>Provocar</button>
     </div>
 
     <div class="felt">
@@ -324,7 +374,8 @@
 
   <div class="actions">
     <button class="btn play" id="btn-play">Jugar mano<small>suma y gasta una mano</small></button>
-    <button class="btn fire" id="btn-fire">Gatillo<small id="fire-sub">relanza · riesgo 17%</small></button>
+    <button class="btn fire" id="btn-fire">Gatillo a ti<small id="fire-sub">relanza · riesgo 17%</small></button>
+    <button class="btn aim" id="btn-aim" hidden>Disparar al Sheriff<small>bala: él sangra · click: tu mano vale 0</small></button>
   </div>
   <div class="log" id="log">Toca un dado para bloquearlo. Los bloqueados no se relanzan.</div>
 
@@ -335,6 +386,7 @@
       <li>El tambor tiene 6 recámaras y 1 bala. Cada apretón descarta una recámara al azar, así que el riesgo sube hasta que se recarga.</li>
       <li>Bala: una herida, la mano vale cero y se gasta. Tres heridas y se acabó.</li>
       <li>Racha: cada click seguro seguido suma +0,5 al multiplicador de esa mano.</li>
+      <li>En duelo puedes apuntar al rival: si sale bala, la herida es suya y sigues; si sale click, tu mano vale cero esta ronda.</li>
       <li>Sangre fría: superar un nivel sin apretar el gatillo cura una herida.</li>
     </ul>
     <table id="mults" class="mono"></table>
@@ -350,7 +402,9 @@
 <button class="sound" id="btn-sound" type="button" aria-pressed="false">Sonido: off</button>
 <div class="bang-flash" id="flash"></div>
 <div class="splat" id="splat" aria-hidden="true"></div>
-<div class="spin-ov" id="spin-ov" hidden aria-hidden="true"><svg viewBox="0 0 300 160" id="gun" class="gun"></svg><div class="txt" id="spin-txt">GIRANDO EL TAMBOR</div></div>
+<div class="spin-ov" id="spin-ov" hidden aria-hidden="true"><svg viewBox="0 0 300 160" id="gun" class="gun"></svg><svg viewBox="0 0 300 300" id="fp" class="fp" hidden></svg><div class="txt" id="spin-txt">GIRANDO EL TAMBOR</div></div>
+<div class="me-bubble" id="me-bubble" hidden></div>
+<div class="showdown" id="showdown" hidden><div class="sd" role="dialog" aria-labelledby="sd-title"><h2 id="sd-title">Ronda</h2><div id="sd-body"></div><div class="verdict" id="sd-verdict"></div><div class="hint">toca para seguir</div></div></div>
 <div class="banner" id="banner" hidden aria-live="polite"><span class="t" id="banner-t"></span><span class="m" id="banner-m"></span></div>
 <div class="curtain" id="curtain" hidden aria-hidden="true"><div class="lvl" id="curtain-lvl"></div><div class="sub" id="curtain-sub"></div></div>
 
@@ -446,7 +500,14 @@ function bannerHand(h) {
   bump("mult", "pulse");
 }
 // ---------- el personaje reacciona a ti ----------
+const ME_LINES = ["¿Eso es todo, Sheriff?", "Tu estrella está torcida.", "Aprieta tú, si tienes lo que hay que tener.", "Este pueblo ya no es tuyo."];
 const TAUNTS = {
+  reply: ["Sigue hablando. Yo cuento balas.", "Cuando acabe contigo, brindaré.", "Mi estrella la limpio con gente como tú.", "Hablas mucho para tener tres vidas."],
+  lockMany: ["¿Guardas tantos? Miedo huele.", "Cobarde con los dados, valiente con la boca."],
+  fireWarn: ["¿Seguro? Yo no lo haría.", "Adelante. Me gusta el ruido.", "Cuenta las recámaras, forastero."],
+  aimedAt: ["¿A mí? Tienes agallas.", "Apunta bien. No habrá segunda.", "Vamos, aprieta."],
+  gotShot: ["...Buen tiro. Hijo de perra.", "Eso no lo olvido.", "Me has rozado la estrella."],
+  youMissed: ["Ja. Y ahora tu mano vale humo.", "Te tiembla el pulso, forastero.", "Click. Qué pena."],
   poke: ["¿Algo que decir, forastero?", "Tres balas. Cuenta bien.", "Aprieta. Te miro.", "En este pueblo mando yo."],
   yourBang: ["Ja. Te lo dije.", "Eso va a doler.", "Una menos.", "¿Sigues queriendo jugar?"],
   yourGood: ["Suerte de principiante.", "Hmpf.", "No te acostumbres.", "Bonita mano. Pena de dueño."],
@@ -456,6 +517,14 @@ function taunt(kind) {
   const list = TAUNTS[kind]; const t = $("taunt"); t.textContent = list[Math.floor(Math.random() * list.length)];
   t.hidden = false; t.style.animation = "none"; void t.offsetWidth; t.style.animation = ""; setTimeout(() => { t.hidden = true; }, 2400);
 }
+function meSay(text) {
+  const b = $("me-bubble"); b.textContent = text; b.hidden = false; b.style.animation = "none"; void b.offsetWidth; b.style.animation = ""; setTimeout(() => { b.hidden = true; }, 2000);
+}
+$("btn-poke").addEventListener("click", () => {
+  if (!S || S.mode !== "duel" || S.game_over) return;
+  meSay(ME_LINES[Math.floor(Math.random() * ME_LINES.length)]); SFX.click();
+  setTimeout(() => { taunt("reply"); mood("lost", 1500); }, 900);
+});
 (function parallax() {
   if (reduced) return; const st = $("stage"); let tx = 0, ty = 0;
   const apply = () => { st.style.transform = `translateX(calc(-50% + ${tx}px)) translateY(${ty}px)`; };
@@ -464,6 +533,32 @@ function taunt(kind) {
   st.addEventListener("click", () => { taunt("poke"); mood("won", 1200); SFX.click(); });
 })();
 
+function drawFP(n) {
+  // primera persona: miras al cañón. Boca en el centro, tambor detrás, martillo arriba, mano abajo.
+  const steel = "#8d8f97", dark = "#3a3b42", ink = "#000", skin = "#d9a878";
+  let ch = "";
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 - Math.PI / 2, x = 150 + 62 * Math.cos(a), y = 150 + 62 * Math.sin(a);
+    ch += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="14" fill="${i < n ? "#e8e8e6" : ink}" stroke="${ink}" stroke-width="3"/>`; }
+  $("fp").innerHTML = `
+  <g class="whole">
+    <!-- mano y culata abajo -->
+    <path d="M110 300 L118 236 Q150 226 182 236 L190 300Z" fill="${skin}" stroke="${ink}" stroke-width="4"/>
+    <path d="M124 258 L176 258 M126 274 L174 274" stroke="#b9805a" stroke-width="3" stroke-linecap="round"/>
+    <!-- armazón -->
+    <rect x="98" y="120" width="104" height="120" rx="14" fill="${dark}" stroke="${ink}" stroke-width="4"/>
+    <!-- tambor -->
+    <g class="cyl-ring"><circle cx="150" cy="150" r="92" fill="${steel}" stroke="${ink}" stroke-width="5"/><circle cx="150" cy="150" r="80" fill="none" stroke="${ink}" stroke-width="2" opacity=".4"/>${ch}</g>
+    <!-- martillo arriba -->
+    <g class="hammer"><path d="M136 70 L164 70 L160 30 L140 30Z" fill="${steel}" stroke="${ink}" stroke-width="4"/></g>
+    <!-- cañón visto de frente -->
+    <circle cx="150" cy="150" r="46" fill="#5d6068" stroke="${ink}" stroke-width="5"/>
+    <circle cx="150" cy="150" r="34" fill="#1a1a1e" stroke="${ink}" stroke-width="3"/>
+    <circle cx="150" cy="150" r="20" fill="#000"/>
+    <circle cx="140" cy="140" r="6" fill="#3a3a44" opacity=".7"/>
+  </g>
+  <g class="flash"><circle cx="150" cy="150" r="60" fill="#fff3c4"/><polygon points="150,60 170,120 240,110 185,150 230,210 160,180 150,250 140,180 70,210 115,150 60,110 130,120" fill="#ffd36b" opacity=".9"/></g>
+  <g class="smoke"><circle cx="150" cy="150" r="50" fill="#bdb5a8"/><circle cx="120" cy="120" r="30" fill="#bdb5a8"/><circle cx="185" cy="125" r="34" fill="#bdb5a8"/></g>`;
+}
 function drawGun(n, target = "gun") {
   // revólver de perfil: cañón a la derecha, culata a la izquierda. viewBox 300x160
   const steel = "#8d8f97", dark = "#3a3b42", wood = "#6b4a33", woodD = "#4a3222", ink = "#000";
@@ -500,18 +595,23 @@ function drawGun(n, target = "gun") {
   <g class="flash"><polygon points="292,69 330,50 310,66 340,69 310,73 330,90" fill="#ffd36b" stroke="#ff8c1a" stroke-width="2"/><circle cx="296" cy="69" r="9" fill="#fff3c4"/></g>
   <g class="smoke"><circle cx="300" cy="62" r="10" fill="#bdb5a8"/><circle cx="312" cy="52" r="8" fill="#bdb5a8"/><circle cx="322" cy="60" r="6" fill="#bdb5a8"/></g>`;
 }
-async function spinOverlay(risk, n) {
+let gunMode = "side", spinLabel = "TE APUNTAS";
+async function spinOverlay(risk, n, mode = "side", label = "TE APUNTAS") {
   if (reduced) return;
-  const ov = $("spin-ov"), g = $("gun"); drawGun(n); ov.classList.remove("bang");
-  $("spin-txt").textContent = `RIESGO ${Math.round(risk * 100)}%`; ov.hidden = false;
-  g.className.baseVal = "gun"; void g.getBBox(); g.classList.add("spin");
+  gunMode = mode; spinLabel = label;
+  const ov = $("spin-ov"), g = mode === "fp" ? $("fp") : $("gun");
+  $("gun").hidden = mode === "fp"; $("fp").hidden = mode !== "fp";
+  if (mode === "fp") drawFP(n); else drawGun(n);
+  ov.classList.remove("bang");
+  $("spin-txt").textContent = `${spinLabel} · RIESGO ${Math.round(risk * 100)}%`; ov.hidden = false;
+  g.className.baseVal = mode === "fp" ? "fp" : "gun"; void g.getBBox(); g.classList.add("spin");
   for (let i = 0; i < 14; i++) { SFX.tick(); await sleep(30 + i * 9); }
   $("spin-txt").textContent = "APRIETAS EL GATILLO";
   g.classList.add("cock"); SFX.tone(600, 0.06, 0.15, "square"); await sleep(520);
 }
 async function resolveGun(result) {
   if (reduced) return;
-  const ov = $("spin-ov"), g = $("gun");
+  const ov = $("spin-ov"), g = gunMode === "fp" ? $("fp") : $("gun");
   if (result === "bang") { ov.classList.add("bang"); $("spin-txt").textContent = "¡BANG!"; g.classList.add("bang"); await sleep(750); }
   else { $("spin-txt").textContent = "click."; g.classList.add("click"); await sleep(420); }
   ov.hidden = true;
@@ -666,8 +766,11 @@ function renderRival(revealed) {
   $("rv-status").textContent = o.played ? `ha jugado ${o.played.hand} por ${o.played.points}` : (S.my_turn ? "aún no ha jugado" : "está jugando...");
   const show = revealed || o.played;
   $("rv-cup").classList.toggle("up", !!show);
-  $("rv-dice").innerHTML = o.dice.map((v, i) => `<span class="d" style="--r:${(i * 37) % 21 - 10}deg">${v}</span>`).join("");
+  $("rv-dice").innerHTML = rivalDice(o.dice, null);
+  $("btn-poke").hidden = S.game_over;
 }
+function pipsHTML(v) { return Array.from({ length: 9 }, (_, k) => `<span class="pip${PIPS[v].includes(k) ? " on" : ""}"></span>`).join(""); }
+function rivalDice(vals, locked) { return vals.map((v, i) => `<span class="d${locked && locked[i] ? " keep" : ""}" style="--r:${(i * 37) % 21 - 10}deg">${pipsHTML(v)}</span>`).join(""); }
 
 function render() {
   if (!S) return;
@@ -713,6 +816,7 @@ function render() {
   $("seed").value = S.seed;
   const locked = busy || (duel && !S.my_turn);
   $("btn-fire").disabled = locked; $("btn-play").disabled = locked;
+  $("btn-aim").hidden = !duel; $("btn-aim").disabled = locked || S.game_over;
 }
 
 function log(text, cls = "") { const l = $("log"); l.textContent = text; l.className = "log " + cls; }
@@ -741,26 +845,52 @@ async function playAiEvents(event) {
     if (ev.type === "fire") {
       const cyl = $("cyl"); cyl.classList.remove("spinning"); void cyl.offsetWidth; cyl.classList.add("spinning");
       mood("firing", 1400);
-      log(`${name} aprieta el gatillo...`);
-      await spinOverlay(S.cylinder.risk, S.cylinder.remaining);
+      const atMe = ev.target === "rival";
+      log(atMe ? `${name} te apunta...` : `${name} aprieta el gatillo...`);
+      if (atMe) await spinOverlay(S.cylinder.risk, S.cylinder.remaining, "fp", `${name.toUpperCase()} TE APUNTA`);
+      else await spinOverlay(S.cylinder.risk, S.cylinder.remaining, "side", `${name.toUpperCase()} SE APUNTA`);
       const aiBang = ev.chamber === "LIVE"; if (aiBang) SFX.bang(); else SFX.click();
       await resolveGun(aiBang ? "bang" : "click");
+      if (atMe) {
+        if (aiBang) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); shake(); splat(); log(`¡BANG! ${name} te da: una herida.`, "bang"); mood("won", 1800); }
+        else { log(`Click. ${name} falla: su mano vale cero esta ronda.`, "good"); mood("lost", 1800); }
+        if (!reduced) await sleep(800); continue;
+      }
       if (ev.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); log(`¡BANG! ${name} recibe una herida.`, "bang"); mood("hit", 1500); }
       else log(`${name}: click.`);
-      S.opponent.dice = ev.dice; $("rv-dice").innerHTML = ev.dice.map((v, i) => `<span class="d" style="--r:${(i * 37) % 21 - 10}deg">${v}</span>`).join("");
+      S.opponent.dice = ev.dice; $("rv-dice").innerHTML = rivalDice(ev.dice, ev.locked); $("rv-cup").classList.add("up");
+      const kept = ev.locked.filter(Boolean).length; if (kept) log(`${name} guarda ${kept} dado${kept > 1 ? "s" : ""} y relanza el resto.`);
+      if (!reduced) await sleep(500);
     } else {
-      S.opponent.dice = ev.dice; $("rv-dice").innerHTML = ev.dice.map((v, i) => `<span class="d" style="--r:${(i * 37) % 21 - 10}deg">${v}</span>`).join(""); $("rv-cup").classList.add("up"); SFX.land();
+      S.opponent.dice = ev.dice; $("rv-dice").innerHTML = rivalDice(ev.dice, ev.locked); $("rv-cup").classList.add("up"); SFX.land();
       log(`${name} juega ${ev.hand} por ${ev.points} puntos.`, "good");
     }
     if (!reduced) await sleep(800);
   }
 }
 
+function showdown(lr) {
+  return new Promise(res => {
+    const [me, rv] = lr.hands, [pm, pr] = lr.points;
+    $("sd-title").textContent = `Ronda ${lr.round}`;
+    const side = (who, hd, cls) => `<div class="side ${cls}${hd.banged ? " bang" : ""}"><div class="who">${who}</div><div class="desc">${hd.banged ? "<b>BANG</b> · la mano vale cero" : `<b>${hd.hand}</b> · ${hd.total} × ${hd.mult}`}</div><div class="pts">${hd.points}</div><div class="mini-dice">${hd.dice.map(v => `<span class="d">${pipsHTML(v)}</span>`).join("")}</div></div>`;
+    $("sd-body").innerHTML = side("Tú", me, pm > pr ? "win" : "") + side(S.rival_name, rv, pr > pm ? "rival win" : "rival");
+    const v = $("sd-verdict");
+    if (pm === pr) { v.textContent = "Empate. Nadie sangra."; v.className = "verdict"; }
+    else if (lr.loser === "Tú") { v.textContent = me.banged ? "Ya sangraste por la bala." : "Recibes una herida."; v.className = "verdict blood"; }
+    else { v.textContent = rv.banged ? `${S.rival_name} ya sangró por la bala.` : `${S.rival_name} recibe una herida.`; v.className = "verdict"; }
+    const ov = $("showdown"); ov.hidden = false;
+    const done = () => { ov.hidden = true; ov.removeEventListener("click", done); res(); };
+    ov.addEventListener("click", done); setTimeout(done, reduced ? 0 : 4200);
+  });
+}
+let shownRound = 0;
 async function guarded(fn) {
   if (busy) return; busy = true; render();
   try {
     const ev = await fn();
-    if (ev && ev.ai_events) { await playAiEvents(ev); if (S.last_round) log(S.message.split(". ").slice(-2).join(". "), S.victory ? "good" : ""); }
+    if (ev && ev.ai_events) { await playAiEvents(ev); }
+    if (S.mode === "duel" && S.last_round && S.last_round.round !== shownRound && S.last_round.hands) { shownRound = S.last_round.round; await showdown(S.last_round); if (S.last_round.loser === "Tú") SFX.lose(); else if (S.last_round.loser) SFX.coin(); }
     if (S.mode === "duel" && S.last_round && !S.game_over) {
       const [mine, theirs] = S.last_round.points;
       if (S.last_round.round === S.round - 1) mood(theirs > mine ? "won" : theirs < mine ? "lost" : null, 2200);
@@ -769,18 +899,28 @@ async function guarded(fn) {
   busy = false; render(); afterMove();
 }
 
-const lock = i => guarded(async () => { SFX.click(); await api("lock", { index: i }); const d = $("die-" + i); if (d) { d.classList.add("wobble"); setTimeout(() => d.classList.remove("wobble"), 260); } });
+const lock = i => guarded(async () => { SFX.click(); await api("lock", { index: i });
+  if (S.mode === "duel" && S.me.dice.filter(d => d.locked).length >= 4 && Math.random() < .5) taunt("lockMany"); const d = $("die-" + i); if (d) { d.classList.add("wobble"); setTimeout(() => d.classList.remove("wobble"), 260); } });
 
-const fire = () => guarded(async () => {
+const fire = (target = "self") => guarded(async () => {
+  if (S.mode === "duel" && target === "self" && S.cylinder.risk >= 0.34 && Math.random() < .6) { taunt("fireWarn"); if (!reduced) await sleep(700); }
+  if (target === "rival") { taunt("aimedAt"); if (!reduced) await sleep(600); }
   const cyl = $("cyl"); cyl.classList.remove("spinning"); void cyl.offsetWidth; cyl.classList.add("spinning");
   log(`Giras el tambor... riesgo ${Math.round(S.cylinder.risk * 100)}%`);
-  const req = api("fire", {});
-  await spinOverlay(S.cylinder.risk, S.cylinder.remaining);
+  const req = api("fire", { target });
+  if (target === "rival") await spinOverlay(S.cylinder.risk, S.cylinder.remaining, "side", `APUNTAS A ${S.rival_name.toUpperCase()}`);
+  else await spinOverlay(S.cylinder.risk, S.cylinder.remaining, "fp", "TE APUNTAS");
   const { event } = await req;
   const isBang = event.chamber === "LIVE";
   if (isBang) SFX.bang(); else SFX.click();
   await resolveGun(isBang ? "bang" : "click");
   const msg = event.message || S.message;
+  if (target === "rival") {
+    if (isBang) { shake(); mood("hit", 1500); log(msg, "good"); taunt("gotShot"); }
+    else { log(msg, "bang"); mood("won", 1800); taunt("youMissed"); }
+    if (!reduced) await sleep(700);
+    return event;
+  }
   if (event.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); shake(); splat(); log(msg, "bang"); if (S.mode === "duel") { mood("won", 2000); taunt("yourBang"); } }
   else if (event.shielded) { shake(); log(msg, "good"); }
   else { log(msg, event.chamber === "EMPTY" || event.chamber === "BLANK" ? "" : "good"); await animateRoll(); bannerHand(S.hand); }
@@ -830,11 +970,11 @@ function endGame(win, text) {
 }
 
 async function newGame(seed) {
-  $("ov-upgrade").hidden = true; $("ov-end").hidden = true; token = null;
+  $("ov-upgrade").hidden = true; $("ov-end").hidden = true; token = null; shownRound = 0;
   try { await api("new", { seed: seed === undefined || seed === "" ? null : seed, mode, rival }); }
   catch (e) { return log("No se pudo hablar con el servidor. Arranca `python -m bones_bullets.server` y recarga.", "bang"); }
   try { localStorage.setItem("bb-token", token); } catch (_) {}
-  log(mode === "duel" ? (S.rival === "sheriff" ? `El Sheriff. Tres balas en el tambor para los dos y cinco vidas para él. Una bala cuesta lo mismo a los dos.` : `Duelo contra ${S.rival_name}. Un tambor para los dos: si sobrevives al click, el riesgo se lo queda el siguiente.`) : "Toca un dado para bloquearlo. Los bloqueados no se relanzan.");
+  log(mode === "duel" ? (S.rival === "sheriff" ? `El Sheriff. Tres balas en el tambor y cuatro vidas para él. Puedes apuntarle: bala, él sangra; click, tu mano vale cero.` : `Duelo contra ${S.rival_name}. Un tambor para los dos: si sobrevives al click, el riesgo se lo queda el siguiente.`) : "Toca un dado para bloquearlo. Los bloqueados no se relanzan.");
   busy = false; render();
 }
 
@@ -844,7 +984,8 @@ async function resume() {
   await newGame();
 }
 
-$("btn-fire").addEventListener("click", fire);
+$("btn-fire").addEventListener("click", () => fire("self"));
+$("btn-aim").addEventListener("click", () => fire("rival"));
 $("btn-play").addEventListener("click", play);
 $("btn-new").addEventListener("click", () => newGame($("seed").value));
 document.querySelectorAll(".modes button").forEach(b => b.addEventListener("click", () => {
@@ -853,7 +994,7 @@ document.querySelectorAll(".modes button").forEach(b => b.addEventListener("clic
 $("btn-again").addEventListener("click", () => newGame(S && S.seed !== undefined ? S.seed + 1 : undefined));
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT" || !$("ov-upgrade").hidden || !$("ov-end").hidden) return;
-  if (e.key >= "1" && e.key <= "5") lock(+e.key - 1); else if (e.key === "g") fire(); else if (e.key === "j") play();
+  if (e.key >= "1" && e.key <= "5") lock(+e.key - 1); else if (e.key === "g") fire("self"); else if (e.key === "r" && S && S.mode === "duel") fire("rival"); else if (e.key === "j") play();
 });
 resume();
 </script>
