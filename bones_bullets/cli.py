@@ -90,11 +90,51 @@ def hud(g: GameState) -> str:
     )
 
 
-def dramatic_trigger(g: GameState) -> TriggerResult:
+CYLINDER_FRAMES = ["◐", "◓", "◑", "◒"]
+DIE_FACES = "⚀⚁⚂⚃⚄⚅"
+
+
+def spin_cylinder(g: GameState) -> None:
+    """Animación del tambor girando (solo interactivo)."""
     risk = g.cylinder.live_probability()
-    sys.stdout.write(c(DIM, f"Giras el tambor ({risk:.0%})... "))
+    n = g.cylinder.known()["remaining"]
+    if not SLOW:
+        sys.stdout.write(c(DIM, f"Giras el tambor ({risk:.0%})... "))
+        sys.stdout.flush()
+        return
+    frames = 10
+    for i in range(frames):
+        ring = "".join("●" if j == i % n else "○" for j in range(n))
+        delay = 0.05 + i * 0.03  # va frenando
+        sys.stdout.write(f"\r{CYLINDER_FRAMES[i % 4]} {c(DIM, ring)}  riesgo {risk:.0%} ")
+        sys.stdout.flush()
+        time.sleep(delay)
+    sys.stdout.write("\r" + " " * 40 + "\r")
+    sys.stdout.write(c(DIM, f"Aprietas el gatillo ({risk:.0%})... "))
     sys.stdout.flush()
-    pause(0.5)
+    time.sleep(0.4)
+
+
+def roll_dice_animation(g: GameState, rng: random.Random) -> None:
+    """Los dados libres ruedan unos fotogramas antes de parar en su valor real."""
+    if not SLOW:
+        return
+    for i in range(8):
+        parts = []
+        for d in g.dice:
+            if d.locked:
+                parts.append(c(YELLOW + ";1", f"{{{DIE_FACES[d.value - 1]}}}"))
+            else:
+                face = DIE_FACES[rng.randrange(6)] if i < 7 else DIE_FACES[d.value - 1]
+                parts.append(f"[{face}]")
+        sys.stdout.write("\r" + "  ".join(parts) + "   ")
+        sys.stdout.flush()
+        time.sleep(0.06 + i * 0.03)
+    print()
+
+
+def dramatic_trigger(g: GameState, rng: random.Random) -> TriggerResult:
+    spin_cylinder(g)
     r = g.pull_trigger()
     if r.chamber is Chamber.LIVE and r.wounded:
         pause(0.3)
@@ -109,6 +149,8 @@ def dramatic_trigger(g: GameState) -> TriggerResult:
         print(c(CYAN + ";1", "¡REBOTE!"))
     else:
         print(c(GREEN, "click."))
+    if not r.wounded:
+        roll_dice_animation(g, rng)
     return r
 
 
@@ -131,6 +173,7 @@ def choose_upgrade(g: GameState, read) -> bool:
 def run(seed: int | None = None) -> int:
     rng = random.Random(seed)
     g = GameState(rng)
+    fx_rng = random.Random()  # solo para la animación, no toca la partida
     print(c(BOLD + ";31", "BONES & BULLETS") + "\n")
     print(HELP)
 
@@ -157,7 +200,7 @@ def run(seed: int | None = None) -> int:
         elif cmd in ("1", "2", "3", "4", "5"):
             g.toggle_lock(int(cmd) - 1)
         elif cmd == "g":
-            dramatic_trigger(g)
+            dramatic_trigger(g, fx_rng)
         elif cmd == "j":
             g.play_hand()
         else:
