@@ -185,21 +185,29 @@
   }
   .rival[hidden] { display: none !important; }
   .rival { grid-template-columns: auto 1fr auto; }
-  .portrait { width: 120px; height: 120px; grid-row: 1 / span 2; align-self: start; overflow: visible; filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+  .portrait { width: 110px; height: 220px; grid-row: 1 / span 3; align-self: end; overflow: visible; filter: drop-shadow(0 6px 10px rgba(0,0,0,.55)); }
+  .rival { grid-template-rows: auto auto 1fr; align-items: start; }
+  .rival .mini { align-self: end; }
+  @media (max-width: 420px) { .portrait { width: 84px; height: 168px; } }
   .portrait * { transform-box: fill-box; }
   /* reposo: respira y parpadea */
   .portrait .body { transform-origin: 50% 100%; animation: breathe 2.6s ease-in-out infinite; }
-  @keyframes breathe { 0%, 100% { transform: scaleY(1) } 50% { transform: scaleY(1.015) translateY(-0.6px) } }
+  @keyframes breathe { 0%, 100% { transform: scaleY(1) } 50% { transform: scaleY(1.008) translateY(-0.5px) } }
+  .portrait .upper { transform-origin: 50% 100%; animation: sway 3.4s ease-in-out infinite; }
+  @keyframes sway { 0%, 100% { transform: rotate(0) } 50% { transform: rotate(1.2deg) } }
+  .portrait .coat-l, .portrait .coat-r { transform-origin: 50% 0%; animation: coat 3.4s ease-in-out infinite; }
+  .portrait .coat-r { animation-delay: -1.7s; }
+  @keyframes coat { 0%, 100% { transform: rotate(0) } 50% { transform: rotate(-1.5deg) } }
   .portrait .lids { transform-origin: 50% 0%; transform: scaleY(0); animation: blink 4.2s infinite; }
   @keyframes blink { 0%, 92%, 100% { transform: scaleY(0) } 95% { transform: scaleY(1) } }
   .portrait .pupils { transform: translate(0, 0); transition: transform .25s ease; }
   /* pensando: mira a los dados y de reojo */
   .rival.active .portrait .pupils { animation: look 2.4s ease-in-out infinite; }
   @keyframes look { 0%, 100% { transform: translate(0, 0) } 30% { transform: translate(-2px, 1.5px) } 60% { transform: translate(2px, 0) } }
-  .portrait .arm { transform-origin: 0% 100%; transform: rotate(0deg); transition: transform .25s cubic-bezier(.3,1.4,.5,1); }
+  .portrait .arm { transform-origin: 0% 0%; transform: rotate(0deg); transition: transform .25s cubic-bezier(.3,1.4,.5,1); }
   .portrait .flash, .portrait .smoke { opacity: 0; }
   /* disparo: brazo arriba, fogonazo, humo */
-  .rival.firing .portrait .arm { transform: rotate(-58deg) translate(-6px, 2px); }
+  .rival.firing .portrait .arm { transform: rotate(-78deg); }
   .rival.firing .portrait .flash { animation: mflash .35s ease-out .25s; }
   @keyframes mflash { 0% { opacity: 0; transform: scale(.4) } 30% { opacity: 1; transform: scale(1.2) } 100% { opacity: 0; transform: scale(1.6) } }
   .rival.firing .portrait .smoke { animation: smoke 1.2s ease-out .5s; }
@@ -226,7 +234,8 @@
   /* muerto: sombrero cae, ojos cerrados */
   .rival.dead .portrait .hat { transform: translateY(14px) rotate(14deg); transition: transform .6s ease-in; }
   .rival.dead .portrait .lids { transform: scaleY(1); animation: none; }
-  .rival.dead .portrait .body { animation: none; transform: rotate(4deg) translateY(4px); transition: transform .6s ease-in; }
+  .rival.dead .portrait .body { animation: none; transform: rotate(10deg) translateY(6px); transition: transform .7s ease-in; }
+  .rival.dead .portrait .upper, .rival.dead .portrait .coat-l, .rival.dead .portrait .coat-r { animation: none; }
   .rival .name { font-family: "Rye", serif; font-size: 20px; color: var(--bone); }
   .rival .status { color: var(--bone-dim); font-style: italic; }
   .rival .mini { display: flex; gap: 6px; grid-column: 2 / -1; }
@@ -265,7 +274,7 @@
   </section>
 
   <section class="rival" id="rival" hidden aria-label="Rival">
-    <svg class="portrait" id="rv-portrait" viewBox="0 0 100 100" aria-hidden="true"></svg>
+    <svg class="portrait" id="rv-portrait" viewBox="0 0 100 200" aria-hidden="true"></svg>
     <div><div class="name" id="rv-name">El Tahúr</div><div class="status" id="rv-status">esperando</div></div>
     <div class="hearts" id="rv-hearts"></div>
     <div class="mini" id="rv-dice"></div>
@@ -406,14 +415,36 @@ const HEADS = {
 
 function rig(key) {
   const k = HEADS[key] || HEADS.tahur;
+  const coat = k.coat, coatDark = "#241a13";
   return `
-  <defs><clipPath id="pc-${key}"><circle cx="50" cy="50" r="48"/></clipPath></defs>
-  <circle cx="50" cy="50" r="48" fill="#3a3129"/>
-  <g clip-path="url(#pc-${key})">
-    <g class="body">
-      <!-- torso -->
-      <path d="M22 100 Q24 78 50 76 Q76 78 78 100Z" fill="${k.coat}"/>
-      <path d="M44 78 L50 92 L56 78Z" fill="${SKIN2}"/>
+  <!-- suelo -->
+  <ellipse cx="50" cy="194" rx="34" ry="5" fill="#000" opacity=".35"/>
+  <g class="body">
+    <!-- piernas y botas -->
+    <path d="M36 128 L33 178 L44 178 L46 130Z" fill="#2c2420"/>
+    <path d="M64 128 L67 178 L56 178 L54 130Z" fill="#2c2420"/>
+    <path d="M30 176 L45 176 L46 190 L24 190 Q22 184 30 176Z" fill="${DARK}"/>
+    <path d="M55 176 L70 176 Q78 184 76 190 L54 190Z" fill="${DARK}"/>
+    <circle cx="25" cy="186" r="2.6" fill="${BRASS}"/><circle cx="75" cy="186" r="2.6" fill="${BRASS}"/>
+    <!-- faldones del guardapolvo -->
+    <g class="coat-l"><path d="M28 118 L24 170 L40 168 L42 120Z" fill="${coat}"/></g>
+    <g class="coat-r"><path d="M72 118 L76 170 L60 168 L58 120Z" fill="${coat}"/></g>
+    <g class="upper">
+      <!-- torso / guardapolvo -->
+      <path d="M26 92 Q50 84 74 92 L76 122 L24 122Z" fill="${coat}"/>
+      <path d="M40 92 L50 130 L60 92Z" fill="${coatDark}"/>
+      <!-- camisa y chaleco -->
+      <path d="M42 92 L50 118 L58 92 Q50 88 42 92Z" fill="#8a7a63"/>
+      <path d="M36 94 L42 92 L50 124 L58 92 L64 94 L62 122 L38 122Z" fill="${coatDark}"/>
+      <!-- cinturón y hebilla -->
+      <rect x="26" y="121" width="48" height="7" fill="#3a2a1c"/>
+      <rect x="45" y="119.5" width="10" height="10" rx="1.5" fill="${BRASS}" stroke="#8a6524"/>
+      <!-- pistolera -->
+      <path d="M28 128 L27 146 Q33 150 36 146 L36 128Z" fill="#4a3222"/>
+      <!-- pañuelo -->
+      <path d="M40 90 Q50 100 60 90 Q50 96 40 90Z" fill="#8a2a24"/>
+      <!-- cuello -->
+      <rect x="45" y="78" width="10" height="12" fill="${SKIN2}"/>
       <!-- cabeza -->
       <ellipse cx="50" cy="58" rx="20" ry="24" fill="${SKIN}"/>
       <ellipse cx="50" cy="63" rx="20" ry="19" fill="${SKIN2}" opacity=".25"/>
@@ -421,20 +452,22 @@ function rig(key) {
       <g class="mouth-idle">${k.mouthIdle || `<path d="M42 71 Q50 74 58 71" stroke="#4a3222" stroke-width="2" fill="none" stroke-linecap="round"/>`}</g>
       <g class="mouth-smirk"><path d="M40 70 Q52 78 60 68" stroke="#4a3222" stroke-width="2.2" fill="none" stroke-linecap="round"/></g>
       <g class="mouth-ouch"><ellipse cx="50" cy="73" rx="5" ry="4" fill="#3a1a14"/></g>
-      <!-- ojos -->
       <ellipse cx="42" cy="55" rx="4.2" ry="4" fill="#f3ead6"/><ellipse cx="58" cy="55" rx="4.2" ry="4" fill="#f3ead6"/>
       <g class="pupils"><circle cx="42" cy="55" r="2.4" fill="${DARK}"/><circle cx="58" cy="55" r="2.4" fill="${DARK}"/></g>
       <g class="lids"><ellipse cx="42" cy="55" rx="4.4" ry="4.2" fill="${SKIN}"/><ellipse cx="58" cy="55" rx="4.4" ry="4.2" fill="${SKIN}"/></g>
       <g class="brows">${k.brows}</g>
-      ${k.extra}
+      ${k.extra ? `<g transform="translate(0,12)">${k.extra}</g>` : ""}
       <g class="hat">${k.hat}</g>
-      <!-- brazo con revólver -->
+      <!-- brazo izquierdo (quieto) -->
+      <path d="M28 96 L22 134" stroke="${coat}" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="22" cy="136" r="4.5" fill="${SKIN}"/>
+      <!-- brazo derecho con revólver -->
       <g class="arm">
-        <path d="M70 92 L86 76" stroke="${k.coat}" stroke-width="9" stroke-linecap="round"/>
-        <circle cx="86" cy="75" r="5" fill="${SKIN}"/>
-        <path d="M84 72 L98 66 L99 70 L90 74 L90 80 L86 80Z" fill="#4a4a4a" stroke="${DARK}" stroke-width=".8"/>
-        <g class="flash"><polygon points="100,66 110,60 104,67 112,68 103,70 108,76" fill="#ffd36b"/><circle cx="101" cy="67" r="3.5" fill="#fff3c4"/></g>
-        <g class="smoke"><circle cx="101" cy="64" r="4" fill="#bdb5a8"/><circle cx="106" cy="60" r="3" fill="#bdb5a8"/></g>
+        <path d="M72 96 L82 128" stroke="${coat}" stroke-width="9" stroke-linecap="round"/>
+        <circle cx="83" cy="130" r="5" fill="${SKIN}"/>
+        <path d="M80 127 L96 127 L96 131 L88 131 L88 138 L83 138Z" fill="#4a4a4a" stroke="${DARK}" stroke-width=".8"/>
+        <g class="flash"><polygon points="98,125 108,119 102,127 112,129 102,131 106,137" fill="#ffd36b"/><circle cx="99" cy="129" r="3.5" fill="#fff3c4"/></g>
+        <g class="smoke"><circle cx="100" cy="123" r="4" fill="#bdb5a8"/><circle cx="105" cy="118" r="3" fill="#bdb5a8"/></g>
       </g>
     </g>
   </g>`;
