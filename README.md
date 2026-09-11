@@ -111,7 +111,7 @@ tests/
 tools/
   simulate.py   bot que juega partidas para calibrar el balance
 web/
-  index.html    cliente web (solo pinta lo que manda la API)
+  index.html    cliente web (solo pinta lo que manda la API; dados en canvas con física)
 ```
 
 `game.py` no hace print ni input: la misma lógica sirve para pygame o web.
