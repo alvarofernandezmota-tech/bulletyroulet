@@ -138,6 +138,8 @@
   .btn:disabled { filter: grayscale(.7) brightness(.55); cursor: default; }
   .btn.play { background: linear-gradient(180deg, #e2c169, var(--brass) 60%, #9c7328); order: 1; }
   .btn.fire { background: linear-gradient(180deg, #d9464f, var(--blood) 60%, #7a1018); color: var(--bone); order: 2; }
+  .btn.aim { background: linear-gradient(180deg, #4a4a52, #2a2a30 60%, #141418); color: var(--bone); order: 3; grid-column: 1 / -1; }
+  .btn.aim[hidden] { display: none !important; }
   .btn small { display: block; font-family: "Special Elite", monospace; font-size: 12px; margin-top: 3px; opacity: .85; }
   .log { min-height: 2.6em; margin-top: 12px; padding: 8px 12px; background: rgba(0,0,0,.35); border-left: 3px solid var(--brass-deep); color: var(--ink-dim); font-size: 15px; border-radius: 0 4px 4px 0; }
   .log.bang { color: var(--red-ink); border-color: var(--blood); } .log.good { color: var(--green); border-color: var(--green); }
@@ -372,7 +374,8 @@
 
   <div class="actions">
     <button class="btn play" id="btn-play">Jugar mano<small>suma y gasta una mano</small></button>
-    <button class="btn fire" id="btn-fire">Gatillo<small id="fire-sub">relanza · riesgo 17%</small></button>
+    <button class="btn fire" id="btn-fire">Gatillo a ti<small id="fire-sub">relanza · riesgo 17%</small></button>
+    <button class="btn aim" id="btn-aim" hidden>Disparar al Sheriff<small>bala: él sangra · click: tu mano vale 0</small></button>
   </div>
   <div class="log" id="log">Toca un dado para bloquearlo. Los bloqueados no se relanzan.</div>
 
@@ -383,6 +386,7 @@
       <li>El tambor tiene 6 recámaras y 1 bala. Cada apretón descarta una recámara al azar, así que el riesgo sube hasta que se recarga.</li>
       <li>Bala: una herida, la mano vale cero y se gasta. Tres heridas y se acabó.</li>
       <li>Racha: cada click seguro seguido suma +0,5 al multiplicador de esa mano.</li>
+      <li>En duelo puedes apuntar al rival: si sale bala, la herida es suya y sigues; si sale click, tu mano vale cero esta ronda.</li>
       <li>Sangre fría: superar un nivel sin apretar el gatillo cura una herida.</li>
     </ul>
     <table id="mults" class="mono"></table>
@@ -501,6 +505,9 @@ const TAUNTS = {
   reply: ["Sigue hablando. Yo cuento balas.", "Cuando acabe contigo, brindaré.", "Mi estrella la limpio con gente como tú.", "Hablas mucho para tener tres vidas."],
   lockMany: ["¿Guardas tantos? Miedo huele.", "Cobarde con los dados, valiente con la boca."],
   fireWarn: ["¿Seguro? Yo no lo haría.", "Adelante. Me gusta el ruido.", "Cuenta las recámaras, forastero."],
+  aimedAt: ["¿A mí? Tienes agallas.", "Apunta bien. No habrá segunda.", "Vamos, aprieta."],
+  gotShot: ["...Buen tiro. Hijo de perra.", "Eso no lo olvido.", "Me has rozado la estrella."],
+  youMissed: ["Ja. Y ahora tu mano vale humo.", "Te tiembla el pulso, forastero.", "Click. Qué pena."],
   poke: ["¿Algo que decir, forastero?", "Tres balas. Cuenta bien.", "Aprieta. Te miro.", "En este pueblo mando yo."],
   yourBang: ["Ja. Te lo dije.", "Eso va a doler.", "Una menos.", "¿Sigues queriendo jugar?"],
   yourGood: ["Suerte de principiante.", "Hmpf.", "No te acostumbres.", "Bonita mano. Pena de dueño."],
@@ -588,15 +595,15 @@ function drawGun(n, target = "gun") {
   <g class="flash"><polygon points="292,69 330,50 310,66 340,69 310,73 330,90" fill="#ffd36b" stroke="#ff8c1a" stroke-width="2"/><circle cx="296" cy="69" r="9" fill="#fff3c4"/></g>
   <g class="smoke"><circle cx="300" cy="62" r="10" fill="#bdb5a8"/><circle cx="312" cy="52" r="8" fill="#bdb5a8"/><circle cx="322" cy="60" r="6" fill="#bdb5a8"/></g>`;
 }
-let gunMode = "side";
-async function spinOverlay(risk, n, mode = "side") {
+let gunMode = "side", spinLabel = "TE APUNTAS";
+async function spinOverlay(risk, n, mode = "side", label = "TE APUNTAS") {
   if (reduced) return;
-  gunMode = mode;
+  gunMode = mode; spinLabel = label;
   const ov = $("spin-ov"), g = mode === "fp" ? $("fp") : $("gun");
   $("gun").hidden = mode === "fp"; $("fp").hidden = mode !== "fp";
   if (mode === "fp") drawFP(n); else drawGun(n);
   ov.classList.remove("bang");
-  $("spin-txt").textContent = mode === "fp" ? `TE APUNTAS · RIESGO ${Math.round(risk * 100)}%` : `RIESGO ${Math.round(risk * 100)}%`; ov.hidden = false;
+  $("spin-txt").textContent = `${spinLabel} · RIESGO ${Math.round(risk * 100)}%`; ov.hidden = false;
   g.className.baseVal = mode === "fp" ? "fp" : "gun"; void g.getBBox(); g.classList.add("spin");
   for (let i = 0; i < 14; i++) { SFX.tick(); await sleep(30 + i * 9); }
   $("spin-txt").textContent = "APRIETAS EL GATILLO";
@@ -809,6 +816,7 @@ function render() {
   $("seed").value = S.seed;
   const locked = busy || (duel && !S.my_turn);
   $("btn-fire").disabled = locked; $("btn-play").disabled = locked;
+  $("btn-aim").hidden = !duel; $("btn-aim").disabled = locked || S.game_over;
 }
 
 function log(text, cls = "") { const l = $("log"); l.textContent = text; l.className = "log " + cls; }
@@ -837,10 +845,17 @@ async function playAiEvents(event) {
     if (ev.type === "fire") {
       const cyl = $("cyl"); cyl.classList.remove("spinning"); void cyl.offsetWidth; cyl.classList.add("spinning");
       mood("firing", 1400);
-      log(`${name} aprieta el gatillo...`);
-      await spinOverlay(S.cylinder.risk, S.cylinder.remaining);
+      const atMe = ev.target === "rival";
+      log(atMe ? `${name} te apunta...` : `${name} aprieta el gatillo...`);
+      if (atMe) await spinOverlay(S.cylinder.risk, S.cylinder.remaining, "fp", `${name.toUpperCase()} TE APUNTA`);
+      else await spinOverlay(S.cylinder.risk, S.cylinder.remaining, "side", `${name.toUpperCase()} SE APUNTA`);
       const aiBang = ev.chamber === "LIVE"; if (aiBang) SFX.bang(); else SFX.click();
       await resolveGun(aiBang ? "bang" : "click");
+      if (atMe) {
+        if (aiBang) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); shake(); splat(); log(`¡BANG! ${name} te da: una herida.`, "bang"); mood("won", 1800); }
+        else { log(`Click. ${name} falla: su mano vale cero esta ronda.`, "good"); mood("lost", 1800); }
+        if (!reduced) await sleep(800); continue;
+      }
       if (ev.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); log(`¡BANG! ${name} recibe una herida.`, "bang"); mood("hit", 1500); }
       else log(`${name}: click.`);
       S.opponent.dice = ev.dice; $("rv-dice").innerHTML = rivalDice(ev.dice, ev.locked); $("rv-cup").classList.add("up");
@@ -887,17 +902,25 @@ async function guarded(fn) {
 const lock = i => guarded(async () => { SFX.click(); await api("lock", { index: i });
   if (S.mode === "duel" && S.me.dice.filter(d => d.locked).length >= 4 && Math.random() < .5) taunt("lockMany"); const d = $("die-" + i); if (d) { d.classList.add("wobble"); setTimeout(() => d.classList.remove("wobble"), 260); } });
 
-const fire = () => guarded(async () => {
-  if (S.mode === "duel" && S.cylinder.risk >= 0.34 && Math.random() < .6) { taunt("fireWarn"); if (!reduced) await sleep(700); }
+const fire = (target = "self") => guarded(async () => {
+  if (S.mode === "duel" && target === "self" && S.cylinder.risk >= 0.34 && Math.random() < .6) { taunt("fireWarn"); if (!reduced) await sleep(700); }
+  if (target === "rival") { taunt("aimedAt"); if (!reduced) await sleep(600); }
   const cyl = $("cyl"); cyl.classList.remove("spinning"); void cyl.offsetWidth; cyl.classList.add("spinning");
   log(`Giras el tambor... riesgo ${Math.round(S.cylinder.risk * 100)}%`);
-  const req = api("fire", {});
-  await spinOverlay(S.cylinder.risk, S.cylinder.remaining, "fp");
+  const req = api("fire", { target });
+  if (target === "rival") await spinOverlay(S.cylinder.risk, S.cylinder.remaining, "side", `APUNTAS A ${S.rival_name.toUpperCase()}`);
+  else await spinOverlay(S.cylinder.risk, S.cylinder.remaining, "fp", "TE APUNTAS");
   const { event } = await req;
   const isBang = event.chamber === "LIVE";
   if (isBang) SFX.bang(); else SFX.click();
   await resolveGun(isBang ? "bang" : "click");
   const msg = event.message || S.message;
+  if (target === "rival") {
+    if (isBang) { shake(); mood("hit", 1500); log(msg, "good"); taunt("gotShot"); }
+    else { log(msg, "bang"); mood("won", 1800); taunt("youMissed"); }
+    if (!reduced) await sleep(700);
+    return event;
+  }
   if (event.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); shake(); splat(); log(msg, "bang"); if (S.mode === "duel") { mood("won", 2000); taunt("yourBang"); } }
   else if (event.shielded) { shake(); log(msg, "good"); }
   else { log(msg, event.chamber === "EMPTY" || event.chamber === "BLANK" ? "" : "good"); await animateRoll(); bannerHand(S.hand); }
@@ -951,7 +974,7 @@ async function newGame(seed) {
   try { await api("new", { seed: seed === undefined || seed === "" ? null : seed, mode, rival }); }
   catch (e) { return log("No se pudo hablar con el servidor. Arranca `python -m bones_bullets.server` y recarga.", "bang"); }
   try { localStorage.setItem("bb-token", token); } catch (_) {}
-  log(mode === "duel" ? (S.rival === "sheriff" ? `El Sheriff. Tres balas en el tambor para los dos y cinco vidas para él. Una bala cuesta lo mismo a los dos.` : `Duelo contra ${S.rival_name}. Un tambor para los dos: si sobrevives al click, el riesgo se lo queda el siguiente.`) : "Toca un dado para bloquearlo. Los bloqueados no se relanzan.");
+  log(mode === "duel" ? (S.rival === "sheriff" ? `El Sheriff. Tres balas en el tambor y cuatro vidas para él. Puedes apuntarle: bala, él sangra; click, tu mano vale cero.` : `Duelo contra ${S.rival_name}. Un tambor para los dos: si sobrevives al click, el riesgo se lo queda el siguiente.`) : "Toca un dado para bloquearlo. Los bloqueados no se relanzan.");
   busy = false; render();
 }
 
@@ -961,7 +984,8 @@ async function resume() {
   await newGame();
 }
 
-$("btn-fire").addEventListener("click", fire);
+$("btn-fire").addEventListener("click", () => fire("self"));
+$("btn-aim").addEventListener("click", () => fire("rival"));
 $("btn-play").addEventListener("click", play);
 $("btn-new").addEventListener("click", () => newGame($("seed").value));
 document.querySelectorAll(".modes button").forEach(b => b.addEventListener("click", () => {
@@ -970,7 +994,7 @@ document.querySelectorAll(".modes button").forEach(b => b.addEventListener("clic
 $("btn-again").addEventListener("click", () => newGame(S && S.seed !== undefined ? S.seed + 1 : undefined));
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT" || !$("ov-upgrade").hidden || !$("ov-end").hidden) return;
-  if (e.key >= "1" && e.key <= "5") lock(+e.key - 1); else if (e.key === "g") fire(); else if (e.key === "j") play();
+  if (e.key >= "1" && e.key <= "5") lock(+e.key - 1); else if (e.key === "g") fire("self"); else if (e.key === "r" && S && S.mode === "duel") fire("rival"); else if (e.key === "j") play();
 });
 resume();
 </script>

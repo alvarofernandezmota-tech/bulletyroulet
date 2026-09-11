@@ -137,8 +137,9 @@ def apply_duel_action(d: Duel, rival_key: str, action: str, body: dict) -> dict:
             return {"error": "Índice de dado inválido."}
         return {"locked": d.toggle_lock(idx)}
     if action == "fire":
-        r = d.pull_trigger()
-        event: dict = {"chamber": r.chamber.name, "wounded": r.wounded, "shielded": False, "message": d.last_message}
+        target = "rival" if body.get("target") == "rival" else "self"
+        r = d.pull_trigger(target)
+        event: dict = {"target": target, "chamber": r.chamber.name, "wounded": r.wounded, "shielded": False, "message": d.last_message}
     elif action == "play":
         r2 = d.play_hand()
         event = {"played": asdict(r2) | {"hand": r2.hand.value}, "message": d.last_message}

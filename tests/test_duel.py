@@ -63,13 +63,13 @@ def test_full_ai_vs_ai_duel_terminates():
     assert d.game_over()
 
 
-def test_sheriff_has_five_lives_and_three_bullets():
+def test_sheriff_has_four_lives_and_three_bullets():
     d = make_duel(random.Random(0), PERSONALITIES["sheriff"])
-    assert d.players[1].max_wounds == 5 and d.players[0].max_wounds == 3
+    assert d.players[1].max_wounds == 4 and d.players[0].max_wounds == 3
     assert d.cylinder.known()["live"] == 3 and d.cylinder.live_probability() == 0.5
-    d.players[1].wounds = 4
+    d.players[1].wounds = 3
     assert not d.game_over()
-    d.players[1].wounds = 5
+    d.players[1].wounds = 4
     assert d.game_over() and d.winner() is d.players[0]
 
 
@@ -86,3 +86,25 @@ def test_smart_ai_locks_and_finishes_turn():
     d.turn = 1
     events = take_turn(d, PERSONALITIES["sheriff"])
     assert events[-1]["type"] in ("play", "fire") and "locked" in events[-1]
+
+
+def test_shoot_rival_live_only_wounds_rival():
+    d = new_duel(random.Random(0))
+    d.cylinder.live = 6
+    d.cylinder.reload(d.rng)
+    r = d.pull_trigger("rival")
+    me, rival = d.players
+    assert r.wounded and rival.wounds == 1 and me.wounds == 0
+    assert rival.played is None  # su mano no se toca
+    assert d.current is me  # sigo en mi turno
+
+
+def test_shoot_rival_click_zeroes_my_hand_and_ends_turn():
+    d = new_duel(random.Random(0))
+    d.cylinder.live = 0
+    d.cylinder.reload(d.rng)
+    me, rival = d.players
+    r = d.pull_trigger("rival")
+    assert not r.wounded and me.played is not None and me.played.points == 0
+    assert d.current is rival
+
