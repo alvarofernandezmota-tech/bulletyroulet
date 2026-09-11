@@ -1,11 +1,19 @@
 """Rivales controlados por la máquina para el modo duelo."""
 from __future__ import annotations
 
+import math
+import random
 from collections import Counter
 from dataclasses import dataclass
+from itertools import product
 
+from .dice import Die
 from .duel import Duel, Player
-from .game import TriggerResult
+from .game import STREAK_BONUS, TriggerResult
+from .hands import score
+
+DEFAULT_RIVAL = "sheriff"
+SAMPLES = 32          # relanzamientos simulados por combinación de dados guardados
 
 
 @dataclass(frozen=True)
@@ -13,21 +21,20 @@ class Personality:
     key: str
     name: str
     max_risk: float      # no aprieta si el riesgo supera esto
-    greed: float         # aprieta mientras sus puntos < objetivo * greed
+    greed: float         # aprieta mientras sus puntos < objetivo * greed (solo IA simple)
     taunt: str
     lives: int = 3       # heridas que aguanta
     live_rounds: int = 1  # balas en el tambor compartido
+    smart: bool = False  # usa la IA de valor esperado en vez de la regla simple
 
-
-DEFAULT_RIVAL = "sheriff"
 
 # Solo el Sheriff está expuesto en la interfaz de momento; los demás quedan para pruebas y balance.
 PERSONALITIES: dict[str, Personality] = {
     "cauto": Personality("cauto", "El Cauto", 0.20, 0.9, "Prefiero llegar vivo a casa."),
     "tahur": Personality("tahur", "El Tahúr", 0.34, 1.1, "Las cartas no mienten. Los dados tampoco."),
     "loco": Personality("loco", "El Loco", 0.50, 1.4, "¿Solo una bala? Qué aburrido."),
-    "sheriff": Personality("sheriff", "El Sheriff", 0.50, 1.0, "Tres balas. Una por cada vez que me mentiste.",
-                           lives=5, live_rounds=3),
+    "sheriff": Personality("sheriff", "El Sheriff", 0.67, 1.0, "Tres balas. Una por cada vez que me mentiste.",
+                           lives=5, live_rounds=3, smart=True),
 }
 
 
@@ -36,6 +43,9 @@ def make_duel(rng, pers: Personality, human: str = "Tú"):
     return new_duel(rng, human, pers.name, rival_lives=pers.lives, live_rounds=pers.live_rounds)
 
 
+# --------------------------------------------------------------------------
+# IA simple: guarda el valor más repetido y aprieta por umbral
+# --------------------------------------------------------------------------
 def lock_best(p: Player) -> None:
     c = Counter(d.value for d in p.dice)
     best = max(c, key=lambda v: (c[v], v))
@@ -51,22 +61,94 @@ def target_points(duel: Duel, me: Player) -> int:
     return 45  # una pareja decente
 
 
+# --------------------------------------------------------------------------
+# IA con valor esperado: prueba qué dados guardar y si compensa apretar
+# --------------------------------------------------------------------------
+def _points(values: list[int], mults, streak: int, silver: bool) -> float:
+    dice = [Die(v) for v in values]
+    _, total, mult, _ = score(dice, mults)
+    mult += streak * STREAK_BONUS
+    if silver:
+        mult *= 3.0
+    return total * mult
+
+
+def win_prob(points: float, opponent_points: float | None) -> float:
+    """Probabilidad de ganar la ronda con estos puntos. Si el rival aún no jugó, curva estimada."""
+    if opponent_points is not None:
+        return 1.0 if points > opponent_points else 0.5 if points == opponent_points else 0.0
+    return 1.0 / (1.0 + math.exp(-(points - 52.0) / 14.0))
+
+
+def expected_win_after_reroll(values: list[int], keep: tuple[bool, ...], faces: list[list[int]], mults,
+                              streak: int, silver: bool, opp: float | None, rng: random.Random) -> float:
+    """Media de la probabilidad de ganar tras relanzar los dados no guardados (Monte Carlo)."""
+    free = [i for i, k in enumerate(keep) if not k]
+    total = 0.0
+    for _ in range(SAMPLES):
+        vals = list(values)
+        for i in free:
+            vals[i] = rng.choice(faces[i])
+        total += win_prob(_points(vals, mults, streak, silver), opp)
+    return total / SAMPLES
+
+
+def plan_smart(duel: Duel, me: Player, rng: random.Random) -> tuple[tuple[bool, ...], float, float]:
+    """Devuelve (dados a guardar, prob. de ganar plantándose, prob. de ganar si relanza y sobrevive)."""
+    other = next(q for q in duel.players if q is not me)
+    opp = other.played.points if other.played is not None else None
+    values = [d.value for d in me.dice]
+    faces = [d.faces for d in me.dice]
+    w_now = win_prob(_points(values, duel.mults, me.streak, me.silver_active), opp)
+    best_keep, best_w = (True,) * 5, -1.0
+    for keep in product((False, True), repeat=5):
+        if all(keep):
+            continue
+        w = expected_win_after_reroll(values, keep, faces, duel.mults, me.streak + 1, me.silver_active, opp, rng)
+        if w > best_w:
+            best_keep, best_w = keep, w
+    return best_keep, w_now, best_w
+
+
+def should_fire(duel: Duel, me: Player, pers: Personality, w_now: float, w_fire: float) -> bool:
+    """Compara heridas esperadas: plantarse (pierdo la ronda con 1-w_now) frente a apretar."""
+    risk = duel.cylinder.live_probability()
+    if risk > pers.max_risk:
+        return False
+    lives_left = me.max_wounds - me.wounds
+    bullet_cost = 1.0 + (0.6 if lives_left <= 1 else 0.0)  # con una vida, la bala es el final
+    wounds_stand = 1.0 - w_now
+    wounds_fire = risk * bullet_cost + (1 - risk) * (1.0 - w_fire)
+    return wounds_fire + 0.02 < wounds_stand
+
+
+# --------------------------------------------------------------------------
+# Turno completo
+# --------------------------------------------------------------------------
 def take_turn(duel: Duel, pers: Personality) -> list[dict]:
     """Juega el turno completo del rival. Devuelve los eventos para animarlos."""
     me = duel.current
     start_round = duel.round
     events: list[dict] = []
+    ai_rng = random.Random(duel.rng.randrange(1 << 30))  # derivado del RNG de la partida: reproducible
     while duel.current is me and not duel.game_over() and duel.round == start_round:
-        lock_best(me)
-        need = target_points(duel, me) * pers.greed
-        pts = duel.hand_of(me).points
-        risk = duel.cylinder.live_probability()
-        if pts < need and risk <= pers.max_risk:
+        if pers.smart:
+            keep, w_now, w_fire = plan_smart(duel, me, ai_rng)
+            for d, k in zip(me.dice, keep):
+                d.locked = k
+            fire = should_fire(duel, me, pers, w_now, w_fire)
+        else:
+            lock_best(me)
+            need = target_points(duel, me) * pers.greed
+            pts = duel.hand_of(me).points
+            fire = pts < need and duel.cylinder.live_probability() <= pers.max_risk
+        locked = [d.locked for d in me.dice]
+        if fire:
             r: TriggerResult = duel.pull_trigger()
             events.append({"type": "fire", "chamber": r.chamber.name, "wounded": r.wounded,
-                           "dice": [d.value for d in me.dice], "message": duel.last_message})
+                           "dice": [d.value for d in me.dice], "locked": locked, "message": duel.last_message})
             continue
         r2 = duel.play_hand()
-        events.append({"type": "play", "hand": r2.hand.value, "points": r2.points,
-                       "dice": [d.value for d in me.dice], "message": duel.last_message})
+        events.append({"type": "play", "hand": r2.hand.value, "points": r2.points, "total": r2.total, "mult": r2.mult,
+                       "dice": [d.value for d in me.dice], "locked": locked, "message": duel.last_message})
     return events

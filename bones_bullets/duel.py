@@ -130,7 +130,14 @@ class Duel:
             else:
                 loser.wounds += 1
                 summary += f" {who(loser, 'recibe', 'recibes')} una herida."
-        self.last_round = {"round": self.round, "points": [pa, pb], "loser": loser.name if loser else None}
+        self.last_round = {
+            "round": self.round, "points": [pa, pb], "loser": loser.name if loser else None,
+            "hands": [
+                {"hand": p.played.hand.value, "total": p.played.total, "mult": p.played.mult,  # type: ignore[union-attr]
+                 "points": p.played.points, "dice": [d.value for d in p.dice], "banged": p.banged}  # type: ignore[union-attr]
+                for p in self.players
+            ],
+        }
         self.last_message += " " + summary
         if self.game_over():
             self.last_message += f" {who(self.winner(), 'gana', 'ganas')} el duelo."  # type: ignore[arg-type]

@@ -28,7 +28,10 @@ herida (si ya sangró por una bala esa ronda, no sangra dos veces). Con tres
 heridas, fuera. Empieza cada ronda quien perdió la anterior. Sin mejoras.
 
 De momento hay un solo rival: **El Sheriff**. Tres balas en el tambor para
-los dos y cinco vidas para él. Aprieta hasta un 50% de riesgo. En la web
+los dos y cinco vidas para él. Piensa: evalúa qué dados guardar simulando
+relanzamientos, estima su probabilidad de ganar la ronda y solo aprieta el
+gatillo cuando le compensa frente a plantarse. Guarda dados y relanza el resto
+como haría un jugador. En la web
 aparece de cuerpo entero y reacciona a lo que pasa en la mesa.
 
 ```

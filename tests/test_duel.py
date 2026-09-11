@@ -71,3 +71,18 @@ def test_sheriff_has_five_lives_and_three_bullets():
     assert not d.game_over()
     d.players[1].wounds = 5
     assert d.game_over() and d.winner() is d.players[0]
+
+
+def test_last_round_has_both_hands():
+    d = new_duel(random.Random(0))
+    d.play_hand(); d.play_hand()
+    lr = d.last_round
+    assert lr["round"] == 1 and len(lr["hands"]) == 2
+    assert all(len(h["dice"]) == 5 and "points" in h for h in lr["hands"])
+
+
+def test_smart_ai_locks_and_finishes_turn():
+    d = make_duel(random.Random(2), PERSONALITIES["sheriff"])
+    d.turn = 1
+    events = take_turn(d, PERSONALITIES["sheriff"])
+    assert events[-1]["type"] in ("play", "fire") and "locked" in events[-1]
