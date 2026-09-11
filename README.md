@@ -13,13 +13,14 @@ python -m bones_bullets            # partida aleatoria
 python -m bones_bullets 42         # partida reproducible con semilla 42
 ```
 
-Comandos:
+Al arrancar se muestran las instrucciones completas. Comandos:
 
 | Tecla | Acción |
 |-------|--------|
 | `1`-`5` | Bloquear / desbloquear el dado (los bloqueados no se relanzan) |
 | `g` | Apretar el gatillo: si no sale bala, relanza los dados libres |
 | `j` | Jugar la mano actual |
+| `m` | Ver las manos y sus multiplicadores actuales |
 | `?` | Ayuda |
 | `q` | Salir |
 

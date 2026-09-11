@@ -6,12 +6,30 @@ import random
 from .dice import render
 from .game import MAX_LEVEL, MAX_WOUNDS, GameState, Upgrade
 
-HELP = """Comandos:
-  1-5  bloquear / desbloquear el dado
-  g    apretar el gatillo (relanza los dados libres... si no hay bala)
-  j    jugar la mano actual
+HELP = """CÓMO SE JUEGA
+  Tienes 5 dados y 3 manos por nivel. Cada mano suma los 5 dados y los
+  multiplica según la combinación (pareja, trío, escalera...). Llega al
+  objetivo del nivel antes de gastar las 3 manos o pierdes.
+  Relanzar dados no es gratis: cada vez aprietas el gatillo de un revólver
+  con 1 bala en 6 recámaras. Si sale la bala, pierdes la mano y una vida.
+  Con 3 heridas se acaba la partida. Los dados bloqueados {así} no se relanzan.
+
+COMANDOS (escribe uno y pulsa Enter)
+  1-5  bloquear / desbloquear ese dado
+  g    apretar el gatillo: si no hay bala, se relanzan los dados libres
+  j    jugar la mano actual y sumar sus puntos
+  m    ver las manos y sus multiplicadores actuales
   ?    esta ayuda
   q    salir"""
+
+COMMANDS_HINT = "[1-5 bloquear | g gatillo | j jugar | m manos | ? ayuda | q salir]"
+
+
+def hands_table(g: GameState) -> str:
+    lines = ["Manos y multiplicadores (suma de los 5 dados × mult):"]
+    for hand, mult in g.mults.items():
+        lines.append(f"  {hand.value:<15} x{mult:g}")
+    return "\n".join(lines)
 
 
 def hud(g: GameState) -> str:
@@ -25,7 +43,8 @@ def hud(g: GameState) -> str:
         f"Tambor: {k['remaining']} recámaras | balas {k['live']} fogueo {k['blank']}"
         f" plata {k['silver']} | riesgo {g.cylinder.live_probability():.0%}\n"
         f"{render(g.dice)}\n"
-        f"Mano: {h.hand.value} ({h.total} × {h.mult:g} = {h.points}){silver}"
+        f"Mano: {h.hand.value} ({h.total} × {h.mult:g} = {h.points}){silver}\n"
+        f"{COMMANDS_HINT}"
     )
 
 
@@ -48,7 +67,8 @@ def choose_upgrade(g: GameState, read) -> bool:
 def run(seed: int | None = None) -> int:
     rng = random.Random(seed)
     g = GameState(rng)
-    print("BONES & BULLETS — escribe ? para ayuda")
+    print("BONES & BULLETS\n")
+    print(HELP)
 
     def read(prompt: str) -> str:
         try:
@@ -68,6 +88,8 @@ def run(seed: int | None = None) -> int:
             return 0
         if cmd == "?":
             print(HELP)
+        elif cmd == "m":
+            print(hands_table(g))
         elif cmd in ("1", "2", "3", "4", "5"):
             g.toggle_lock(int(cmd) - 1)
         elif cmd == "g":
