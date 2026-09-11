@@ -83,21 +83,23 @@ class Duel:
             p.wounds += 1
             p.banged = True
             p.played = HandResult(HandType.HIGH_CARD, 0, 0.0, 0)
-            self.last_message = f"¡BANG! {who(p, "recibe", "recibes")} una herida y {"pierdes" if p.name == "Tú" else "pierde"} la mano."
+            verb = "pierdes" if p.name == "Tú" else "pierde"
+            self.last_message = f"¡BANG! {who(p, 'recibe', 'recibes')} una herida y {verb} la mano."
             self._end_turn()
             return TriggerResult(chamber, wounded=True)
         p.streak += 1
         if chamber is Chamber.SILVER:
             p.silver_active = True
         roll_all(p.dice, self.rng)
-        self.last_message = f"{"Click" if p.name == "Tú" else p.name + ": click"}. Racha {p.streak}."
+        head = "Click" if p.name == "Tú" else p.name + ": click"
+        self.last_message = f"{head}. Racha {p.streak}."
         return TriggerResult(chamber)
 
     def play_hand(self) -> HandResult:
         p = self.current
         r = self.hand_of(p)
         p.played = r
-        self.last_message = f"{who(p, "juega", "juegas")} {r.hand.value}: {r.total} × {r.mult:g} = {r.points}."
+        self.last_message = f"{who(p, 'juega', 'juegas')} {r.hand.value}: {r.total} × {r.mult:g} = {r.points}."
         self._end_turn()
         return r
 
@@ -121,16 +123,16 @@ class Duel:
         else:
             winner, loser = (a, b) if pa > pb else (b, a)
             winner.rounds_won += 1
-            summary = f"Ronda {self.round}: {who(winner, "gana", "ganas")} {max(pa, pb)} a {min(pa, pb)}."
+            summary = f"Ronda {self.round}: {who(winner, 'gana', 'ganas')} {max(pa, pb)} a {min(pa, pb)}."
             if loser.banged:
-                summary += f" {who(loser, "ya sangró", "ya sangraste")} por la bala."
+                summary += f" {who(loser, 'ya sangró', 'ya sangraste')} por la bala."
             else:
                 loser.wounds += 1
-                summary += f" {who(loser, "recibe", "recibes")} una herida."
+                summary += f" {who(loser, 'recibe', 'recibes')} una herida."
         self.last_round = {"round": self.round, "points": [pa, pb], "loser": loser.name if loser else None}
         self.last_message += " " + summary
         if self.game_over():
-            self.last_message += f" {who(self.winner(), "gana", "ganas")} el duelo."  # type: ignore[arg-type]
+            self.last_message += f" {who(self.winner(), 'gana', 'ganas')} el duelo."  # type: ignore[arg-type]
             return
         self.round += 1
         # empieza el que perdió (o el otro respecto a la ronda anterior si hubo empate)
