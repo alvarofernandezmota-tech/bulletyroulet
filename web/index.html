@@ -210,8 +210,36 @@
 
   .spin-ov { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.78); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
   .spin-ov[hidden] { display: none !important; }
-  .spin-ov svg { width: 180px; height: 180px; animation: bigspin 1.1s cubic-bezier(.15,.7,.2,1) both; }
-  @keyframes bigspin { from { transform: rotate(0) } to { transform: rotate(1080deg) } }
+  .spin-ov svg { width: min(92vw, 420px); height: auto; overflow: visible; }
+  .spin-ov svg * { transform-box: fill-box; }
+  /* 1) el tambor gira y frena */
+  .gun .cylinder { transform-origin: 50% 50%; }
+  .gun.spin .cylinder { animation: cylspin 1.1s cubic-bezier(.15,.7,.2,1) both; }
+  @keyframes cylspin { from { transform: rotate(0) } to { transform: rotate(1080deg) } }
+  /* 2) martillo atrás y gatillo apretado */
+  .gun .hammer { transform-origin: 20% 80%; }
+  .gun .trigger { transform-origin: 50% 0%; }
+  .gun.cock .hammer { animation: cock .45s ease-out both; }
+  .gun.cock .trigger { animation: squeeze .45s ease-in both .15s; }
+  @keyframes cock { from { transform: rotate(0) } to { transform: rotate(-38deg) } }
+  @keyframes squeeze { from { transform: rotate(0) } to { transform: rotate(-22deg) } }
+  /* 3a) BANG: martillo cae, retroceso, fogonazo, humo, casquillo */
+  .gun .flash, .gun .smoke, .gun .shell { opacity: 0; }
+  .gun.bang .hammer { animation: slam .08s ease-in both; }
+  @keyframes slam { from { transform: rotate(-38deg) } to { transform: rotate(4deg) } }
+  .gun.bang .whole { animation: recoil .5s cubic-bezier(.2,1.2,.4,1) both; transform-origin: 80% 90%; }
+  @keyframes recoil { 0% { transform: rotate(0) translate(0) } 15% { transform: rotate(-16deg) translate(-8px, -4px) } 100% { transform: rotate(0) translate(0) } }
+  .gun.bang .flash { animation: gflash .35s ease-out both; transform-origin: 0% 50%; }
+  @keyframes gflash { 0% { opacity: 0; transform: scale(.3) } 20% { opacity: 1; transform: scale(1.3) } 100% { opacity: 0; transform: scale(1.8) } }
+  .gun.bang .smoke { animation: gsmoke 1.6s ease-out both .15s; }
+  @keyframes gsmoke { 0% { opacity: 0; transform: translate(0, 0) scale(.4) } 25% { opacity: .9 } 100% { opacity: 0; transform: translate(30px, -60px) scale(2) } }
+  .gun.bang .shell { animation: shell .7s cubic-bezier(.3,.6,.6,1) both .1s; }
+  @keyframes shell { 0% { opacity: 1; transform: translate(0, 0) rotate(0) } 100% { opacity: 0; transform: translate(-40px, 90px) rotate(400deg) } }
+  /* 3b) click: martillo cae en seco, el arma tiembla un pelo */
+  .gun.click .hammer { animation: slam .08s ease-in both; }
+  .gun.click .whole { animation: dry .2s steps(3) both; }
+  @keyframes dry { 0%, 100% { transform: translate(0) } 50% { transform: translate(-2px, 1px) } }
+  .spin-ov.bang { background: rgba(120,0,10,.7); }
   .spin-ov .txt { font-family: "Press Start 2P", monospace; font-size: 12px; color: var(--bone); text-shadow: 2px 2px 0 #000; }
 
   .banner { position: fixed; left: 0; right: 0; top: 34%; z-index: 25; text-align: center; pointer-events: none; }
@@ -330,8 +358,36 @@
 
   .spin-ov { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.78); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
   .spin-ov[hidden] { display: none !important; }
-  .spin-ov svg { width: 180px; height: 180px; animation: bigspin 1.1s cubic-bezier(.15,.7,.2,1) both; }
-  @keyframes bigspin { from { transform: rotate(0) } to { transform: rotate(1080deg) } }
+  .spin-ov svg { width: min(92vw, 420px); height: auto; overflow: visible; }
+  .spin-ov svg * { transform-box: fill-box; }
+  /* 1) el tambor gira y frena */
+  .gun .cylinder { transform-origin: 50% 50%; }
+  .gun.spin .cylinder { animation: cylspin 1.1s cubic-bezier(.15,.7,.2,1) both; }
+  @keyframes cylspin { from { transform: rotate(0) } to { transform: rotate(1080deg) } }
+  /* 2) martillo atrás y gatillo apretado */
+  .gun .hammer { transform-origin: 20% 80%; }
+  .gun .trigger { transform-origin: 50% 0%; }
+  .gun.cock .hammer { animation: cock .45s ease-out both; }
+  .gun.cock .trigger { animation: squeeze .45s ease-in both .15s; }
+  @keyframes cock { from { transform: rotate(0) } to { transform: rotate(-38deg) } }
+  @keyframes squeeze { from { transform: rotate(0) } to { transform: rotate(-22deg) } }
+  /* 3a) BANG: martillo cae, retroceso, fogonazo, humo, casquillo */
+  .gun .flash, .gun .smoke, .gun .shell { opacity: 0; }
+  .gun.bang .hammer { animation: slam .08s ease-in both; }
+  @keyframes slam { from { transform: rotate(-38deg) } to { transform: rotate(4deg) } }
+  .gun.bang .whole { animation: recoil .5s cubic-bezier(.2,1.2,.4,1) both; transform-origin: 80% 90%; }
+  @keyframes recoil { 0% { transform: rotate(0) translate(0) } 15% { transform: rotate(-16deg) translate(-8px, -4px) } 100% { transform: rotate(0) translate(0) } }
+  .gun.bang .flash { animation: gflash .35s ease-out both; transform-origin: 0% 50%; }
+  @keyframes gflash { 0% { opacity: 0; transform: scale(.3) } 20% { opacity: 1; transform: scale(1.3) } 100% { opacity: 0; transform: scale(1.8) } }
+  .gun.bang .smoke { animation: gsmoke 1.6s ease-out both .15s; }
+  @keyframes gsmoke { 0% { opacity: 0; transform: translate(0, 0) scale(.4) } 25% { opacity: .9 } 100% { opacity: 0; transform: translate(30px, -60px) scale(2) } }
+  .gun.bang .shell { animation: shell .7s cubic-bezier(.3,.6,.6,1) both .1s; }
+  @keyframes shell { 0% { opacity: 1; transform: translate(0, 0) rotate(0) } 100% { opacity: 0; transform: translate(-40px, 90px) rotate(400deg) } }
+  /* 3b) click: martillo cae en seco, el arma tiembla un pelo */
+  .gun.click .hammer { animation: slam .08s ease-in both; }
+  .gun.click .whole { animation: dry .2s steps(3) both; }
+  @keyframes dry { 0%, 100% { transform: translate(0) } 50% { transform: translate(-2px, 1px) } }
+  .spin-ov.bang { background: rgba(120,0,10,.7); }
   .spin-ov .txt { font-family: "Press Start 2P", monospace; font-size: 12px; color: var(--bone); text-shadow: 2px 2px 0 #000; }
 
   .banner { position: fixed; left: 0; right: 0; top: 34%; z-index: 25; text-align: center; pointer-events: none; }
@@ -445,7 +501,7 @@
 <button class="sound" id="btn-sound" type="button" aria-pressed="false">Sonido: off</button>
 <div class="bang-flash" id="flash"></div>
 <div class="splat" id="splat" aria-hidden="true"></div>
-<div class="spin-ov" id="spin-ov" hidden aria-hidden="true"><svg viewBox="0 0 100 100" id="bigcyl"></svg><div class="txt" id="spin-txt">GIRANDO EL TAMBOR</div></div>
+<div class="spin-ov" id="spin-ov" hidden aria-hidden="true"><svg viewBox="0 0 300 160" id="gun" class="gun"></svg><div class="txt" id="spin-txt">GIRANDO EL TAMBOR</div></div>
 <div class="banner" id="banner" hidden aria-live="polite"><span class="t" id="banner-t"></span><span class="m" id="banner-m"></span></div>
 <div class="curtain" id="curtain" hidden aria-hidden="true"><div class="lvl" id="curtain-lvl"></div><div class="sub" id="curtain-sub"></div></div>
 
@@ -560,18 +616,57 @@ function taunt(kind) {
   st.addEventListener("click", () => { taunt("poke"); mood("won", 1200); SFX.click(); });
 })();
 
-function drawBigCylinder(n, live) {
-  let out = `<circle cx="50" cy="50" r="46" fill="#2a2b31" stroke="#000" stroke-width="4"/>`;
-  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 - Math.PI / 2, x = 50 + 30 * Math.cos(a), y = 50 + 30 * Math.sin(a);
-    out += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" fill="${i < n ? "#e8e8e6" : "#000"}" stroke="#000" stroke-width="3"/>`; }
-  $("bigcyl").innerHTML = out + `<circle cx="50" cy="50" r="6" fill="#000"/>`;
+function drawGun(n) {
+  // revólver de perfil: cañón a la derecha, culata a la izquierda. viewBox 300x160
+  const steel = "#8d8f97", dark = "#3a3b42", wood = "#6b4a33", woodD = "#4a3222", ink = "#000";
+  let chambers = "";
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 - Math.PI / 2, x = 150 + 15 * Math.cos(a), y = 74 + 15 * Math.sin(a);
+    chambers += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="${i < n ? "#e8e8e6" : ink}" stroke="${ink}" stroke-width="2"/>`; }
+  $("gun").innerHTML = `
+  <g class="whole">
+    <!-- culata -->
+    <path d="M78 96 L60 150 Q58 158 66 158 L92 156 Q100 154 100 146 L104 100Z" fill="${wood}" stroke="${ink}" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M70 110 L82 106 M68 124 L80 120 M66 138 L78 134" stroke="${woodD}" stroke-width="3" stroke-linecap="round"/>
+    <!-- armazón -->
+    <path d="M78 60 L200 60 L200 96 L120 96 L112 118 Q106 126 98 118 L92 100 L78 100Z" fill="${dark}" stroke="${ink}" stroke-width="4" stroke-linejoin="round"/>
+    <!-- guardamonte y gatillo -->
+    <path d="M118 96 Q118 128 146 128 Q160 128 160 112 L160 96" fill="none" stroke="${ink}" stroke-width="5" stroke-linecap="round"/>
+    <g class="trigger"><path d="M134 96 L134 116 Q136 122 142 118" fill="none" stroke="${steel}" stroke-width="5" stroke-linecap="round"/></g>
+    <!-- cañón -->
+    <rect x="196" y="58" width="96" height="22" rx="3" fill="${steel}" stroke="${ink}" stroke-width="4"/>
+    <rect x="196" y="63" width="96" height="6" fill="#c9cbd2" opacity=".6"/>
+    <rect x="286" y="52" width="6" height="8" fill="${ink}"/>
+    <!-- tambor -->
+    <g class="cylinder">
+      <circle cx="150" cy="74" r="28" fill="${steel}" stroke="${ink}" stroke-width="4"/>
+      <circle cx="150" cy="74" r="20" fill="none" stroke="${ink}" stroke-width="2" opacity=".5"/>
+      ${chambers}
+      <circle cx="150" cy="74" r="4" fill="${ink}"/>
+    </g>
+    <!-- martillo -->
+    <g class="hammer"><path d="M84 62 L96 44 L108 48 L100 66Z" fill="${steel}" stroke="${ink}" stroke-width="4" stroke-linejoin="round"/></g>
+    <!-- casquillo -->
+    <g class="shell"><rect x="150" y="40" width="7" height="14" rx="2" fill="${"#c99a3f"}" stroke="${ink}" stroke-width="2"/></g>
+  </g>
+  <!-- fogonazo y humo en la boca del cañón -->
+  <g class="flash"><polygon points="292,69 330,50 310,66 340,69 310,73 330,90" fill="#ffd36b" stroke="#ff8c1a" stroke-width="2"/><circle cx="296" cy="69" r="9" fill="#fff3c4"/></g>
+  <g class="smoke"><circle cx="300" cy="62" r="10" fill="#bdb5a8"/><circle cx="312" cy="52" r="8" fill="#bdb5a8"/><circle cx="322" cy="60" r="6" fill="#bdb5a8"/></g>`;
 }
 async function spinOverlay(risk, n) {
   if (reduced) return;
-  const ov = $("spin-ov"); drawBigCylinder(n); $("spin-txt").textContent = `RIESGO ${Math.round(risk * 100)}%`; ov.hidden = false;
-  const svg = $("bigcyl"); svg.style.animation = "none"; void svg.offsetWidth; svg.style.animation = "";
+  const ov = $("spin-ov"), g = $("gun"); drawGun(n); ov.classList.remove("bang");
+  $("spin-txt").textContent = `RIESGO ${Math.round(risk * 100)}%`; ov.hidden = false;
+  g.className.baseVal = "gun"; void g.getBBox(); g.classList.add("spin");
   for (let i = 0; i < 14; i++) { SFX.tick(); await sleep(30 + i * 9); }
-  await sleep(150);
+  $("spin-txt").textContent = "APRIETAS EL GATILLO";
+  g.classList.add("cock"); SFX.tone(600, 0.06, 0.15, "square"); await sleep(520);
+}
+async function resolveGun(result) {
+  if (reduced) return;
+  const ov = $("spin-ov"), g = $("gun");
+  if (result === "bang") { ov.classList.add("bang"); $("spin-txt").textContent = "¡BANG!"; g.classList.add("bang"); await sleep(750); }
+  else { $("spin-txt").textContent = "click."; g.classList.add("click"); await sleep(420); }
+  ov.hidden = true;
 }
 async function curtain(title, sub) {
   if (reduced) return; const c = $("curtain"); $("curtain-lvl").textContent = title; $("curtain-sub").textContent = sub || "";
@@ -796,7 +891,9 @@ async function playAiEvents(event) {
       const cyl = $("cyl"); cyl.classList.remove("spinning"); void cyl.offsetWidth; cyl.classList.add("spinning");
       mood("firing", 1400);
       log(`${name} aprieta el gatillo...`);
-      if (!reduced) await sleep(900);
+      await spinOverlay(S.cylinder.risk, S.cylinder.remaining);
+      const aiBang = ev.chamber === "LIVE"; if (aiBang) SFX.bang(); else SFX.click();
+      await resolveGun(aiBang ? "bang" : "click");
       if (ev.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); log(`¡BANG! ${name} recibe una herida.`, "bang"); mood("hit", 1500); }
       else log(`${name}: click.`);
       S.opponent.dice = ev.dice; $("rv-dice").innerHTML = ev.dice.map(v => `<span class="d">${v}</span>`).join("");
@@ -829,11 +926,13 @@ const fire = () => guarded(async () => {
   const req = api("fire", {});
   await spinOverlay(S.cylinder.risk, S.cylinder.remaining);
   const { event } = await req;
-  $("spin-ov").hidden = true;
+  const isBang = event.chamber === "LIVE";
+  if (isBang) SFX.bang(); else SFX.click();
+  await resolveGun(isBang ? "bang" : "click");
   const msg = event.message || S.message;
-  if (event.wounded) { SFX.bang(); const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); shake(); splat(); log(msg, "bang"); if (S.mode === "duel") { mood("won", 2000); taunt("yourBang"); } }
-  else if (event.shielded) { SFX.bang(); shake(); log(msg, "good"); }
-  else { SFX.click(); log(msg, event.chamber === "EMPTY" || event.chamber === "BLANK" ? "" : "good"); await animateRoll(); bannerHand(S.hand); }
+  if (event.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); shake(); splat(); log(msg, "bang"); if (S.mode === "duel") { mood("won", 2000); taunt("yourBang"); } }
+  else if (event.shielded) { shake(); log(msg, "good"); }
+  else { log(msg, event.chamber === "EMPTY" || event.chamber === "BLANK" ? "" : "good"); await animateRoll(); bannerHand(S.hand); }
   if (event.wounded && !reduced) await sleep(700);
   return event;
 });
