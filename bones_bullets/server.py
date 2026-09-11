@@ -5,6 +5,7 @@ Solo stdlib. Las reglas viven en game.py; aquí no hay lógica de juego.
 """
 from __future__ import annotations
 
+import errno
 import json
 import random
 import secrets
@@ -252,7 +253,15 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def serve(port: int = 8080, host: str = "0.0.0.0") -> None:
-    httpd = ThreadingHTTPServer((host, port), Handler)
+    try:
+        httpd = ThreadingHTTPServer((host, port), Handler)
+    except OSError as e:
+        if e.errno == errno.EADDRINUSE:
+            print(f"El puerto {port} ya está ocupado por otro programa.")
+            print(f"  Prueba otro puerto:   python -m bones_bullets.server {port + 10}")
+            print("  O mira quién lo tiene: ss -tlnp | grep " + str(port))
+            raise SystemExit(1) from None
+        raise
     print(f"Bones & Bullets en http://{host}:{port}  (Ctrl+C para parar)")
     try:
         httpd.serve_forever()
