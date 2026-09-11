@@ -122,25 +122,14 @@
   .me-row { position: relative; z-index: 3; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .hearts { display: flex; gap: 4px; }
   .label { font-size: 12px; color: var(--ink-dim); }
-  .dice { display: flex; gap: 10px; justify-content: center; position: relative; z-index: 3; padding: 6px 0 20px; }
-  .die {
-    width: 62px; height: 62px; flex: 0 0 auto; background: linear-gradient(160deg, #fbf6ea, var(--bone) 70%, #d9cfb4);
-    border: 2px solid #1a1410; border-radius: 12px; box-shadow: 3px 5px 0 rgba(0,0,0,.55), inset -3px -3px 0 rgba(0,0,0,.08);
-    display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 8px; cursor: pointer; position: relative;
-    transform: rotate(var(--rot, 0deg)); transition: transform .15s ease;
-  }
-  .die.locked { transform: rotate(0deg) translateY(10px) scale(.96); box-shadow: 0 0 0 3px var(--brass), 2px 3px 0 rgba(0,0,0,.5); background: linear-gradient(160deg, #fff7dd, #f0dfa8); }
-  .die.loaded { background: linear-gradient(160deg, #ffe9a8, #d9b35a); }
-  .die.rolling, .die.toss { animation: toss .55s cubic-bezier(.3,.9,.4,1.2) both; }
-  @keyframes toss { 0% { transform: translateY(0) rotate(var(--rot)) } 35% { transform: translateY(-40px) rotate(160deg) scale(1.1) } 70% { transform: translateY(3px) rotate(350deg) } 100% { transform: translateY(0) rotate(var(--rot)) } }
-  .die.wobble { animation: wobble .25s ease; }
-  @keyframes wobble { 0% { transform: rotate(-6deg) translateY(10px) } 50% { transform: rotate(6deg) translateY(10px) } 100% { transform: rotate(0) translateY(10px) } }
+  /* mesa de dados: lienzo con física */
+  .dice-table { position: relative; z-index: 3; margin: 2px 0 6px; }
+  #dice-canvas { display: block; width: 100%; height: auto; touch-action: manipulation; cursor: pointer; border-radius: 10px; }
+  .sr-dice { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .sr-dice button:focus-visible { position: fixed; top: 8px; left: 8px; width: auto; height: auto; clip: auto; z-index: 60; background: var(--brass); color: #1a1410; padding: 6px 10px; font-family: "Rye", serif; }
   .pip { display: flex; align-items: center; justify-content: center; }
   .pip::after { content: ""; width: 11px; height: 11px; border-radius: 50%; background: #1a1410; opacity: 0; }
   .pip.on::after { opacity: 1; }
-  .die .idx { position: absolute; bottom: -20px; left: 0; right: 0; text-align: center; font-size: 12px; color: rgba(255,255,255,.55); }
-  .die .lock { position: absolute; top: -12px; right: -8px; background: var(--brass); color: #1a1410; font-family: "Rye", serif; font-size: 9px; padding: 2px 5px; border: 2px solid #1a1410; border-radius: 3px; display: none; }
-  .die.locked .lock { display: block; }
   .hand { position: relative; z-index: 3; text-align: center; font-size: 18px; color: var(--ink-dim); }
   .hand b { color: var(--bone); font-family: "Rye", serif; font-weight: 400; font-size: 20px; }
   .tags { position: relative; z-index: 3; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; min-height: 20px; }
@@ -281,8 +270,8 @@
   @keyframes fpsmoke { 0% { opacity: 0; transform: scale(.3) } 25% { opacity: .85 } 100% { opacity: 0; transform: scale(3) translateY(-30px) } }
   .fp.click .hammer { animation: fpslam .08s ease-in both; }
   .fp.click .whole { animation: dry .2s steps(3) both; }
-  @media (prefers-reduced-motion: reduce) { .cyl.spinning, .die.rolling, .die.toss, .bang-flash.on, body.shake, .backdrop .halo, .bump, .pulse .big, .upgrade, .sd .side, .sd .verdict { animation: none !important; } .fly, .progress > div, .table-gun, .cup .leather { transition: none; } canvas#dust { display: none; } }
-  @media (max-width: 420px) { .die { width: 52px; height: 52px; padding: 6px; } .pip::after { width: 9px; height: 9px; } .dice { gap: 7px; } .far { height: 190px; } .board .big { font-size: 28px; } .table-gun { width: 120px; height: 64px; } }
+  @media (prefers-reduced-motion: reduce) { .cyl.spinning, .bang-flash.on, body.shake, .backdrop .halo, .bump, .pulse .big, .upgrade, .sd .side, .sd .verdict { animation: none !important; } .fly, .progress > div, .table-gun, .cup .leather { transition: none; } canvas#dust { display: none; } }
+  @media (max-width: 420px) { .pip::after { width: 9px; height: 9px; } .far { height: 190px; } .board .big { font-size: 28px; } .table-gun { width: 120px; height: 64px; } }
   .portrait * { transform-box: fill-box; }
   /* reposo: respira y parpadea */
   .portrait .body { transform-origin: 50% 100%; animation: breathe 2.6s ease-in-out infinite; }
@@ -381,7 +370,10 @@
         <div class="hearts" id="hearts" aria-label="Vida"></div>
         <div class="tags" id="tags"></div>
       </div>
-      <section aria-label="Dados"><div class="dice" id="dice"></div></section>
+      <section class="dice-table" aria-label="Dados">
+        <canvas id="dice-canvas"></canvas>
+        <div class="sr-dice" id="dice"></div>
+      </section>
       <div class="hand" id="hand"></div>
     </div>
     <div class="rim"></div>
@@ -503,7 +495,7 @@ function flyPoints(text, fromEl, toEl) {
   return new Promise(res => { requestAnimationFrame(() => { f.style.transform = `translate(calc(-50% + ${b.left + b.width / 2 - (a.left + a.width / 2)}px), ${b.top + b.height / 2 - a.top}px) scale(.6)`; f.style.opacity = "0"; setTimeout(() => { f.remove(); res(); }, 560); }); });
 }
 function bump(id, cls = "bump") { const el = $(id).closest(".cell") || $(id); el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
-function shake() { if (reduced) return; document.body.classList.remove("shake"); void document.body.offsetWidth; document.body.classList.add("shake"); }
+function shake() { if (reduced) return; document.body.classList.remove("shake"); void document.body.offsetWidth; document.body.classList.add("shake"); if (typeof DiceTable !== "undefined") DiceTable.nudge(0.8); }
 function splat() { const s = $("splat"); s.classList.add("on"); setTimeout(() => s.classList.remove("on"), 300); }
 const HAND_RANK = { "carta alta": 0, "pareja": 1, "dobles parejas": 2, "trío": 3, "escalera": 4, "full": 5, "póker": 6, "repóker": 7 };
 function bannerHand(h) {
@@ -664,13 +656,252 @@ async function api(path, body) {
   return data;
 }
 
+
+// ===================== mesa de dados con física =====================
+// Dados en un lienzo: se lanzan, giran, rebotan, chocan entre ellos y se paran
+// donde caen. La lámpara está arriba en el centro, así que la sombra se alarga
+// hacia fuera y la cara recibe más luz por arriba.
+const DiceTable = (() => {
+  const cv = $("dice-canvas"), ctx = cv.getContext("2d");
+  const N = 5, GRAV = 3400, REST = 0.34, FRIC = 5.0, SPIN_FRIC = 5.4;
+  let W = 0, H = 0, SZ = 56, R = 0, dpr = 1;
+  let dice = [], rolling = false, resolveRoll = null, raf = 0, last = 0, lampX = 0, lampY = -120;
+
+  function layout() {
+    const rect = cv.getBoundingClientRect();
+    const cssW = rect.width || cv.parentElement.clientWidth || 360;
+    SZ = Math.max(38, Math.min(62, cssW / 7.2));
+    const cssH = Math.round(SZ * 3.3);
+    dpr = Math.min(2, devicePixelRatio || 1);
+    cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
+    cv.style.height = cssH + "px";
+    W = cssW; H = cssH; R = SZ * 0.62; lampX = W / 2;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (dice.length) place();
+  }
+
+  function home(i) { return { x: W * (0.5 + (i - (N - 1) / 2) * 0.155), y: H * 0.38 }; }
+  function keepSpot(i) { return { x: W * (0.5 + (i - (N - 1) / 2) * 0.155), y: H * 0.79 }; }
+
+  function place() {
+    dice.forEach((d, i) => { const p = d.locked ? keepSpot(i) : home(i); d.x = p.x; d.y = p.y; });
+  }
+
+  function make() {
+    dice = Array.from({ length: N }, (_, i) => {
+      const p = home(i);
+      return { x: p.x, y: p.y, z: 0, vx: 0, vy: 0, vz: 0, rot: (i * 0.7) % 1 - 0.5, vrot: 0,
+               value: 1, shown: 1, locked: false, loaded: false, settled: true, slide: 0 };
+    });
+  }
+
+  // ---- dibujo ----
+  function roundRect(g, x, y, w, h, r) {
+    g.beginPath();
+    g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r);
+    g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    g.lineTo(x + r, y + h); g.quadraticCurveTo(x, y + h, x, y + h - r);
+    g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
+  }
+
+  const PIP_XY = [[-1, -1], [0, -1], [1, -1], [-1, 0], [0, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+
+  function drawDie(d) {
+    const lift = 1 + d.z * 0.0016, s = SZ * lift, half = s / 2;
+    // sombra proyectada: se separa y se difumina con la altura
+    const k = d.z * 0.0022;
+    const sx = d.x + (d.x - lampX) * k, sy = d.y + (d.y - lampY) * k * 0.55 + d.z * 0.05;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0.08, 0.42 - d.z * 0.0016);
+    ctx.filter = `blur(${(2 + d.z * 0.035).toFixed(1)}px)`;
+    ctx.translate(sx, sy); ctx.rotate(d.rot);
+    ctx.fillStyle = "#000";
+    roundRect(ctx, -half * 1.02, -half * 0.9, s * 1.04, s * 0.92, s * 0.22); ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(d.x, d.y - d.z * 0.35); ctx.rotate(d.rot);
+    // cuerpo con luz cenital
+    const g = ctx.createLinearGradient(0, -half, 0, half);
+    if (d.loaded) { g.addColorStop(0, "#fff0bd"); g.addColorStop(0.55, "#f0d98f"); g.addColorStop(1, "#c9a45a"); }
+    else { g.addColorStop(0, "#fffaf0"); g.addColorStop(0.5, "#efe6cf"); g.addColorStop(1, "#cbc0a6"); }
+    ctx.fillStyle = g;
+    roundRect(ctx, -half, -half, s, s, s * 0.2); ctx.fill();
+    ctx.lineWidth = Math.max(1.5, s * 0.045); ctx.strokeStyle = "#1a1410"; ctx.stroke();
+    // canto inferior en sombra
+    ctx.save(); ctx.clip();
+    const g2 = ctx.createLinearGradient(0, half * 0.1, 0, half);
+    g2.addColorStop(0, "rgba(0,0,0,0)"); g2.addColorStop(1, "rgba(0,0,0,.22)");
+    ctx.fillStyle = g2; ctx.fillRect(-half, -half, s, s);
+    // brillo especular arriba a la izquierda
+    const g3 = ctx.createRadialGradient(-half * 0.45, -half * 0.5, 1, -half * 0.45, -half * 0.5, s * 0.8);
+    g3.addColorStop(0, "rgba(255,255,255,.55)"); g3.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = g3; ctx.fillRect(-half, -half, s, s);
+    ctx.restore();
+    // puntos
+    const pr = s * 0.093, step = s * 0.26;
+    ctx.fillStyle = "#1a1410";
+    for (const idx of PIPS[d.shown]) {
+      const [px, py] = PIP_XY[idx];
+      ctx.beginPath(); ctx.arc(px * step, py * step, pr, 0, 7); ctx.fill();
+      ctx.save(); ctx.globalAlpha = .35; ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(px * step - pr * .3, py * step - pr * .35, pr * .38, 0, 7); ctx.fill(); ctx.restore();
+    }
+    // anillo de latón si está guardado
+    if (d.locked) {
+      ctx.lineWidth = Math.max(2, s * 0.075); ctx.strokeStyle = "#c99a3f";
+      roundRect(ctx, -half - 2, -half - 2, s + 4, s + 4, s * 0.22); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    // charco de luz de la lámpara sobre el tapete
+    const pool = ctx.createRadialGradient(W / 2, H * 0.35, 8, W / 2, H * 0.35, W * 0.62);
+    pool.addColorStop(0, "rgba(255,214,120,.13)"); pool.addColorStop(1, "rgba(255,214,120,0)");
+    ctx.fillStyle = pool; ctx.fillRect(0, 0, W, H);
+    // línea de la zona de guardados
+    ctx.save(); ctx.setLineDash([6, 8]); ctx.strokeStyle = "rgba(201,154,63,.28)"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(W * 0.04, H * 0.69); ctx.lineTo(W * 0.96, H * 0.69); ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.font = `${Math.round(SZ * 0.19)}px "Special Elite", monospace`; ctx.fillStyle = "rgba(255,255,255,.3)";
+    ctx.textAlign = "left"; ctx.fillText("guardados", W * 0.05, H * 0.66); ctx.restore();
+    [...dice].sort((a, b) => a.z - b.z).forEach(drawDie);
+  }
+
+  // ---- física ----
+  function step(dt) {
+    let moving = false;
+    for (const d of dice) {
+      if (d.locked) { // se desliza a su sitio y se queda
+        const t = keepSpot(dice.indexOf(d));
+        d.x += (t.x - d.x) * Math.min(1, dt * 9); d.y += (t.y - d.y) * Math.min(1, dt * 9);
+        d.rot += (0 - d.rot) * Math.min(1, dt * 9); d.z = 0; d.vx = d.vy = d.vz = d.vrot = 0;
+        if (Math.abs(t.x - d.x) > 0.4) moving = true;
+        continue;
+      }
+      if (d.settled) continue;
+      moving = true;
+      d.vz -= GRAV * dt;
+      d.z += d.vz * dt;
+      if (d.z <= 0) {
+        d.z = 0;
+        if (d.vz < -60) { d.vz = -d.vz * REST; d.vx *= 0.82; d.vy *= 0.82; d.vrot *= 0.7; SFX.land(); }
+        else { d.vz = 0; }
+        const f = Math.exp(-FRIC * dt); d.vx *= f; d.vy *= f;
+        d.vrot *= Math.exp(-SPIN_FRIC * dt);
+      }
+      d.x += d.vx * dt; d.y += d.vy * dt; d.rot += d.vrot * dt;
+      // paredes
+      const pad = R;
+      if (d.x < pad) { d.x = pad; d.vx = Math.abs(d.vx) * REST; }
+      if (d.x > W - pad) { d.x = W - pad; d.vx = -Math.abs(d.vx) * REST; }
+      if (d.y < pad * 0.8) { d.y = pad * 0.8; d.vy = Math.abs(d.vy) * REST; }
+      if (d.y > H * 0.62 - pad * 0.5) { d.y = H * 0.62 - pad * 0.5; d.vy = -Math.abs(d.vy) * REST; }
+      // cara que enseña mientras da vueltas
+      if (d.z > 6 || Math.abs(d.vrot) > 2.5) { if (Math.random() < dt * 26) d.shown = 1 + Math.floor(Math.random() * 6); }
+      else d.shown = d.value;
+      if (d.z === 0 && Math.hypot(d.vx, d.vy) < 16 && Math.abs(d.vrot) < 0.6 && Math.abs(d.vz) < 20) {
+        d.settled = true; d.shown = d.value; d.vx = d.vy = d.vrot = 0;
+      }
+    }
+    // choques entre dados
+    for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
+      const a = dice[i], b = dice[j];
+      if (a.locked || b.locked || (a.settled && b.settled)) continue;
+      if (Math.abs(a.z - b.z) > SZ * 0.8) continue;
+      const dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy) || 0.01, min = R * 1.75;
+      if (dist < min) {
+        const nx = dx / dist, ny = dy / dist, push = (min - dist) / 2;
+        if (!a.settled) { a.x -= nx * push; a.y -= ny * push; }
+        if (!b.settled) { b.x += nx * push; b.y += ny * push; }
+        const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+        if (rel < 0) {
+          const imp = rel * 0.72;
+          if (!a.settled) { a.vx += imp * nx; a.vy += imp * ny; a.vrot += rel * 0.004; }
+          if (!b.settled) { b.vx -= imp * nx; b.vy -= imp * ny; b.vrot -= rel * 0.004; }
+          if (b.settled && Math.abs(rel) > 40) { b.settled = false; b.vx -= imp * nx; b.vy -= imp * ny; }
+          if (a.settled && Math.abs(rel) > 40) { a.settled = false; a.vx += imp * nx; a.vy += imp * ny; }
+          if (Math.abs(rel) > 60) SFX.tick();
+        }
+      }
+    }
+    if (!moving && rolling) { rolling = false; const r = resolveRoll; resolveRoll = null; if (r) r(); }
+    return moving;
+  }
+
+  function loop(t) {
+    const dt = Math.min(0.032, (t - last) / 1000 || 0.016); last = t;
+    const moving = step(dt);
+    draw();
+    if (moving || rolling) raf = requestAnimationFrame(loop); else raf = 0;
+  }
+  function kick() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(loop); } }
+
+  // ---- interfaz pública ----
+  function sync(list) {
+    if (!dice.length) make();
+    list.forEach((d, i) => {
+      const t = dice[i];
+      t.locked = !!d.locked; t.loaded = !!d.loaded;
+      if (!rolling) { t.value = d.value; if (t.settled) t.shown = d.value; }
+    });
+    kick(); draw();
+  }
+
+  function throwFree(list) {
+    if (!dice.length) make();
+    const free = [];
+    list.forEach((d, i) => {
+      const t = dice[i];
+      t.locked = !!d.locked; t.loaded = !!d.loaded; t.value = d.value;
+      if (t.locked) { t.shown = d.value; return; }
+      free.push(t);
+      t.settled = false;
+      t.x = W * (0.32 + Math.random() * 0.36);
+      t.y = -SZ * (0.5 + Math.random() * 0.4);
+      t.z = 95 + Math.random() * 70;
+      t.vx = (W / 2 - t.x) * 1.1 + (Math.random() - 0.5) * 160;
+      t.vy = 210 + Math.random() * 130;
+      t.vz = 20 + Math.random() * 80;
+      t.vrot = (Math.random() - 0.5) * 22;
+      t.shown = 1 + Math.floor(Math.random() * 6);
+    });
+    if (!free.length) { sync(list); return Promise.resolve(); }
+    rolling = true; kick();
+    return new Promise(res => {
+      resolveRoll = res;
+      setTimeout(() => { if (rolling) { rolling = false; dice.forEach(d => { d.settled = true; d.shown = d.value; }); draw(); const r = resolveRoll; resolveRoll = null; if (r) r(); } }, 1700);
+    });
+  }
+
+  function nudge(force = 1) {
+    dice.forEach(d => { if (d.locked) return; d.settled = false; d.vz = 120 * force; d.vx += (Math.random() - .5) * 220 * force; d.vy += (Math.random() - .5) * 160 * force; d.vrot += (Math.random() - .5) * 8 * force; });
+    kick();
+  }
+
+  function hit(px, py) {
+    for (let i = N - 1; i >= 0; i--) {
+      const d = dice[i];
+      if (Math.abs(px - d.x) < SZ * 0.62 && Math.abs(py - (d.y - d.z * 0.35)) < SZ * 0.62) return i;
+    }
+    return -1;
+  }
+
+  cv.addEventListener("pointerdown", e => {
+    const r = cv.getBoundingClientRect();
+    const i = hit(e.clientX - r.left, e.clientY - r.top);
+    if (i >= 0) lock(i);
+  });
+  addEventListener("resize", () => { layout(); draw(); });
+  layout(); make(); draw();
+  return { sync, throwFree, nudge, layout, get busy() { return rolling; } };
+})();
+
 function dieEl(d, i) {
   const b = document.createElement("button");
-  b.className = "die" + (d.locked ? " locked" : "") + (d.loaded ? " loaded" : "");
-  b.type = "button"; b.id = "die-" + i; b.setAttribute("aria-label", `Dado ${i + 1}: ${d.value}${d.locked ? ", bloqueado" : ""}`);
-  b.innerHTML = Array.from({ length: 9 }, (_, k) => `<span class="pip${PIPS[d.value].includes(k) ? " on" : ""}"></span>`).join("")
-    + `<span class="lock">FIJO</span><span class="idx">${i + 1}${d.loaded ? " · cargado" : ""}</span>`;
-  b.style.setProperty("--rot", `${((d.value * 7 + i * 13) % 17) - 8}deg`);
+  b.type = "button"; b.id = "die-" + i;
+  b.textContent = `Dado ${i + 1}: ${d.value}${d.locked ? ", guardado" : ""}${d.loaded ? ", cargado" : ""}`;
   b.addEventListener("click", () => lock(i));
   return b;
 }
@@ -816,7 +1047,7 @@ function render() {
     $("hands").parentElement.hidden = true;
     $("bar").style.width = "0%";
     $("hearts").innerHTML = hearts(S.me.wounds, S.me.max_wounds);
-    $("dice").replaceChildren(...S.me.dice.map(dieEl));
+    $("dice").replaceChildren(...S.me.dice.map(dieEl)); DiceTable.sync(S.me.dice);
     renderRival(false);
     $("turn").textContent = S.game_over ? "" : S.my_turn ? "Tu turno" : `Turno de ${S.rival_name}`;
   } else {
@@ -827,7 +1058,7 @@ function render() {
     $("hands").textContent = S.hands_left; $("hands").parentElement.hidden = false;
     $("bar").style.width = Math.min(100, 100 * S.score / S.target) + "%";
     $("hearts").innerHTML = hearts(S.wounds, S.max_wounds);
-    $("dice").replaceChildren(...S.dice.map(dieEl));
+    $("dice").replaceChildren(...S.dice.map(dieEl)); DiceTable.sync(S.dice);
   }
   $("sum").textContent = h.total; $("mult").textContent = h.mult;
   const me = duel ? S.me : S;
@@ -855,17 +1086,9 @@ function render() {
 function log(text, cls = "") { const l = $("log"); l.textContent = text; l.className = "log " + cls; }
 
 async function animateRoll() {
-  if (reduced) return;
-  const els = [...document.querySelectorAll(".die:not(.locked)")];
-  const finals = els.map(e => [...e.querySelectorAll(".pip")].map(p => p.classList.contains("on")));
-  els.forEach((e, i) => { e.classList.remove("toss"); void e.offsetWidth; e.style.animationDelay = `${i * 60}ms`; e.classList.add("toss"); });
-  const landed = new Set();
-  for (let step = 0; step < 9; step++) {
-    els.forEach((e, i) => { if (landed.has(i)) return; const v = 1 + Math.floor(Math.random() * 6); [...e.querySelectorAll(".pip")].forEach((p, k) => p.classList.toggle("on", PIPS[v].includes(k))); });
-    await sleep(60);
-    const landIdx = step - 3; if (landIdx >= 0 && landIdx < els.length) { landed.add(landIdx); [...els[landIdx].querySelectorAll(".pip")].forEach((p, k) => p.classList.toggle("on", finals[landIdx][k])); SFX.land(); }
-  }
-  els.forEach((e, i) => { [...e.querySelectorAll(".pip")].forEach((p, k) => p.classList.toggle("on", finals[i][k])); e.classList.remove("toss"); e.style.animationDelay = ""; });
+  const list = S.mode === "duel" ? S.me.dice : S.dice;
+  if (reduced) { DiceTable.sync(list); return; }
+  await DiceTable.throwFree(list);
 }
 
 async function playAiEvents(event) {
