@@ -29,27 +29,23 @@ estado del tambor (recámaras, balas, fogueo, plata), riesgo en % y la mano actu
 
 ## Reglas
 
-- 5 dados d6. Puntos de una mano = suma de **los 5 dados** × multiplicador.
-- Multiplicadores base: carta alta x1, pareja x1.5, dobles parejas x2, trío x3,
-  escalera x5, full x6, póker x8, repóker x12.
-- 8 niveles. Objetivo del nivel n = 40 + 25n + 4n². 3 manos por nivel.
-  Si se acaban las manos sin llegar al objetivo: game over.
-- No hay rerolls gratis. Relanzar = apretar el gatillo:
-  - Tambor de 6 recámaras con 1 bala. Sabes cuántas recámaras quedan y de qué
-    tipo, nunca en qué posición.
-  - Cada pulsación saca una recámara al azar y la descarta, así que el riesgo
-    sube en cada click hasta que se recarga.
-  - Vacía: click, relanzas los dados libres.
-  - Bala: BANG, +1 herida, la mano vale 0 y se consume, el tambor se recarga.
-  - Fogueo: como vacía (solo si la compras como mejora).
-  - Plata: como vacía, pero la mano actual vale x3 (solo por mejora).
+- 5 dados d6. Puntuación de una mano = suma de LOS 5 dados × multiplicador de la mano.
+- Manos y multiplicadores base: carta alta x1, pareja x1.5, dobles parejas x2, trío x3, escalera x5, full x6, póker x8, repóker x12.
+- 8 niveles. Objetivo del nivel n = 40 + 25n + 4n². 3 manos por nivel. Si se acaban las manos sin llegar al objetivo: game over.
+- No hay rerolls gratis. Relanzar = apretar el gatillo de un revólver:
+  - Tambor de 6 recámaras, 1 bala. El jugador ve cuántas recámaras quedan y cuántas balas/fogueo/plata/rebote hay, nunca en qué posición.
+  - Apretar saca una recámara al azar y la DESCARTA (el riesgo sube en cada click dentro de la misma carga). Tipos:
+    - vacía: "click", se relanzan los dados no bloqueados.
+    - bala: "BANG", +1 herida, la mano actual puntúa 0 y se consume, el tambor se recarga entero.
+    - fogueo: como vacía (solo por mejora).
+    - plata: como vacía pero la mano actual vale x3 (solo por mejora).
+    - rebote: relanza dos veces y se queda con la mejor puntuación (solo por mejora).
   - Si el tambor se vacía, se recarga.
+- Racha: cada click seguro seguido dentro de la misma mano suma +0.5 al multiplicador. Se pierde al jugar la mano o al recibir un BANG.
 - 3 heridas = game over.
-- Sangre fría: superar un nivel sin apretar el gatillo cura 1 herida.
-- Al superar un nivel eliges 1 de 3 mejoras: +1 al multiplicador de una mano
-  (pareja, dobles, trío, escalera, full), +1 recámara de fogueo, +1 recámara
-  de plata, curar 1 herida (solo si tienes heridas).
-- Entre niveles el tambor se recarga y los dados se relanzan.
+- Sangre fría: superar un nivel sin apretar el gatillo ni una vez cura 1 herida.
+- Al superar nivel: elegir 1 de 3 mejoras aleatorias entre: +1 al multiplicador de una mano (pareja, dobles, trío, escalera, full), +1 recámara de fogueo, +1 recámara de plata, +1 recámara de rebote, dado cargado (un dado pasa a caras 3-4-5-6-6-6), chaleco (la primera bala de cada nivel no hiere; una sola vez), mano extra (+1 mano por nivel), curar 1 herida (solo si hay heridas).
+- Entre niveles el tambor se recarga, el chaleco se recarga y los dados se relanzan.
 
 ## Estructura
 
@@ -63,6 +59,8 @@ bones_bullets/
   __main__.py   python -m bones_bullets [semilla]
 tests/
   test_hands.py test_revolver.py test_game.py
+tools/
+  simulate.py   bot que juega partidas para calibrar el balance
 ```
 
 `game.py` no hace print ni input: la misma lógica sirve para pygame o web.
@@ -71,6 +69,8 @@ hace las partidas reproducibles.
 
 Tests: `python -m pytest -q`
 
+Colores: se activan solo en terminal. `NO_COLOR=1` los desactiva.
+
 ## Balanceo
 
 Constantes en `bones_bullets/game.py`:
@@ -78,8 +78,13 @@ Constantes en `bones_bullets/game.py`:
 - `MAX_LEVEL`, `HANDS_PER_LEVEL`, `MAX_WOUNDS`
 - `CYLINDER_SIZE`, `LIVE_ROUNDS` (tamaño del tambor y balas)
 - `SILVER_MULT` (bonus de la recámara de plata)
+- `STREAK_BONUS` (multiplicador extra por click seguro encadenado)
+- `LOADED_FACES` (caras del dado cargado)
 - `UPGRADE_CHOICES` (mejoras ofrecidas por nivel)
 - `level_target()` (curva de objetivos)
+
+Para comprobar el efecto de un cambio: `python tools/simulate.py 2000 0.34`
+imprime en qué nivel muere un bot sencillo en 2000 partidas.
 
 Multiplicadores de mano en `bones_bullets/hands.py`: `BASE_MULT` y
 `UPGRADABLE_HANDS`.

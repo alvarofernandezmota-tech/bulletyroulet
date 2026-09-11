@@ -11,7 +11,7 @@ def test_reload_contents():
     assert c.chambers.count(Chamber.BLANK) == 1
     assert c.chambers.count(Chamber.SILVER) == 1
     assert c.chambers.count(Chamber.EMPTY) == 3
-    assert c.known() == {"remaining": 6, "live": 1, "blank": 1, "silver": 1}
+    assert c.known() == {"remaining": 6, "live": 1, "blank": 1, "silver": 1, "bounce": 0}
 
 
 def test_risk_rises_each_click():

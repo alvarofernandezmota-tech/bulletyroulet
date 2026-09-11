@@ -11,6 +11,7 @@ class Chamber(Enum):
     LIVE = "bala"
     BLANK = "fogueo"
     SILVER = "plata"
+    BOUNCE = "rebote"
 
 
 @dataclass
@@ -19,11 +20,17 @@ class Cylinder:
     live: int = 1
     blanks: int = 0
     silver: int = 0
+    bounce: int = 0
     chambers: list[Chamber] = field(default_factory=list)
 
     def reload(self, rng: random.Random) -> None:
         """Rellena el tambor completo y lo mezcla."""
-        specials = [Chamber.LIVE] * self.live + [Chamber.BLANK] * self.blanks + [Chamber.SILVER] * self.silver
+        specials = (
+            [Chamber.LIVE] * self.live
+            + [Chamber.BLANK] * self.blanks
+            + [Chamber.SILVER] * self.silver
+            + [Chamber.BOUNCE] * self.bounce
+        )
         empties = max(0, self.size - len(specials))
         self.chambers = specials + [Chamber.EMPTY] * empties
         rng.shuffle(self.chambers)
@@ -45,6 +52,7 @@ class Cylinder:
             "live": self.chambers.count(Chamber.LIVE),
             "blank": self.chambers.count(Chamber.BLANK),
             "silver": self.chambers.count(Chamber.SILVER),
+            "bounce": self.chambers.count(Chamber.BOUNCE),
         }
 
     def live_probability(self) -> float:

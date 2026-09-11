@@ -1,18 +1,36 @@
 """Interfaz de terminal."""
 from __future__ import annotations
 
+import os
 import random
+import sys
+import time
 
-from .dice import render
-from .game import MAX_LEVEL, MAX_WOUNDS, GameState, Upgrade
+from .dice import Die
+from .game import MAX_LEVEL, MAX_WOUNDS, STREAK_BONUS, GameState, TriggerResult
+from .revolver import Chamber
+
+# --- Colores ANSI (se desactivan sin TTY o con NO_COLOR) -----------------------
+USE_COLOR = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
+SLOW = sys.stdin.isatty()  # pausas dramáticas solo en juego interactivo
+
+
+def c(code: str, text: str) -> str:
+    return f"\033[{code}m{text}\033[0m" if USE_COLOR else text
+
+
+RED, GREEN, YELLOW, CYAN, BOLD, DIM = "31", "32", "33", "36", "1", "2"
 
 HELP = """CÓMO SE JUEGA
   Tienes 5 dados y 3 manos por nivel. Cada mano suma los 5 dados y los
   multiplica según la combinación (pareja, trío, escalera...). Llega al
-  objetivo del nivel antes de gastar las 3 manos o pierdes.
+  objetivo del nivel antes de gastar las manos o pierdes.
   Relanzar dados no es gratis: cada vez aprietas el gatillo de un revólver
   con 1 bala en 6 recámaras. Si sale la bala, pierdes la mano y una vida.
   Con 3 heridas se acaba la partida. Los dados bloqueados {así} no se relanzan.
+  Cada click seguro seguido suma +0.5 al multiplicador de esa mano (racha),
+  y el riesgo sube con cada recámara descartada. ¿Hasta dónde aprietas?
+  Superar un nivel sin apretar el gatillo cura 1 herida (sangre fría).
 
 COMANDOS (escribe uno y pulsa Enter)
   1-5  bloquear / desbloquear ese dado
@@ -25,6 +43,21 @@ COMANDOS (escribe uno y pulsa Enter)
 COMMANDS_HINT = "[1-5 bloquear | g gatillo | j jugar | m manos | ? ayuda | q salir]"
 
 
+def pause(seconds: float) -> None:
+    if SLOW:
+        time.sleep(seconds)
+
+
+def render_dice(dice: list[Die]) -> str:
+    tops = []
+    for d in dice:
+        mark = "*" if d.faces != [1, 2, 3, 4, 5, 6] else ""
+        tops.append(c(YELLOW + ";1", f"{{{d.value}{mark}}}") if d.locked else f"[{d.value}{mark}]")
+    width = [len(f"{{{d.value}}}") + (1 if d.faces != [1, 2, 3, 4, 5, 6] else 0) for d in dice]
+    idx = " ".join(str(i + 1).center(w) for i, w in enumerate(width))
+    return " ".join(tops) + "\n" + idx
+
+
 def hands_table(g: GameState) -> str:
     lines = ["Manos y multiplicadores (suma de los 5 dados × mult):"]
     for hand, mult in g.mults.items():
@@ -34,24 +67,55 @@ def hands_table(g: GameState) -> str:
 
 def hud(g: GameState) -> str:
     k = g.cylinder.known()
-    life = "♥" * (MAX_WOUNDS - g.wounds) + "♡" * g.wounds
+    life = c(RED, "♥" * (MAX_WOUNDS - g.wounds)) + c(DIM, "♡" * g.wounds)
     h = g.current_hand()
-    silver = "  [PLATA x3]" if g.silver_active else ""
-    return (
-        f"\n=== Nivel {g.level}/{MAX_LEVEL}  Objetivo {g.target}  Acumulado {g.score}"
-        f"  Manos {g.hands_left}  Vida {life} ===\n"
-        f"Tambor: {k['remaining']} recámaras | balas {k['live']} fogueo {k['blank']}"
-        f" plata {k['silver']} | riesgo {g.cylinder.live_probability():.0%}\n"
-        f"{render(g.dice)}\n"
-        f"Mano: {h.hand.value} ({h.total} × {h.mult:g} = {h.points}){silver}\n"
-        f"{COMMANDS_HINT}"
+    extras = []
+    if g.silver_active:
+        extras.append(c(CYAN, "[PLATA x3]"))
+    if g.streak:
+        extras.append(c(GREEN, f"[RACHA {g.streak}: +{g.streak * STREAK_BONUS:g}]"))
+    if g.shield:
+        extras.append(c(CYAN, "[CHALECO]"))
+    risk = g.cylinder.live_probability()
+    risk_s = c(RED + ";1" if risk >= 0.34 else YELLOW if risk >= 0.2 else GREEN, f"{risk:.0%}")
+    specials = "".join(
+        f" {name} {k[key]}" for name, key in (("fogueo", "blank"), ("plata", "silver"), ("rebote", "bounce")) if k[key]
     )
+    return (
+        f"\n{c(BOLD, f'=== Nivel {g.level}/{MAX_LEVEL}  Objetivo {g.target}  Acumulado {g.score}  Manos {g.hands_left}')}  Vida {life}\n"
+        f"Tambor: {k['remaining']} recámaras | balas {k['live']}{specials} | riesgo {risk_s}\n"
+        f"{render_dice(g.dice)}\n"
+        f"Mano: {c(BOLD, h.hand.value)} ({h.total} × {h.mult:g} = {c(BOLD, str(h.points))}) {' '.join(extras)}\n"
+        f"{c(DIM, COMMANDS_HINT)}"
+    )
+
+
+def dramatic_trigger(g: GameState) -> TriggerResult:
+    risk = g.cylinder.live_probability()
+    sys.stdout.write(c(DIM, f"Giras el tambor ({risk:.0%})... "))
+    sys.stdout.flush()
+    pause(0.5)
+    r = g.pull_trigger()
+    if r.chamber is Chamber.LIVE and r.wounded:
+        pause(0.3)
+        print(c(RED + ";1", "\n\n   ██  BANG  ██\n"))
+        pause(0.6)
+    elif r.chamber is Chamber.LIVE:
+        print(c(YELLOW + ";1", "BANG... ¡el chaleco aguanta!"))
+        pause(0.4)
+    elif r.chamber is Chamber.SILVER:
+        print(c(CYAN + ";1", "¡PLATA!"))
+    elif r.chamber is Chamber.BOUNCE:
+        print(c(CYAN + ";1", "¡REBOTE!"))
+    else:
+        print(c(GREEN, "click."))
+    return r
 
 
 def choose_upgrade(g: GameState, read) -> bool:
     """Devuelve False si el jugador quiere salir."""
     ups = g.pending_upgrades
-    print(f"\n¡Nivel {g.level} superado! Elige una mejora:")
+    print(c(GREEN + ";1", f"\n¡Nivel {g.level} superado!") + " Elige una mejora:")
     for i, u in enumerate(ups, 1):
         print(f"  {i}. {u.value}")
     while True:
@@ -67,7 +131,7 @@ def choose_upgrade(g: GameState, read) -> bool:
 def run(seed: int | None = None) -> int:
     rng = random.Random(seed)
     g = GameState(rng)
-    print("BONES & BULLETS\n")
+    print(c(BOLD + ";31", "BONES & BULLETS") + "\n")
     print(HELP)
 
     def read(prompt: str) -> str:
@@ -93,7 +157,7 @@ def run(seed: int | None = None) -> int:
         elif cmd in ("1", "2", "3", "4", "5"):
             g.toggle_lock(int(cmd) - 1)
         elif cmd == "g":
-            g.pull_trigger()
+            dramatic_trigger(g)
         elif cmd == "j":
             g.play_hand()
         else:
@@ -102,13 +166,13 @@ def run(seed: int | None = None) -> int:
 
         if g.wounds >= MAX_WOUNDS:
             print(hud(g))
-            print(f"> {g.last_message}\n\nTres heridas. GAME OVER en el nivel {g.level}.")
+            print(f"> {g.last_message}\n\n" + c(RED + ";1", f"Tres heridas. GAME OVER en el nivel {g.level}."))
             return 1
         if g.level_cleared():
             print(f"> {g.last_message}")
             g.last_message = ""
             if g.level >= MAX_LEVEL:
-                print(f"\n¡Has superado los {MAX_LEVEL} niveles! VICTORIA.")
+                print(c(GREEN + ";1", f"\n¡Has superado los {MAX_LEVEL} niveles! VICTORIA."))
                 return 0
             if not choose_upgrade(g, read):
                 print("Hasta otra.")
@@ -116,5 +180,5 @@ def run(seed: int | None = None) -> int:
             g.next_level()
         elif g.game_over():
             print(hud(g))
-            print(f"> {g.last_message}\n\nSin manos y sin llegar al objetivo. GAME OVER en el nivel {g.level}.")
+            print(f"> {g.last_message}\n\n" + c(RED + ";1", f"Sin manos y sin llegar al objetivo. GAME OVER en el nivel {g.level}."))
             return 1

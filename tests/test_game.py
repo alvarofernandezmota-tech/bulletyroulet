@@ -10,7 +10,7 @@ def test_three_wounds_is_game_over():
     g.cylinder.live = 6  # solo balas
     g.cylinder.reload(g.rng)
     for _ in range(3):
-        assert g.pull_trigger() is Chamber.LIVE
+        assert g.pull_trigger().chamber is Chamber.LIVE
     assert g.wounds == 3
     assert g.game_over()
 
@@ -44,6 +44,7 @@ def test_clearing_level_offers_upgrades_and_next_level_resets():
     g.play_hand()
     assert g.level_cleared()
     assert len(g.pending_upgrades) == 3
+    assert Upgrade.SHIELD in list(Upgrade)
     assert Upgrade.HEAL not in g.pending_upgrades  # sin heridas no se ofrece
     g.apply_upgrade(Upgrade.MULT_PAIR)
     assert g.mults[HandType.PAIR] == 2.5
@@ -72,5 +73,53 @@ def test_silver_triples_hand():
 def test_seed_reproducible():
     a, b = GameState(random.Random(7)), GameState(random.Random(7))
     assert [d.value for d in a.dice] == [d.value for d in b.dice]
-    assert a.pull_trigger() == b.pull_trigger()
+    assert a.pull_trigger().chamber == b.pull_trigger().chamber
     assert [d.value for d in a.dice] == [d.value for d in b.dice]
+
+
+def _all_safe(g: GameState) -> None:
+    g.cylinder.live = 0
+    g.cylinder.reload(g.rng)
+
+
+def test_streak_adds_multiplier_and_resets_on_play():
+    g = GameState(random.Random(0))
+    _all_safe(g)
+    g.pull_trigger()
+    g.pull_trigger()
+    assert g.streak == 2
+    base = g.mults[g.current_hand().hand]
+    assert g.current_hand().mult == base + 1.0
+    g.play_hand()
+    assert g.streak == 0
+
+
+def test_shield_absorbs_first_bullet_per_level():
+    g = GameState(random.Random(0))
+    g.apply_upgrade(Upgrade.SHIELD)
+    g.next_level()
+    g.cylinder.live = 6
+    g.cylinder.reload(g.rng)
+    r = g.pull_trigger()
+    assert r.shielded and not r.wounded and g.wounds == 0
+    r = g.pull_trigger()
+    assert r.wounded and g.wounds == 1
+
+
+def test_extra_hand_and_loaded_die():
+    g = GameState(random.Random(0))
+    g.apply_upgrade(Upgrade.EXTRA_HAND)
+    g.apply_upgrade(Upgrade.LOADED_DIE)
+    g.next_level()
+    assert g.hands_left == HANDS_PER_LEVEL + 1
+    loaded = [d for d in g.dice if d.faces != [1, 2, 3, 4, 5, 6]]
+    assert len(loaded) == 1 and min(loaded[0].faces) == 3
+
+
+def test_bounce_keeps_best_of_two():
+    g = GameState(random.Random(1))
+    g.cylinder.live = 0
+    g.cylinder.bounce = 6
+    g.cylinder.reload(g.rng)
+    r = g.pull_trigger()
+    assert r.chamber is Chamber.BOUNCE and g.streak == 1
