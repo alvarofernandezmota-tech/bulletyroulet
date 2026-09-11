@@ -1,0 +1,511 @@
+<title>Bones & Bullets</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rye&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --ground: #17120e;
+    --table: #221b15;
+    --felt: #2b241c;
+    --line: #3d3328;
+    --bone: #e9dfc9;
+    --bone-dim: #a89d86;
+    --brass: #c99a3f;
+    --brass-deep: #8a6524;
+    --blood: #b8262b;
+    --silver: #b9c4cc;
+    --moss: #7f9a5c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    background-image: radial-gradient(ellipse at 50% 0%, #2a2018 0%, var(--ground) 60%);
+    color: var(--bone);
+    font-family: "Crimson Pro", Georgia, "Times New Roman", serif;
+    font-size: 18px;
+    line-height: 1.4;
+    padding-block: 24px 48px;
+    padding-inline: 16px;
+    min-height: 100vh;
+  }
+  .table {
+    max-width: 640px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  header { text-align: center; }
+  h1 {
+    font-family: "Rye", "Crimson Pro", serif;
+    font-weight: 400;
+    font-size: clamp(34px, 8vw, 52px);
+    letter-spacing: 0.02em;
+    margin: 0;
+    color: var(--brass);
+    text-shadow: 0 2px 0 var(--brass-deep), 0 6px 18px rgba(0,0,0,.6);
+    text-wrap: balance;
+  }
+  header p {
+    margin: 4px 0 0;
+    color: var(--bone-dim);
+    font-style: italic;
+  }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+  .label {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--bone-dim);
+  }
+
+  /* HUD */
+  .hud {
+    background: var(--table);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px 16px;
+    align-items: end;
+  }
+  .hud .big { font-size: 28px; font-weight: 600; line-height: 1; }
+  .hearts { font-size: 26px; letter-spacing: 2px; line-height: 1; }
+  .hearts .lost { color: var(--line); }
+  .hearts .have { color: var(--blood); }
+  .progress { grid-column: 1 / -1; height: 8px; background: var(--felt); border-radius: 4px; overflow: hidden; }
+  .progress > div { height: 100%; background: var(--brass); width: 0%; transition: width .4s ease; }
+  .hud-row { display: flex; gap: 18px; flex-wrap: wrap; align-items: baseline; }
+
+  /* dice */
+  .dice { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .die {
+    width: 84px; height: 84px;
+    background: var(--bone);
+    color: #1a1410;
+    border-radius: 14px;
+    border: none;
+    box-shadow: inset 0 -4px 0 rgba(0,0,0,.18), 0 6px 14px rgba(0,0,0,.5);
+    display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+    padding: 12px; cursor: pointer; position: relative;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .die:focus-visible { outline: 3px solid var(--brass); outline-offset: 3px; }
+  .die.locked { transform: translateY(6px); box-shadow: inset 0 -2px 0 rgba(0,0,0,.18), 0 0 0 3px var(--brass), 0 2px 6px rgba(0,0,0,.5); }
+  .die.loaded { background: linear-gradient(160deg, #f2e6c8, #cdb98a); }
+  .die.rolling { animation: tumble .12s linear infinite; }
+  @keyframes tumble { 0% { transform: rotate(-6deg) } 50% { transform: rotate(6deg) } 100% { transform: rotate(-6deg) } }
+  .pip { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+  .pip::after { content: ""; width: 14px; height: 14px; border-radius: 50%; background: #1a1410; opacity: 0; }
+  .pip.on::after { opacity: 1; }
+  .die .idx { position: absolute; bottom: -22px; left: 0; right: 0; text-align: center; font-size: 12px; color: var(--bone-dim); }
+  .die .lock { position: absolute; top: -10px; right: -6px; background: var(--brass); color: #1a1410; font-size: 11px; padding: 2px 6px; border-radius: 3px; font-family: "IBM Plex Mono", monospace; display: none; }
+  .die.locked .lock { display: block; }
+  .dice-wrap { padding-bottom: 22px; }
+  .hand {
+    text-align: center; font-size: 22px;
+  }
+  .hand b { color: var(--brass); font-weight: 600; }
+  .tags { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; min-height: 24px; }
+  .tag { font-family: "IBM Plex Mono", monospace; font-size: 12px; padding: 2px 8px; border-radius: 3px; border: 1px solid var(--line); color: var(--bone-dim); }
+  .tag.silver { border-color: var(--silver); color: var(--silver); }
+  .tag.streak { border-color: var(--moss); color: var(--moss); }
+  .tag.shield { border-color: var(--brass); color: var(--brass); }
+
+  /* revolver */
+  .revolver {
+    background: var(--table); border: 1px solid var(--line); border-radius: 6px;
+    padding: 14px 16px; display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; align-items: center;
+  }
+  .cyl { width: 96px; height: 96px; }
+  .cyl.spinning { animation: spin .9s cubic-bezier(.2,.8,.3,1); }
+  @keyframes spin { from { transform: rotate(0) } to { transform: rotate(720deg) } }
+  .risk { font-size: 30px; font-weight: 600; line-height: 1; }
+  .risk.low { color: var(--moss); } .risk.mid { color: var(--brass); } .risk.high { color: var(--blood); }
+  .chamber-list { color: var(--bone-dim); font-size: 15px; }
+
+  /* actions */
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .btn {
+    font-family: "Crimson Pro", serif; font-size: 20px; font-weight: 600;
+    padding: 14px 10px; border-radius: 6px; border: 1px solid var(--line);
+    background: var(--felt); color: var(--bone); cursor: pointer;
+  }
+  .btn:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn.fire { background: linear-gradient(180deg, #a3222a, #7a161c); border-color: #5e0f14; }
+  .btn.play { background: linear-gradient(180deg, #b58a37, var(--brass-deep)); border-color: #5f4418; color: #1a1410; }
+  .btn small { display: block; font-weight: 400; font-size: 13px; opacity: .85; }
+
+  .log {
+    min-height: 3em; border-left: 3px solid var(--line); padding-left: 12px; color: var(--bone-dim); font-style: italic;
+  }
+  .log.bang { color: var(--blood); border-color: var(--blood); font-style: normal; font-weight: 600; }
+  .log.good { color: var(--moss); border-color: var(--moss); }
+
+  details { color: var(--bone-dim); }
+  summary { cursor: pointer; color: var(--bone); }
+  details table { border-collapse: collapse; margin-top: 8px; }
+  details td { padding: 2px 12px 2px 0; }
+  details ul { padding-left: 20px; margin: 8px 0; }
+
+  /* overlays */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(10,7,5,.82); display: flex; align-items: center; justify-content: center;
+    padding: 16px; z-index: 10;
+  }
+  .overlay[hidden] { display: none !important; }
+  .panel {
+    background: var(--table); border: 1px solid var(--brass-deep); border-radius: 8px; padding: 22px; max-width: 460px; width: 100%;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .panel h2 { font-family: "Rye", serif; font-weight: 400; color: var(--brass); margin: 0; font-size: 28px; }
+  .panel h2.bad { color: var(--blood); }
+  .upgrade {
+    text-align: left; font-family: "Crimson Pro", serif; font-size: 18px; padding: 12px 14px;
+    background: var(--felt); border: 1px solid var(--line); border-radius: 6px; color: var(--bone); cursor: pointer;
+  }
+  .upgrade:hover, .upgrade:focus-visible { border-color: var(--brass); outline: none; }
+  .upgrade b { display: block; color: var(--brass); }
+  .bang-flash { position: fixed; inset: 0; background: var(--blood); opacity: 0; pointer-events: none; z-index: 5; }
+  .bang-flash.on { animation: flash .5s ease-out; }
+  @keyframes flash { 0% { opacity: .85 } 100% { opacity: 0 } }
+  .seed { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; color: var(--bone-dim); font-size: 15px; }
+  .seed input { width: 90px; background: var(--felt); border: 1px solid var(--line); color: var(--bone); padding: 4px 8px; border-radius: 4px; font-family: "IBM Plex Mono", monospace; }
+  .seed button { background: none; border: 1px solid var(--line); color: var(--bone); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-family: inherit; }
+  @media (prefers-reduced-motion: reduce) { .cyl.spinning, .die.rolling, .bang-flash.on { animation: none; } .progress > div { transition: none; } }
+  @media (max-width: 420px) { .die { width: 60px; height: 60px; padding: 8px; border-radius: 10px; } .pip::after { width: 10px; height: 10px; } .actions { grid-template-columns: 1fr; } }
+</style>
+
+<div class="table">
+  <header>
+    <h1>Bones &amp; Bullets</h1>
+    <p>Cinco dados, un revólver, una bala. Relanzar cuesta apretar el gatillo.</p>
+  </header>
+
+  <section class="hud" aria-label="Estado de la partida">
+    <div>
+      <div class="label">Nivel <span id="lvl" class="mono">1</span> de 8 · Objetivo</div>
+      <div class="hud-row">
+        <span class="big mono"><span id="score">0</span> / <span id="target">69</span></span>
+        <span class="label">Manos <span id="hands" class="mono">3</span></span>
+      </div>
+    </div>
+    <div class="hearts" id="hearts" aria-label="Vida"></div>
+    <div class="progress"><div id="bar"></div></div>
+  </section>
+
+  <section class="dice-wrap" aria-label="Dados">
+    <div class="dice" id="dice"></div>
+  </section>
+
+  <div class="hand" id="hand"></div>
+  <div class="tags" id="tags"></div>
+
+  <section class="revolver" aria-label="Revólver">
+    <svg class="cyl" id="cyl" viewBox="0 0 100 100" aria-hidden="true"></svg>
+    <div>
+      <div class="label">Riesgo de bala</div>
+      <div class="risk mono" id="risk">17%</div>
+      <div class="chamber-list" id="chambers"></div>
+    </div>
+  </section>
+
+  <div class="actions">
+    <button class="btn fire" id="btn-fire">Apretar el gatillo<small>relanza los dados libres · si no hay bala</small></button>
+    <button class="btn play" id="btn-play">Jugar la mano<small>suma los puntos y gasta una mano</small></button>
+  </div>
+
+  <div class="log" id="log">Toca un dado para bloquearlo. Los bloqueados no se relanzan.</div>
+
+  <details>
+    <summary>Reglas y multiplicadores</summary>
+    <ul>
+      <li>Cada mano suma <b>los cinco dados</b> y multiplica según la combinación. Tres manos por nivel; llega al objetivo o pierdes.</li>
+      <li>El tambor tiene 6 recámaras y 1 bala. Cada apretón descarta una recámara al azar, así que el riesgo sube hasta que se recarga.</li>
+      <li>Bala: una herida, la mano vale cero y se gasta. Tres heridas y se acabó.</li>
+      <li>Racha: cada click seguro seguido suma +0,5 al multiplicador de esa mano.</li>
+      <li>Sangre fría: superar un nivel sin apretar el gatillo cura una herida.</li>
+    </ul>
+    <table id="mults" class="mono"></table>
+  </details>
+
+  <div class="seed">
+    <label for="seed">Semilla</label>
+    <input id="seed" class="mono" inputmode="numeric" placeholder="azar">
+    <button id="btn-new" type="button">Nueva partida</button>
+  </div>
+</div>
+
+<div class="bang-flash" id="flash"></div>
+
+<div class="overlay" id="ov-upgrade" hidden>
+  <div class="panel" role="dialog" aria-labelledby="up-title">
+    <h2 id="up-title">Nivel superado</h2>
+    <p id="up-sub" style="margin:0;color:var(--bone-dim)">Elige una mejora.</p>
+    <div id="up-list" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+
+<div class="overlay" id="ov-end" hidden>
+  <div class="panel" role="dialog" aria-labelledby="end-title">
+    <h2 id="end-title">Fin</h2>
+    <p id="end-text" style="margin:0"></p>
+    <button class="btn play" id="btn-again">Otra partida</button>
+  </div>
+</div>
+
+<script>
+// ---------- RNG con semilla (mulberry32) ----------
+function makeRng(seed) {
+  let a = seed >>> 0;
+  const next = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  return {
+    random: next,
+    randrange: n => Math.floor(next() * n),
+    choice: arr => arr[Math.floor(next() * arr.length)],
+    shuffle: arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(next() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; },
+    sample: (arr, k) => { const c = arr.slice(); const out = []; while (out.length < k && c.length) out.push(c.splice(Math.floor(next() * c.length), 1)[0]); return out; },
+  };
+}
+
+// ---------- Reglas (espejo de bones_bullets/game.py) ----------
+const MAX_LEVEL = 8, HANDS_PER_LEVEL = 3, MAX_WOUNDS = 3, CYL_SIZE = 6, LIVE = 1, SILVER_MULT = 3, STREAK_BONUS = 0.5;
+const STD_FACES = [1, 2, 3, 4, 5, 6], LOADED_FACES = [3, 4, 5, 6, 6, 6];
+const target = n => 40 + 25 * n + 4 * n * n;
+const HANDS = ["carta alta", "pareja", "dobles parejas", "trío", "escalera", "full", "póker", "repóker"];
+const BASE_MULT = { "carta alta": 1, "pareja": 1.5, "dobles parejas": 2, "trío": 3, "escalera": 5, "full": 6, "póker": 8, "repóker": 12 };
+const CH = { EMPTY: "vacía", LIVE: "bala", BLANK: "fogueo", SILVER: "plata", BOUNCE: "rebote" };
+const UPGRADES = [
+  { id: "m_pair", name: "+1 mult. pareja", desc: "La pareja pasa a valer un punto más por dado.", hand: "pareja" },
+  { id: "m_two", name: "+1 mult. dobles parejas", desc: "", hand: "dobles parejas" },
+  { id: "m_three", name: "+1 mult. trío", desc: "", hand: "trío" },
+  { id: "m_straight", name: "+1 mult. escalera", desc: "", hand: "escalera" },
+  { id: "m_full", name: "+1 mult. full", desc: "", hand: "full" },
+  { id: "blank", name: "Fogueo", desc: "Una recámara más en el tambor que nunca hiere." },
+  { id: "silver", name: "Plata", desc: "Una recámara que triplica la mano en la que sale." },
+  { id: "bounce", name: "Rebote", desc: "Una recámara que relanza dos veces y se queda con lo mejor." },
+  { id: "loaded", name: "Dado cargado", desc: "Un dado pasa a tener caras 3-4-5-6-6-6." },
+  { id: "shield", name: "Chaleco", desc: "La primera bala de cada nivel no hiere." },
+  { id: "hand", name: "Mano extra", desc: "Una mano más en cada nivel." },
+  { id: "heal", name: "Curar una herida", desc: "" },
+];
+
+function evaluate(vals) {
+  const s = [...vals].sort((a, b) => a - b);
+  const cnt = {}; s.forEach(v => cnt[v] = (cnt[v] || 0) + 1);
+  const c = Object.values(cnt).sort((a, b) => b - a);
+  if (c[0] === 5) return "repóker";
+  if (c[0] === 4) return "póker";
+  if (c[0] === 3 && c[1] === 2) return "full";
+  if (new Set(s).size === 5 && s[4] - s[0] === 4) return "escalera";
+  if (c[0] === 3) return "trío";
+  if (c[0] === 2 && c[1] === 2) return "dobles parejas";
+  if (c[0] === 2) return "pareja";
+  return "carta alta";
+}
+
+class Cylinder {
+  constructor() { this.live = LIVE; this.blanks = 0; this.silver = 0; this.bounce = 0; this.chambers = []; }
+  reload(rng) {
+    const sp = [...Array(this.live).fill(CH.LIVE), ...Array(this.blanks).fill(CH.BLANK), ...Array(this.silver).fill(CH.SILVER), ...Array(this.bounce).fill(CH.BOUNCE)];
+    this.chambers = rng.shuffle([...sp, ...Array(Math.max(0, CYL_SIZE - sp.length)).fill(CH.EMPTY)]);
+  }
+  pull(rng) {
+    if (!this.chambers.length) this.reload(rng);
+    const ch = this.chambers.splice(rng.randrange(this.chambers.length), 1)[0];
+    if (ch === CH.LIVE || !this.chambers.length) this.reload(rng);
+    return ch;
+  }
+  count(t) { return this.chambers.filter(c => c === t).length; }
+  risk() { return this.chambers.length ? this.count(CH.LIVE) / this.chambers.length : 0; }
+}
+
+class Game {
+  constructor(seed) {
+    this.seed = seed; this.rng = makeRng(seed);
+    this.level = 1; this.score = 0; this.maxHands = HANDS_PER_LEVEL; this.handsLeft = HANDS_PER_LEVEL; this.wounds = 0;
+    this.dice = Array.from({ length: 5 }, () => ({ value: 1, locked: false, faces: STD_FACES }));
+    this.dice.forEach(d => d.value = this.rng.choice(d.faces));
+    this.cyl = new Cylinder(); this.cyl.reload(this.rng);
+    this.mults = { ...BASE_MULT }; this.silver = false; this.streak = 0; this.shieldMax = 0; this.shield = 0;
+    this.pulled = false; this.pending = []; this.msg = "";
+  }
+  get target() { return target(this.level); }
+  rollFree() { this.dice.forEach(d => { if (!d.locked) d.value = this.rng.choice(d.faces); }); }
+  hand() {
+    const vals = this.dice.map(d => d.value), h = evaluate(vals), total = vals.reduce((a, b) => a + b, 0);
+    let mult = this.mults[h] + this.streak * STREAK_BONUS; if (this.silver) mult *= SILVER_MULT;
+    return { hand: h, total, mult, points: Math.round(total * mult) };
+  }
+  resetHand() { this.silver = false; this.streak = 0; this.dice.forEach(d => d.locked = false); this.rollFree(); }
+  gameOver() { return this.wounds >= MAX_WOUNDS || (this.handsLeft <= 0 && this.score < this.target); }
+  cleared() { return this.score >= this.target; }
+  pullTrigger() {
+    this.pulled = true;
+    const ch = this.cyl.pull(this.rng);
+    if (ch === CH.LIVE) {
+      if (this.shield > 0) { this.shield--; this.rollFree(); this.msg = "¡BANG! ...el chaleco aguanta. Sin herida."; return { ch, shielded: true }; }
+      this.wounds++; this.handsLeft--; this.resetHand(); this.msg = "¡BANG! Herida. La mano se pierde y el tambor se recarga."; return { ch, wounded: true };
+    }
+    this.streak++;
+    if (ch === CH.SILVER) this.silver = true;
+    if (ch === CH.BOUNCE) {
+      this.rollFree(); const first = this.hand().points; const snap = this.dice.map(d => d.value);
+      this.rollFree(); if (this.hand().points < first) this.dice.forEach((d, i) => d.value = snap[i]);
+    } else this.rollFree();
+    const base = { [CH.EMPTY]: "Click.", [CH.BLANK]: "Fogueo.", [CH.SILVER]: "¡Plata! Esta mano vale x3.", [CH.BOUNCE]: "¡Rebote! Dos tiradas, te quedas la mejor." }[ch];
+    this.msg = `${base} Racha ${this.streak}: +${this.streak * STREAK_BONUS} al multiplicador.`;
+    return { ch };
+  }
+  playHand() {
+    const r = this.hand(); this.score += r.points; this.handsLeft--; this.resetHand();
+    this.msg = `${r.hand}: ${r.total} × ${r.mult} = ${r.points}`;
+    if (this.cleared()) {
+      if (!this.pulled && this.wounds > 0) { this.wounds--; this.msg += " Sangre fría: curas una herida."; }
+      let pool = UPGRADES.filter(u => !(u.id === "heal" && this.wounds === 0) && !(u.id === "shield" && this.shieldMax > 0) && !(u.id === "loaded" && this.dice.every(d => d.faces === LOADED_FACES)));
+      this.pending = this.rng.sample(pool, 3);
+    }
+    return r;
+  }
+  applyUpgrade(u) {
+    if (u.hand) this.mults[u.hand] += 1;
+    else if (u.id === "blank") this.cyl.blanks++;
+    else if (u.id === "silver") this.cyl.silver++;
+    else if (u.id === "bounce") this.cyl.bounce++;
+    else if (u.id === "loaded") { const d = this.dice.find(d => d.faces !== LOADED_FACES); if (d) d.faces = LOADED_FACES; }
+    else if (u.id === "shield") this.shieldMax++;
+    else if (u.id === "hand") this.maxHands++;
+    else if (u.id === "heal") this.wounds = Math.max(0, this.wounds - 1);
+    this.pending = [];
+  }
+  nextLevel() {
+    this.level++; this.score = 0; this.handsLeft = this.maxHands; this.shield = this.shieldMax; this.pulled = false; this.pending = [];
+    this.cyl.reload(this.rng); this.resetHand();
+  }
+}
+
+// ---------- Interfaz ----------
+const $ = id => document.getElementById(id);
+const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+let g, busy = false;
+
+function dieEl(d, i) {
+  const b = document.createElement("button");
+  b.className = "die" + (d.locked ? " locked" : "") + (d.faces === LOADED_FACES ? " loaded" : "");
+  b.type = "button"; b.id = "die-" + i; b.setAttribute("aria-label", `Dado ${i + 1}: ${d.value}${d.locked ? ", bloqueado" : ""}`);
+  b.innerHTML = Array.from({ length: 9 }, (_, k) => `<span class="pip${PIPS[d.value].includes(k) ? " on" : ""}"></span>`).join("")
+    + `<span class="lock">FIJO</span><span class="idx">${i + 1}${d.faces === LOADED_FACES ? " · cargado" : ""}</span>`;
+  b.addEventListener("click", () => { if (busy) return; d.locked = !d.locked; render(); });
+  return b;
+}
+
+function drawCylinder() {
+  const n = g.cyl.chambers.length, svg = $("cyl");
+  let out = `<circle cx="50" cy="50" r="46" fill="#3a3129" stroke="#1a1410" stroke-width="2"/>`;
+  for (let i = 0; i < CYL_SIZE; i++) {
+    const a = (i / CYL_SIZE) * Math.PI * 2 - Math.PI / 2, x = 50 + 30 * Math.cos(a), y = 50 + 30 * Math.sin(a);
+    const filled = i < n;
+    out += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" fill="${filled ? "#c99a3f" : "#1a1410"}" stroke="#1a1410" stroke-width="1.5"/>`;
+  }
+  out += `<circle cx="50" cy="50" r="6" fill="#1a1410"/>`;
+  svg.innerHTML = out;
+}
+
+function render() {
+  const h = g.hand();
+  $("lvl").textContent = g.level; $("score").textContent = g.score; $("target").textContent = g.target; $("hands").textContent = g.handsLeft;
+  $("bar").style.width = Math.min(100, 100 * g.score / g.target) + "%";
+  $("hearts").innerHTML = `<span class="have">${"♥".repeat(MAX_WOUNDS - g.wounds)}</span><span class="lost">${"♥".repeat(g.wounds)}</span>`;
+  const dice = $("dice"); dice.replaceChildren(...g.dice.map(dieEl));
+  $("hand").innerHTML = `<b>${h.hand}</b> · ${h.total} × ${h.mult} = <b class="mono">${h.points}</b>`;
+  const tags = [];
+  if (g.streak) tags.push(`<span class="tag streak">racha ${g.streak} · +${g.streak * STREAK_BONUS}</span>`);
+  if (g.silver) tags.push(`<span class="tag silver">plata ×3</span>`);
+  if (g.shield) tags.push(`<span class="tag shield">chaleco</span>`);
+  $("tags").innerHTML = tags.join("");
+  const r = g.cyl.risk(), rk = $("risk");
+  rk.textContent = Math.round(r * 100) + "%"; rk.className = "risk mono " + (r >= 0.34 ? "high" : r >= 0.2 ? "mid" : "low");
+  const parts = [`${g.cyl.chambers.length} recámaras`, `${g.cyl.count(CH.LIVE)} bala`];
+  [["fogueo", CH.BLANK], ["plata", CH.SILVER], ["rebote", CH.BOUNCE]].forEach(([n, t]) => { const k = g.cyl.count(t); if (k) parts.push(`${k} ${n}`); });
+  $("chambers").textContent = parts.join(" · ");
+  drawCylinder();
+  $("mults").innerHTML = HANDS.map(k => `<tr><td>${k}</td><td>×${g.mults[k]}</td></tr>`).join("");
+  $("btn-fire").disabled = busy; $("btn-play").disabled = busy;
+}
+
+function log(text, cls = "") { const l = $("log"); l.textContent = text; l.className = "log " + cls; }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+async function animateRoll() {
+  if (reduced) return;
+  const els = [...document.querySelectorAll(".die:not(.locked)")]; els.forEach(e => e.classList.add("rolling"));
+  for (let i = 0; i < 6; i++) {
+    els.forEach(e => { const v = 1 + Math.floor(Math.random() * 6); [...e.querySelectorAll(".pip")].forEach((p, k) => p.classList.toggle("on", PIPS[v].includes(k))); });
+    await sleep(70 + i * 25);
+  }
+}
+
+async function fire() {
+  if (busy) return; busy = true; render();
+  const cyl = $("cyl"); cyl.classList.remove("spinning"); void cyl.offsetWidth; cyl.classList.add("spinning");
+  log(`Giras el tambor... riesgo ${Math.round(g.cyl.risk() * 100)}%`);
+  if (!reduced) await sleep(900);
+  const res = g.pullTrigger();
+  if (res.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); log(g.msg, "bang"); }
+  else if (res.shielded) log(g.msg, "good");
+  else { log(g.msg, res.ch === CH.EMPTY || res.ch === CH.BLANK ? "" : "good"); await animateRoll(); }
+  busy = false; render(); afterMove();
+}
+
+function play() {
+  if (busy) return;
+  const r = g.playHand(); log(g.msg, "good"); render(); afterMove();
+}
+
+function afterMove() {
+  if (g.wounds >= MAX_WOUNDS) return endGame(false, `Tres heridas en el nivel ${g.level}.`);
+  if (g.cleared()) {
+    if (g.level >= MAX_LEVEL) return endGame(true, "Has superado los ocho niveles con el tambor girando. Victoria.");
+    return showUpgrades();
+  }
+  if (g.gameOver()) return endGame(false, `Sin manos y sin llegar a ${g.target} en el nivel ${g.level}.`);
+}
+
+function showUpgrades() {
+  $("up-title").textContent = `Nivel ${g.level} superado`;
+  $("up-sub").textContent = g.msg.includes("Sangre fría") ? "Sangre fría: has curado una herida. Elige una mejora." : "Elige una mejora.";
+  const list = $("up-list"); list.replaceChildren(...g.pending.map((u, i) => {
+    const b = document.createElement("button"); b.className = "upgrade"; b.type = "button"; b.id = "up-" + i;
+    b.innerHTML = `<b>${u.name}</b>${u.desc || (u.hand ? `El multiplicador de ${u.hand} sube en 1.` : "Recuperas un corazón.")}`;
+    b.addEventListener("click", () => { g.applyUpgrade(u); g.nextLevel(); $("ov-upgrade").hidden = true; log(`Nivel ${g.level}. Objetivo ${g.target}. El tambor está recargado.`); render(); });
+    return b;
+  }));
+  $("ov-upgrade").hidden = false; list.firstChild.focus();
+}
+
+function endGame(win, text) {
+  $("end-title").textContent = win ? "Victoria" : "Game over"; $("end-title").className = win ? "" : "bad";
+  $("end-text").textContent = text + ` Semilla ${g.seed}.`; $("ov-end").hidden = false; $("btn-again").focus();
+}
+
+function newGame(seed) {
+  if (seed === undefined || seed === "" || isNaN(+seed)) seed = Math.floor(Math.random() * 1e9);
+  g = new Game(+seed); busy = false; $("seed").value = seed;
+  $("ov-upgrade").hidden = true; $("ov-end").hidden = true;
+  log("Toca un dado para bloquearlo. Los bloqueados no se relanzan."); render();
+}
+
+$("btn-fire").addEventListener("click", fire);
+$("btn-play").addEventListener("click", play);
+$("btn-new").addEventListener("click", () => newGame($("seed").value));
+$("btn-again").addEventListener("click", () => newGame($("seed").value ? +$("seed").value + 1 : undefined));
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || !$("ov-upgrade").hidden || !$("ov-end").hidden) return;
+  if (e.key >= "1" && e.key <= "5") { if (!busy) { g.dice[+e.key - 1].locked = !g.dice[+e.key - 1].locked; render(); } }
+  else if (e.key === "g") fire(); else if (e.key === "j") play();
+});
+newGame();
+</script>

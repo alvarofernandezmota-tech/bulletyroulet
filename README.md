@@ -6,6 +6,15 @@ Relanzar no es gratis: cada relanzamiento es apretar el gatillo de un revólver 
 
 ## Cómo jugar
 
+### En el navegador
+
+Abre `web/index.html` con cualquier navegador (doble clic o `xdg-open web/index.html`).
+No necesita servidor ni instalación. Las mismas reglas que la versión de terminal,
+portadas a JavaScript en un solo archivo. Semilla opcional en el pie de página.
+Teclas: `1`-`5` bloquean dados, `g` gatillo, `j` jugar mano.
+
+### En la terminal
+
 Requiere Python 3.11+. Sin dependencias (pytest solo para tests).
 
 ```
@@ -61,6 +70,8 @@ tests/
   test_hands.py test_revolver.py test_game.py
 tools/
   simulate.py   bot que juega partidas para calibrar el balance
+web/
+  index.html    versión para navegador (HTML+CSS+JS, sin dependencias)
 ```
 
 `game.py` no hace print ni input: la misma lógica sirve para pygame o web.

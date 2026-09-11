@@ -28,3 +28,4 @@ Solo stdlib (pytest únicamente para tests). Python 3.11+. Paquete `bones_bullet
 - `tools/simulate.py` bot que juega N partidas para calibrar el balance: `python tools/simulate.py 2000 0.34`.
 - Todo el RNG pasa por un `random.Random` inyectado, nunca `random` global.
 - Type hints y dataclasses. Sin dependencias.
+- `web/index.html`: versión navegador en JS puro. Las reglas están duplicadas ahí: cualquier cambio en `game.py` debe replicarse en el bloque `Game` de ese archivo.
