@@ -95,16 +95,17 @@
 
   .turn-banner { position: relative; z-index: 3; text-align: center; font-family: "Rye", serif; font-size: 13px; color: var(--brass); min-height: 1.2em; text-shadow: 0 2px 0 #000; letter-spacing: .04em; }
 
-  .board { position: relative; z-index: 3; background: var(--board); border: 6px solid #6b4326; border-radius: 4px; box-shadow: 0 4px 0 #2a1810, 0 8px 12px rgba(0,0,0,.6); padding: 8px 10px; transform: rotate(-1.2deg);
-    font-family: "Caveat", "Special Elite", cursive; color: var(--chalk); display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 10px; }
-  .board::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 40%, rgba(255,255,255,.06), transparent 60%); pointer-events: none; }
-  .board .cell { text-align: center; }
-  .board .label { display: block; font-size: 15px; color: #cfd6c8; opacity: .85; line-height: 1; }
-  .board .big { display: block; font-size: 34px; line-height: 1; margin-top: 2px; }
-  .board .cell.sum .big { color: var(--teal-ink); } .board .cell.mult .big { color: #ff9aa8; } .board .cell.total .big { color: #d2b0ff; }
-  .board .wide { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; font-size: 18px; }
-  .progress { grid-column: 1 / -1; height: 6px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
-  .progress > div { height: 100%; background: var(--chalk); opacity: .8; width: 0%; transition: width .4s ease; }
+  .score { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 4px 2px 0; }
+  .score .meta { display: flex; justify-content: space-between; align-items: baseline; width: 100%;
+    font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: rgba(241,233,214,.42); }
+  .score .hero { display: flex; align-items: baseline; gap: 11px; }
+  .score .big { font-size: clamp(46px, 14vw, 66px); line-height: .86; color: var(--bone);
+    text-shadow: 0 3px 0 rgba(0,0,0,.55), 0 0 30px rgba(255,214,120,.16); }
+  .score .of { font-size: 15px; letter-spacing: .08em; color: rgba(241,233,214,.38); }
+  .score .track { width: 100%; height: 2px; background: rgba(255,255,255,.1); }
+  .score .track[hidden] { display: none !important; }
+  .score .track > div { height: 100%; width: 0%; background: var(--brass); box-shadow: 0 0 9px rgba(201,154,63,.75);
+    transition: width .5s cubic-bezier(.3,1,.4,1); }
   .mono { font-variant-numeric: tabular-nums; }
 
   .center { position: relative; z-index: 3; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; }
@@ -349,12 +350,10 @@
     <div class="felt">
       <div class="turn-banner" id="turn"></div>
 
-      <section class="board" aria-label="Marcador">
-        <div class="wide"><span><span id="lbl-lvl">Nivel</span> <span id="lvl-tile" class="mono"><span id="lvl">1</span>/8</span></span><span><span id="lbl-target">Objetivo</span> <span class="mono" id="target">69</span></span><span style="font-size:16px">Manos <span id="hands" class="mono">3</span></span></div>
-        <div class="cell sum"><span class="label">Huesos</span><span class="big mono" id="sum">0</span></div>
-        <div class="cell mult"><span class="label">Mult</span><span class="big mono" id="mult">1</span></div>
-        <div class="cell total"><span class="label" id="lbl-total">Total</span><span class="big mono" id="score">0</span></div>
-        <div class="progress"><div id="bar"></div></div>
+      <section class="score" aria-label="Marcador">
+        <div class="meta"><span id="meta-left">Nivel 1/8</span><span id="meta-right">3 manos</span></div>
+        <div class="cell hero"><span class="big mono" id="score">0</span><span class="of" id="sub-txt">de 69</span></div>
+        <div class="track" id="track"><div id="bar"></div></div>
       </section>
 
       <div class="center">
@@ -553,7 +552,7 @@ function flyPoints(text, fromEl, toEl) {
   f.style.left = a.left + a.width / 2 + "px"; f.style.top = a.top + "px"; f.style.transform = "translate(-50%, 0)";
   return new Promise(res => { requestAnimationFrame(() => { f.style.transform = `translate(calc(-50% + ${b.left + b.width / 2 - (a.left + a.width / 2)}px), ${b.top + b.height / 2 - a.top}px) scale(.6)`; f.style.opacity = "0"; setTimeout(() => { f.remove(); res(); }, 560); }); });
 }
-function bump(id, cls = "bump") { const el = $(id).closest(".cell") || $(id); el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+function bump(id, cls = "bump") { const t = $(id); if (!t) return; const el = t.closest(".cell") || t; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
 function shake() { if (reduced) return; document.body.classList.remove("shake"); void document.body.offsetWidth; document.body.classList.add("shake"); if (typeof DiceTable !== "undefined") DiceTable.nudge(0.8); }
 function splat() { const s = $("splat"); s.classList.add("on"); setTimeout(() => s.classList.remove("on"), 300); }
 const HAND_RANK = { "carta alta": 0, "pareja": 1, "dobles parejas": 2, "trío": 3, "escalera": 4, "full": 5, "póker": 6, "repóker": 7 };
@@ -563,7 +562,7 @@ function bannerHand(h) {
   const b = $("banner"); $("banner-t").textContent = h.hand.toUpperCase(); $("banner-m").textContent = `×${h.mult}`;
   b.classList.toggle("epic", r >= 6); b.hidden = false; setTimeout(() => { b.hidden = true; }, 1400);
   if (r >= 6) { shake(); SFX.fanfare(); } else SFX.coin();
-  bump("mult", "pulse");
+  bump("score", "pulse");
 }
 // ---------- el personaje reacciona a ti ----------
 const ME_LINES = ["¿Eso es todo, Sheriff?", "Tu estrella está torcida.", "Aprieta tú, si tienes lo que hay que tener.", "Este pueblo ya no es tuyo."];
@@ -1212,26 +1211,26 @@ function render() {
   const h = S.hand, duel = S.mode === "duel";
   document.querySelectorAll(".modes button").forEach(b => b.setAttribute("aria-pressed", String(b.id === "mode-" + (duel ? S.rival : "solo"))));
   if (duel) {
-    $("lbl-lvl").textContent = "Ronda"; $("lvl-tile").innerHTML = `<span id="lvl">${S.round}</span>`;
-    $("lbl-target").textContent = "Rival"; $("target").textContent = S.opponent.played ? S.opponent.played.points : "?";
-    $("lbl-total").textContent = "Rondas"; $("score").textContent = `${S.me.rounds_won}-${S.opponent.rounds_won}`;
-    $("hands").parentElement.hidden = true;
-    $("bar").style.width = "0%";
+    $("meta-left").textContent = `Ronda ${S.round}`;
+    $("meta-right").textContent = S.opponent.played ? `rival ${S.opponent.played.points}` : "rival · aún nada";
+    $("score").textContent = `${S.me.rounds_won}–${S.opponent.rounds_won}`;
+    $("sub-txt").textContent = "rondas";
+    $("track").hidden = true;
     $("hearts").innerHTML = hearts(S.me.wounds, S.me.max_wounds);
     $("dice").replaceChildren(...S.me.dice.map(dieEl)); DiceTable.sync(S.me.dice);
     renderRival(false);
     $("turn").textContent = S.game_over ? "" : S.my_turn ? "Tu turno" : `Turno de ${S.rival_name}`;
   } else {
     $("rival").hidden = true; $("backdrop").hidden = true; $("turn").textContent = ""; $("empty-seat").hidden = false; $("rv-cup").hidden = true;
-    $("lbl-lvl").textContent = "Nivel"; $("lvl-tile").innerHTML = `<span id="lvl">${S.level}</span>/8`;
-    $("lbl-target").textContent = "Objetivo"; $("target").textContent = S.target;
-    $("lbl-total").textContent = "Total"; $("score").textContent = S.score;
-    $("hands").textContent = S.hands_left; $("hands").parentElement.hidden = false;
+    $("meta-left").textContent = `Nivel ${S.level}/8`;
+    $("meta-right").textContent = `${S.hands_left} ${S.hands_left === 1 ? "mano" : "manos"}`;
+    $("score").textContent = S.score;
+    $("sub-txt").textContent = `de ${S.target}`;
+    $("track").hidden = false;
     $("bar").style.width = Math.min(100, 100 * S.score / S.target) + "%";
     $("hearts").innerHTML = hearts(S.wounds, S.max_wounds);
     $("dice").replaceChildren(...S.dice.map(dieEl)); DiceTable.sync(S.dice);
   }
-  $("sum").textContent = h.total; $("mult").textContent = h.mult;
   const me = duel ? S.me : S;
   $("hand").innerHTML = `<b>${h.hand}</b> · ${h.total} × ${h.mult} = <b class="mono">${h.points}</b>`;
   const tags = [];
