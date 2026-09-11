@@ -15,6 +15,7 @@ class Player:
     name: str
     is_ai: bool = False
     wounds: int = 0
+    max_wounds: int = MAX_WOUNDS
     dice: list[Die] = field(default_factory=list)
     streak: int = 0
     silver_active: bool = False
@@ -23,7 +24,7 @@ class Player:
     rounds_won: int = 0
 
     def alive(self) -> bool:
-        return self.wounds < MAX_WOUNDS
+        return self.wounds < self.max_wounds
 
 
 def who(p: Player, third: str, second: str) -> str:
@@ -143,5 +144,7 @@ class Duel:
             roll_all(p.dice, self.rng)
 
 
-def new_duel(rng: random.Random, human: str = "Tú", rival: str = "Rival") -> Duel:
-    return Duel(rng, [Player(human), Player(rival, is_ai=True)])
+def new_duel(rng: random.Random, human: str = "Tú", rival: str = "Rival",
+             rival_lives: int = MAX_WOUNDS, live_rounds: int = LIVE_ROUNDS) -> Duel:
+    return Duel(rng, [Player(human), Player(rival, is_ai=True, max_wounds=rival_lives)],
+                cylinder=Cylinder(CYLINDER_SIZE, live_rounds))

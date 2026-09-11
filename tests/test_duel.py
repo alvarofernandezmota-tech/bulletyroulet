@@ -1,6 +1,6 @@
 import random
 
-from bones_bullets.ai import PERSONALITIES, take_turn
+from bones_bullets.ai import PERSONALITIES, make_duel, take_turn
 from bones_bullets.duel import new_duel
 from bones_bullets.game import MAX_WOUNDS
 
@@ -61,3 +61,13 @@ def test_full_ai_vs_ai_duel_terminates():
             break
         take_turn(d, PERSONALITIES["loco"] if d.turn else PERSONALITIES["cauto"])
     assert d.game_over()
+
+
+def test_sheriff_has_five_lives_and_three_bullets():
+    d = make_duel(random.Random(0), PERSONALITIES["sheriff"])
+    assert d.players[1].max_wounds == 5 and d.players[0].max_wounds == 3
+    assert d.cylinder.known()["live"] == 3 and d.cylinder.live_probability() == 0.5
+    d.players[1].wounds = 4
+    assert not d.game_over()
+    d.players[1].wounds = 5
+    assert d.game_over() and d.winner() is d.players[0]

@@ -206,6 +206,7 @@
     <button type="button" id="mode-cauto" aria-pressed="false">Duelo · El Cauto</button>
     <button type="button" id="mode-tahur" aria-pressed="false">Duelo · El Tahúr</button>
     <button type="button" id="mode-loco" aria-pressed="false">Duelo · El Loco</button>
+    <button type="button" id="mode-sheriff" aria-pressed="false">Duelo · El Sheriff</button>
   </nav>
 
   <section class="hud" aria-label="Estado de la partida">
@@ -331,7 +332,7 @@ function renderRival(revealed) {
   const o = S.opponent, rv = $("rival");
   rv.hidden = false; rv.classList.toggle("active", !S.my_turn && !S.game_over);
   $("rv-name").textContent = S.rival_name;
-  $("rv-hearts").innerHTML = hearts(o.wounds, S.max_wounds);
+  $("rv-hearts").innerHTML = hearts(o.wounds, o.max_wounds);
   $("rv-status").textContent = o.played ? `ha jugado ${o.played.hand} por ${o.played.points}` : (S.my_turn ? "aún no ha jugado" : "está jugando...");
   const show = revealed || o.played;
   $("rv-dice").innerHTML = o.dice.map(v => `<span class="d${show ? "" : " hidden"}">${v}</span>`).join("");
@@ -346,7 +347,7 @@ function render() {
     $("score").textContent = S.me.rounds_won; $("target").textContent = S.opponent.rounds_won;
     $("hands").parentElement.hidden = true;
     $("bar").style.width = "0%";
-    $("hearts").innerHTML = hearts(S.me.wounds, S.max_wounds);
+    $("hearts").innerHTML = hearts(S.me.wounds, S.me.max_wounds);
     $("dice").replaceChildren(...S.me.dice.map(dieEl));
     renderRival(false);
     $("turn").textContent = S.game_over ? "" : S.my_turn ? "Tu turno" : `Turno de ${S.rival_name}`;
@@ -367,7 +368,7 @@ function render() {
   $("tags").innerHTML = tags.join("");
   const r = S.cylinder.risk, rk = $("risk");
   rk.textContent = Math.round(r * 100) + "%"; rk.className = "risk mono " + (r >= 0.34 ? "high" : r >= 0.2 ? "mid" : "low");
-  const parts = [`${S.cylinder.remaining} recámaras`, `${S.cylinder.live} bala`];
+  const parts = [`${S.cylinder.remaining} recámaras`, `${S.cylinder.live} ${S.cylinder.live === 1 ? "bala" : "balas"}`];
   [["fogueo", "blank"], ["plata", "silver"], ["rebote", "bounce"]].forEach(([n, k]) => { if (S.cylinder[k]) parts.push(`${S.cylinder[k]} ${n}`); });
   $("chambers").textContent = parts.join(" · ");
   drawCylinder();
@@ -473,7 +474,7 @@ async function newGame(seed) {
   try { await api("new", { seed: seed === undefined || seed === "" ? null : seed, mode, rival }); }
   catch (e) { return log("No se pudo hablar con el servidor. Arranca `python -m bones_bullets.server` y recarga.", "bang"); }
   try { localStorage.setItem("bb-token", token); } catch (_) {}
-  log(mode === "duel" ? `Duelo contra ${S.rival_name}. Un tambor para los dos: si sobrevives al click, el riesgo se lo queda el siguiente.` : "Toca un dado para bloquearlo. Los bloqueados no se relanzan.");
+  log(mode === "duel" ? (S.rival === "sheriff" ? `El Sheriff. Tres balas en el tambor para los dos y cinco vidas para él. Una bala cuesta lo mismo a los dos.` : `Duelo contra ${S.rival_name}. Un tambor para los dos: si sobrevives al click, el riesgo se lo queda el siguiente.`) : "Toca un dado para bloquearlo. Los bloqueados no se relanzan.");
   busy = false; render();
 }
 

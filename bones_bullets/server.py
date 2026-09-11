@@ -15,9 +15,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-from .ai import PERSONALITIES, take_turn
+from .ai import PERSONALITIES, make_duel, take_turn
 from .dice import FACES
-from .duel import Duel, new_duel
+from .duel import Duel
 from .game import MAX_LEVEL, MAX_WOUNDS, STREAK_BONUS, GameState, Upgrade
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
@@ -67,10 +67,10 @@ def serialize_duel(d: Duel, seed: int, rival_key: str) -> dict:
         "mode": "duel", "seed": seed, "rival": rival_key, "rival_name": rival.name,
         "round": d.round, "my_turn": d.current is me and not d.game_over(),
         "max_wounds": MAX_WOUNDS,
-        "me": {"wounds": me.wounds, "streak": me.streak, "silver": me.silver_active, "rounds_won": me.rounds_won,
+        "me": {"wounds": me.wounds, "max_wounds": me.max_wounds, "streak": me.streak, "silver": me.silver_active, "rounds_won": me.rounds_won,
                "dice": [{"value": x.value, "locked": x.locked, "loaded": False} for x in me.dice],
                "played": asdict(me.played) | {"hand": me.played.hand.value} if me.played else None},
-        "opponent": {"wounds": rival.wounds, "rounds_won": rival.rounds_won,
+        "opponent": {"wounds": rival.wounds, "max_wounds": rival.max_wounds, "rounds_won": rival.rounds_won,
                      "dice": [x.value for x in rival.dice],
                      "played": asdict(rival.played) | {"hand": rival.played.hand.value} if rival.played else None},
         "hand": asdict(h) | {"hand": h.hand.value},
@@ -108,7 +108,7 @@ class Games:
         rng = random.Random(seed)
         if mode == "duel":
             rival = rival if rival in PERSONALITIES else "tahur"
-            sess = Session(new_duel(rng, "Tú", PERSONALITIES[rival].name), seed, "duel", rival)
+            sess = Session(make_duel(rng, PERSONALITIES[rival]), seed, "duel", rival)
         else:
             sess = Session(GameState(rng), seed)
         token = secrets.token_urlsafe(16)
@@ -235,7 +235,7 @@ class Handler(BaseHTTPRequestHandler):
             token, sess = GAMES.new(seed, str(body.get("mode", "solo")), str(body.get("rival", "tahur")))
             return self._json(200, {"token": token, "state": sess.state()})
         if path == "/api/rivals":
-            return self._json(200, {"rivals": [{"key": p.key, "name": p.name, "taunt": p.taunt, "risk": p.max_risk} for p in PERSONALITIES.values()]})
+            return self._json(200, {"rivals": [{"key": p.key, "name": p.name, "taunt": p.taunt, "risk": p.max_risk, "lives": p.lives, "bullets": p.live_rounds} for p in PERSONALITIES.values()]})
         if path.startswith("/api/"):
             sess = GAMES.get(self.headers.get("X-Game"))
             if not sess:

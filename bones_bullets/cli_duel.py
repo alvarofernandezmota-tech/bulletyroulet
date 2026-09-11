@@ -3,10 +3,9 @@ from __future__ import annotations
 
 import random
 
-from .ai import PERSONALITIES, Personality, take_turn
+from .ai import PERSONALITIES, Personality, make_duel, take_turn
 from .cli import BOLD, CYAN, DIM, GREEN, RED, YELLOW, c, pause, render_dice, roll_dice_animation, spin_cylinder
-from .duel import Duel, Player, new_duel
-from .game import MAX_WOUNDS
+from .duel import Duel, Player
 from .revolver import Chamber
 
 HELP = """DUELO
@@ -20,7 +19,7 @@ COMANDOS: 1-5 bloquear dado · g gatillo · j jugar mano · ? ayuda · q salir""
 
 
 def life(p: Player) -> str:
-    return c(RED, "♥" * (MAX_WOUNDS - p.wounds)) + c(DIM, "♡" * p.wounds)
+    return c(RED, "♥" * (p.max_wounds - p.wounds)) + c(DIM, "♡" * p.wounds)
 
 
 def hud(d: Duel) -> str:
@@ -64,7 +63,7 @@ def run_duel(seed: int | None = None, rival_key: str = "tahur") -> int:
     pers = PERSONALITIES.get(rival_key, PERSONALITIES["tahur"])
     rng = random.Random(seed)
     fx = random.Random()
-    d = new_duel(rng, "Tú", pers.name)
+    d = make_duel(rng, pers)
     me = d.players[0]
     print(c(BOLD + ";31", "BONES & BULLETS — DUELO") + f"  contra {c(BOLD, pers.name)}\n")
     print(HELP)

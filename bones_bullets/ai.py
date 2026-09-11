@@ -15,13 +15,22 @@ class Personality:
     max_risk: float      # no aprieta si el riesgo supera esto
     greed: float         # aprieta mientras sus puntos < objetivo * greed
     taunt: str
+    lives: int = 3       # heridas que aguanta
+    live_rounds: int = 1  # balas en el tambor compartido
 
 
 PERSONALITIES: dict[str, Personality] = {
     "cauto": Personality("cauto", "El Cauto", 0.20, 0.9, "Prefiero llegar vivo a casa."),
     "tahur": Personality("tahur", "El Tahúr", 0.34, 1.1, "Las cartas no mienten. Los dados tampoco."),
     "loco": Personality("loco", "El Loco", 0.50, 1.4, "¿Solo una bala? Qué aburrido."),
+    "sheriff": Personality("sheriff", "El Sheriff", 0.50, 1.0, "Tres balas. Una por cada vez que me mentiste.",
+                           lives=5, live_rounds=3),
 }
+
+
+def make_duel(rng, pers: Personality, human: str = "Tú"):
+    from .duel import new_duel
+    return new_duel(rng, human, pers.name, rival_lives=pers.lives, live_rounds=pers.live_rounds)
 
 
 def lock_best(p: Player) -> None:
