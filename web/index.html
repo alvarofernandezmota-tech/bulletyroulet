@@ -68,21 +68,39 @@
   .modes button[aria-pressed="true"] { border-color: var(--edge); color: var(--ink); background: var(--tile); }
   .modes button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 
-  /* escenario del rival: encima de la tarjeta, como el esqueleto */
+  /* escenario del rival: el personaje grande y centrado, la tarjeta se monta encima de sus pies */
   .rival {
-    background: linear-gradient(180deg, #0b0d12, #15161a); border: 4px solid var(--edge-dim); border-bottom: none;
-    box-shadow: 0 0 0 2px #000; padding: 8px 10px 0; margin-bottom: -10px;
-    display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto 1fr; gap: 4px 12px; align-items: start;
+    position: relative; height: 300px; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 70%, #1b2230 0%, #0b0d12 55%, #050608 100%);
+    border: 4px solid var(--edge-dim); border-bottom: none; box-shadow: 0 0 0 2px #000;
+    display: block; margin-bottom: -46px; z-index: 0;
+  }
+  .rival::before { /* líneas de escaneo */
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 2px, transparent 2px 4px); opacity: .6;
+  }
+  .rival::after { /* viñeta */
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 55%, transparent 40%, rgba(0,0,0,.75) 100%);
   }
   .rival[hidden] { display: none !important; }
-  .rival .name { font-family: "Press Start 2P", monospace; font-size: 11px; color: var(--bone); text-shadow: 2px 2px 0 #000; margin-top: 6px; }
-  .rival .status { color: var(--ink-dim); font-size: 20px; }
-  .rival .hearts { text-align: left; font-size: 20px; }
-  .rival .mini { display: flex; gap: 5px; align-self: end; padding-bottom: 10px; }
-  .mini .d { width: 30px; height: 30px; background: var(--bone); border: 3px solid #000; display: grid; place-items: center; font-family: "VT323", monospace; font-size: 24px; color: #000; line-height: 1; }
+  .portrait { position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); width: 150px; height: 300px; overflow: visible; filter: drop-shadow(5px 5px 0 #000); z-index: 1; }
+  .rival .halo { position: absolute; left: 50%; top: 40%; width: 220px; height: 220px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(200,128,28,.28) 0%, transparent 65%); pointer-events: none; }
+  .rival.active .halo { animation: halo 1.6s ease-in-out infinite; }
+  @keyframes halo { 0%, 100% { opacity: .6 } 50% { opacity: 1 } }
+  .rival .plate {
+    position: absolute; top: 10px; left: 10px; right: 10px; z-index: 2;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+  }
+  .rival .name { font-family: "Press Start 2P", monospace; font-size: 11px; color: var(--bone); text-shadow: 2px 2px 0 #000; }
+  .rival .status { color: var(--ink-dim); font-size: 19px; text-shadow: 1px 1px 0 #000; }
+  .rival .hearts { text-align: right; font-size: 20px; }
+  .rival .mini { position: absolute; right: 10px; bottom: 64px; z-index: 2; display: flex; gap: 4px; }
+  .mini .d { width: 26px; height: 26px; background: var(--bone); border: 3px solid #000; display: grid; place-items: center; font-family: "VT323", monospace; font-size: 22px; color: #000; line-height: 1; }
   .mini .d.hidden { color: transparent; background: repeating-linear-gradient(45deg, #3a3b42 0 4px, #15161a 4px 7px); border-color: var(--edge-dim); }
-  .rival .mini { min-height: 40px; }
   .rival.active { border-color: var(--edge); }
+  .frame { position: relative; z-index: 1; }
+  @media (max-width: 420px) { .rival { height: 250px; } .portrait { width: 124px; height: 248px; } }
   .turn-banner { text-align: center; font-family: "Press Start 2P", monospace; font-size: 9px; color: var(--green); min-height: 1.4em; text-shadow: 2px 2px 0 #000; }
 
   /* dados */
@@ -162,10 +180,6 @@
   .seed button { background: var(--tile); border: 3px solid var(--edge-dim); color: var(--ink); padding: 6px 10px; cursor: pointer; font-family: "Press Start 2P", monospace; font-size: 8px; }
   @media (prefers-reduced-motion: reduce) { .cyl.spinning, .die.rolling, .bang-flash.on { animation: none; } .progress > div { transition: none; } }
   @media (max-width: 420px) { .actions { grid-template-columns: 1fr 1fr; } .tile .big { font-size: 32px; } .die { width: 54px; height: 54px; padding: 6px; } .pip::after { width: 8px; height: 8px; } .dice { gap: 5px; } }
-  .portrait { width: 96px; height: 192px; grid-row: 1 / span 3; align-self: end; overflow: visible; filter: drop-shadow(4px 4px 0 #000) contrast(1.05); }
-  .rival { grid-template-rows: auto auto 1fr; align-items: start; }
-  .rival .mini { align-self: end; }
-  @media (max-width: 420px) { .portrait { width: 80px; height: 160px; } }
   .portrait * { transform-box: fill-box; }
   /* reposo: respira y parpadea */
   .portrait .body { transform-origin: 50% 100%; animation: breathe 2.6s ease-in-out infinite; }
@@ -236,9 +250,12 @@
   </nav>
 
   <section class="rival" id="rival" hidden aria-label="Rival">
+    <div class="halo"></div>
     <svg class="portrait" id="rv-portrait" viewBox="0 0 100 200" aria-hidden="true"></svg>
-    <div><div class="name" id="rv-name">El Sheriff</div><div class="status" id="rv-status">esperando</div></div>
-    <div class="hearts" id="rv-hearts"></div>
+    <div class="plate">
+      <div><div class="name" id="rv-name">El Sheriff</div><div class="status" id="rv-status">esperando</div></div>
+      <div class="hearts" id="rv-hearts"></div>
+    </div>
     <div class="mini" id="rv-dice"></div>
   </section>
 
