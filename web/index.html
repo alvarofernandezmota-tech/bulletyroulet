@@ -41,7 +41,7 @@
   .backdrop[hidden] { display: none !important; }
   .backdrop .halo { position: absolute; left: 50%; top: 50%; width: 260px; height: 260px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(200,128,28,.18) 0%, transparent 65%); animation: halo 3s ease-in-out infinite; }
   .backdrop.active .halo { animation-duration: 1.2s; background: radial-gradient(circle, rgba(216,32,58,.2) 0%, transparent 65%); }
-  .backdrop .stage { position: absolute; left: 50%; bottom: -268px; width: 300px; height: 600px; transform: translateX(-50%); cursor: pointer; transition: transform .35s ease-out; transform-origin: 50% 70%; }
+  .backdrop .stage { position: absolute; left: 50%; bottom: -140px; width: 240px; height: 480px; transform: translateX(-50%); cursor: pointer; transition: transform .35s ease-out; transform-origin: 50% 70%; }
   .backdrop.active .stage { transform: translateX(-50%) translateY(14px) scale(1.06); }
   /* gestos en reposo (los aplica el JS al azar) */
   .stage.g-tap .arm { animation: tap .9s ease-in-out 2; transform-origin: 0% 0%; }
@@ -55,7 +55,7 @@
   @keyframes shrug { 0%, 100% { transform: translateY(0) } 30% { transform: translateY(-5px) } 60% { transform: translateY(-4px) } }
   .stage.g-back .upper { animation: back .9s ease-out; transform-origin: 50% 100%; }
   @keyframes back { 0%, 100% { transform: rotate(0) } 30% { transform: rotate(2.5deg) translateY(-3px) } }
-  @media (max-width: 420px) { .far { height: 250px; } .backdrop .stage { width: 250px; height: 500px; bottom: -224px; } }
+  @media (max-width: 420px) { .far { height: 250px; } .backdrop .stage { width: 200px; height: 400px; bottom: -110px; } }
   .portrait { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 6px 10px rgba(0,0,0,.7)); }
   .backdrop.dead .stage { filter: grayscale(1) brightness(.5); }
   .empty-seat { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); color: var(--ink-dim); font-size: 14px; text-align: center; z-index: 2; }
@@ -271,7 +271,7 @@
   .fp.click .hammer { animation: fpslam .08s ease-in both; }
   .fp.click .whole { animation: dry .2s steps(3) both; }
   @media (prefers-reduced-motion: reduce) { .cyl.spinning, .bang-flash.on, body.shake, .backdrop .halo, .bump, .pulse .big, .upgrade, .sd .side, .sd .verdict { animation: none !important; } .fly, .progress > div, .table-gun, .cup .leather { transition: none; } canvas#dust { display: none; } }
-  @media (max-width: 420px) { .pip::after { width: 9px; height: 9px; } .far { height: 190px; } .board .big { font-size: 28px; } .table-gun { width: 120px; height: 64px; } }
+  @media (max-width: 420px) { .pip::after { width: 9px; height: 9px; } .far { height: 206px; } .board .big { font-size: 28px; } .table-gun { width: 120px; height: 64px; } }
   .portrait * { transform-box: fill-box; }
   /* reposo: respira y parpadea */
   .portrait .body { transform-origin: 50% 100%; animation: breathe 2.6s ease-in-out infinite; }
@@ -287,10 +287,10 @@
   /* pensando: mira a los dados y de reojo */
   .backdrop.active .portrait .pupils { animation: look 2.4s ease-in-out infinite; }
   @keyframes look { 0%, 100% { transform: translate(0, 0) } 30% { transform: translate(-2px, 1.5px) } 60% { transform: translate(2px, 0) } }
-  .portrait .arm { transform-origin: 0% 0%; transform: rotate(0deg); transition: transform .25s cubic-bezier(.3,1.4,.5,1); }
+  .portrait .arm { transform-box: view-box; transform-origin: 168px 262px; transform: rotate(0deg); transition: transform .3s cubic-bezier(.3,1.4,.5,1); }
   .portrait .flash, .portrait .smoke { opacity: 0; }
   /* disparo: brazo arriba, fogonazo, humo */
-  .backdrop.firing .portrait .arm { transform: rotate(-78deg); }
+  .backdrop.firing .portrait .arm { transform: rotate(135deg); }
   .backdrop.firing .portrait .flash { animation: mflash .35s ease-out .25s; }
   @keyframes mflash { 0% { opacity: 0; transform: scale(.4) } 30% { opacity: 1; transform: scale(1.2) } 100% { opacity: 0; transform: scale(1.6) } }
   .backdrop.firing .portrait .smoke { animation: smoke 1.2s ease-out .5s; }
@@ -335,7 +335,7 @@
   <div class="scene">
     <div class="far">
       <div class="lamp"></div>
-      <div class="backdrop" id="backdrop" hidden aria-hidden="true"><div class="halo"></div><div class="stage" id="stage"><svg class="portrait" id="rv-portrait" viewBox="0 0 100 200"></svg></div></div>
+      <div class="backdrop" id="backdrop" hidden aria-hidden="true"><div class="halo"></div><div class="stage" id="stage"><svg class="portrait" id="rv-portrait" viewBox="0 0 200 400"></svg></div></div>
       <div class="empty-seat" id="empty-seat"><div class="hat"></div>silla vacía</div>
       <section class="rival" id="rival" hidden aria-label="Rival">
         <div><div class="name" id="rv-name">El Sheriff</div><div class="status" id="rv-status">esperando</div></div>
@@ -468,6 +468,65 @@ const SFX = {
   set(saved === "1");
   b.addEventListener("click", () => { SFX.init(); set(!SFX.on); if (SFX.on) SFX.coin(); });
   document.addEventListener("pointerdown", () => SFX.init(), { once: true });
+})();
+
+
+// ---------- texturas de la mesa, pintadas una vez ----------
+(function textures() {
+  const noise = (g, w, h, amount, alpha) => {
+    const img = g.createImageData(w, h), d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const v = 128 + (Math.random() - 0.5) * amount;
+      d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = alpha;
+    }
+    g.putImageData(img, 0, 0);
+  };
+  // madera: vetas largas, nudos y poros
+  const wc = document.createElement("canvas"); wc.width = 420; wc.height = 420;
+  const wg = wc.getContext("2d");
+  wg.fillStyle = "#2a1810"; wg.fillRect(0, 0, 420, 420);
+  for (let i = 0; i < 150; i++) {
+    const x = Math.random() * 420, wdt = 1 + Math.random() * 3;
+    wg.strokeStyle = `rgba(${90 + Math.random() * 50},${55 + Math.random() * 30},${30 + Math.random() * 20},${0.06 + Math.random() * 0.14})`;
+    wg.lineWidth = wdt; wg.beginPath(); wg.moveTo(x, 0);
+    for (let y = 0; y <= 420; y += 28) wg.lineTo(x + Math.sin(y / 70 + i) * 4, y);
+    wg.stroke();
+  }
+  for (let i = 0; i < 5; i++) { // nudos
+    const x = Math.random() * 420, y = Math.random() * 420;
+    for (let r = 2; r < 16; r += 2.2) {
+      wg.strokeStyle = `rgba(30,16,8,${0.28 - r * 0.012})`; wg.lineWidth = 1.6;
+      wg.beginPath(); wg.ellipse(x, y, r, r * 0.55, 0.4, 0, 7); wg.stroke();
+    }
+  }
+  for (let i = 0; i < 40; i++) { // juntas entre tablas
+    if (i % 8) continue;
+    wg.fillStyle = "rgba(0,0,0,.45)"; wg.fillRect(i * 10.5, 0, 2, 420);
+  }
+  document.body.style.backgroundImage = `url(${wc.toDataURL()})`;
+  document.body.style.backgroundSize = "420px 420px";
+
+  // tapete: trama fina de fieltro con pelusa
+  const fc = document.createElement("canvas"); fc.width = 128; fc.height = 128;
+  const fg = fc.getContext("2d");
+  noise(fg, 128, 128, 150, 22);
+  fg.globalAlpha = .12; fg.strokeStyle = "#000"; fg.lineWidth = 1;
+  for (let i = 0; i < 128; i += 3) { fg.beginPath(); fg.moveTo(i, 0); fg.lineTo(i, 128); fg.moveTo(0, i); fg.lineTo(128, i); fg.stroke(); }
+  const felt = document.querySelector(".felt");
+  if (felt) {
+    const t = document.createElement("div");
+    t.style.cssText = "position:absolute;inset:0;border-radius:inherit;pointer-events:none;mix-blend-mode:overlay;opacity:.5";
+    t.style.backgroundImage = `url(${fc.toDataURL()})`;
+    t.style.backgroundSize = "128px 128px";
+    felt.prepend(t);
+    // desgaste: zonas más claras donde se apoyan los codos
+    const wear = document.createElement("div");
+    wear.style.cssText = "position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:.3;" +
+      "background:radial-gradient(ellipse at 22% 86%, rgba(255,255,255,.14) 0 14%, transparent 40%)," +
+      "radial-gradient(ellipse at 78% 86%, rgba(255,255,255,.12) 0 12%, transparent 38%)," +
+      "radial-gradient(ellipse at 50% 30%, rgba(0,0,0,.18) 0 30%, transparent 70%)";
+    felt.prepend(wear);
+  }
 })();
 
 // ---------- polvo de fondo ----------
@@ -916,95 +975,207 @@ function drawCylinder() {
   $("cyl").innerHTML = out + `<circle cx="50" cy="50" r="6" fill="#000"/>`;
 }
 
-// Personaje animado: un esqueleto común (cuerpo, brazo, revólver, ojos, boca) y una cabeza por rival.
-const SKIN = "#d9a878", SKIN2 = "#b9805a", DARK = "#1a1410", BRASS = "#c99a3f";
-const HEADS = {
-  sheriff: {
-    hair: `<path d="M32 66 Q50 92 68 66 Q60 80 50 80 Q40 80 32 66Z" fill="#6b4a33"/><path d="M36 63 Q50 74 64 63 Q58 66 50 65 Q42 66 36 63Z" fill="#4a3222"/>`,
-    brows: `<path d="M36 49 L46 51" stroke="#4a3222" stroke-width="2.5" stroke-linecap="round"/><path d="M64 49 L54 51" stroke="#4a3222" stroke-width="2.5" stroke-linecap="round"/>`,
-    hat: `<path d="M10 42 Q50 30 90 42 Q88 48 50 45 Q12 48 10 42Z" fill="#2b211a"/><path d="M28 42 Q30 16 50 14 Q70 16 72 42 Q50 38 28 42Z" fill="#2b211a"/><path d="M30 40 Q50 36 70 40" stroke="${BRASS}" stroke-width="2.5" fill="none"/>`,
-    extra: `<polygon points="38,84 40.5,90 47,90 42,94 43.5,100 38,96.5 32.5,100 34,94 29,90 35.5,90" fill="${BRASS}" stroke="#8a6524" stroke-width="1.2"/>`,
-    coat: "#3d2a1f",
-  },
-  cauto: {
-    hair: ``,
-    brows: `<path d="M37 48 Q42 46 47 48 M53 48 Q58 46 63 48" stroke="#4a3222" stroke-width="2" fill="none" stroke-linecap="round"/>`,
-    hat: `<path d="M24 46 Q50 30 76 46 Q50 42 24 46Z" fill="#5a4636"/><rect x="30" y="34" width="40" height="12" rx="3" fill="#5a4636"/>`,
-    extra: `<circle cx="42" cy="55" r="7" fill="none" stroke="#b9c4cc" stroke-width="1.5"/><circle cx="58" cy="55" r="7" fill="none" stroke="#b9c4cc" stroke-width="1.5"/><path d="M49 55 L51 55" stroke="#b9c4cc" stroke-width="1.5"/>`,
-    coat: "#4a4a3a",
-  },
-  tahur: {
-    hair: `<path d="M38 66 Q50 70 62 66 Q56 64 50 64 Q44 64 38 66Z" fill="${DARK}"/>`,
-    brows: `<path d="M36 48 L46 50 M64 48 L54 50" stroke="#2a1a10" stroke-width="2.2" stroke-linecap="round"/>`,
-    hat: `<path d="M20 40 Q50 34 80 40 L78 45 Q50 40 22 45Z" fill="${DARK}"/><path d="M30 40 Q32 16 50 18 Q68 16 70 40Z" fill="${DARK}"/><rect x="30" y="34" width="40" height="5" fill="#b8262b"/>`,
-    extra: `<path d="M44 90 L50 84 L56 90 L50 98Z" fill="#b8262b"/>`,
-    coat: "#1f1a2a",
-  },
-  loco: {
-    hair: `<path d="M28 40 Q34 18 44 30 Q50 14 56 30 Q66 18 72 40Z" fill="#6b4a33"/>`,
-    brows: `<path d="M36 47 L46 51 M64 45 L54 50" stroke="#4a3222" stroke-width="2.5" stroke-linecap="round"/>`,
-    hat: `<path d="M62 36 L78 30 L74 40Z" fill="${BRASS}"/>`,
-    extra: ``,
-    coat: "#5a3a2a",
-    mouthIdle: `<path d="M38 66 Q50 82 64 64" stroke="#4a3222" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M42 70 L46 74 M50 74 L52 78 M56 70 L58 74" stroke="#e9dfc9" stroke-width="2" stroke-linecap="round"/>`,
-  },
+// Personaje pintado: un cuerpo común con sombreado y una cabeza por rival.
+// Se conservan los enganches de animación: body, upper, coat-l, coat-r, hat,
+// pupils, lids, brows, mouth-idle/smirk/ouch, arm, flash, smoke.
+const PALETTE = {
+  sheriff: { hatA: "#443a2e", hatB: "#191410", band: "#c99a3f", coatA: "#7d5739", coatB: "#33210f",
+             vest: "#312c23", shirt: "#a99b81", scarf: "#93301f", hair: "#4a3526", beard: 1 },
+  cauto:   { hatA: "#6b6154", hatB: "#3a342c", band: "#8d8f97", coatA: "#5a5747", coatB: "#2b291f",
+             vest: "#3a382c", shirt: "#b6ad95", scarf: "#4a5a6a", hair: "#5a4a3a", beard: 0 },
+  tahur:   { hatA: "#2b2b33", hatB: "#111116", band: "#b8262b", coatA: "#33324a", coatB: "#15141f",
+             vest: "#26253a", shirt: "#c3bca8", scarf: "#1f1f2a", hair: "#1d1a17", beard: 0 },
+  loco:    { hatA: "#7a5233", hatB: "#3a2515", band: "#c99a3f", coatA: "#6e4a2e", coatB: "#2e1d10",
+             vest: "#3d3325", shirt: "#a8987c", scarf: "#6a5a2a", hair: "#6b4a33", beard: 0 },
 };
 
 function rig(key) {
-  const k = HEADS[key] || HEADS.tahur;
-  const coat = k.coat, coatDark = "#241a13";
+  const c = PALETTE[key] || PALETTE.sheriff, k = key;
+  const SK_HI = "#f0c79a", SK = "#d7a274", SK_MD = "#b47a4f", SK_DK = "#8a5634", SK_SH = "#5d3620";
   return `
-  <!-- suelo -->
-  <ellipse cx="50" cy="194" rx="34" ry="5" fill="#000" opacity=".35"/>
+  <defs>
+    <radialGradient id="sk-${k}" cx="42%" cy="32%" r="78%">
+      <stop offset="0" stop-color="${SK_HI}"/><stop offset="45%" stop-color="${SK}"/>
+      <stop offset="80%" stop-color="${SK_MD}"/><stop offset="100%" stop-color="${SK_DK}"/>
+    </radialGradient>
+    <linearGradient id="hat-${k}" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="${c.hatA}"/><stop offset="55%" stop-color="${c.hatB}"/><stop offset="100%" stop-color="#0d0a07"/>
+    </linearGradient>
+    <linearGradient id="brim-${k}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${c.hatA}"/><stop offset="40%" stop-color="${c.hatB}"/><stop offset="100%" stop-color="#0b0806"/>
+    </linearGradient>
+    <linearGradient id="coat-${k}" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="${c.coatA}"/><stop offset="50%" stop-color="${c.coatB}"/><stop offset="100%" stop-color="#150d06"/>
+    </linearGradient>
+    <linearGradient id="vest-${k}" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="${c.vest}"/><stop offset="100%" stop-color="#121009"/>
+    </linearGradient>
+    <linearGradient id="shirt-${k}" x1="0" y1="0" x2="0.2" y2="1">
+      <stop offset="0" stop-color="${c.shirt}"/><stop offset="100%" stop-color="#6d6352"/>
+    </linearGradient>
+    <linearGradient id="scarf-${k}" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="${c.scarf}"/><stop offset="100%" stop-color="#4a150d"/>
+    </linearGradient>
+    <linearGradient id="steel-${k}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d7dbe2"/><stop offset="35%" stop-color="#9aa0aa"/>
+      <stop offset="60%" stop-color="#5c626c"/><stop offset="100%" stop-color="#2a2e35"/>
+    </linearGradient>
+    <linearGradient id="star-${k}" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#ffe9a8"/><stop offset="45%" stop-color="#d8a93f"/><stop offset="100%" stop-color="#7a5615"/>
+    </linearGradient>
+    <radialGradient id="brimsh-${k}" cx="50%" cy="0%" r="100%">
+      <stop offset="0" stop-color="#000" stop-opacity=".72"/><stop offset="70%" stop-color="#000" stop-opacity=".22"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="stub-${k}" width="4" height="4" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="0.42" fill="#43291a" opacity=".3"/>
+      <circle cx="3" cy="3" r="0.36" fill="#43291a" opacity=".24"/>
+    </pattern>
+    <clipPath id="face-${k}"><ellipse cx="100" cy="132" rx="41" ry="49"/></clipPath>
+    <clipPath id="torso-${k}"><path d="M44 214 Q100 196 156 214 L164 306 L36 306Z"/></clipPath>
+  </defs>
+
   <g class="body">
-    <!-- piernas y botas -->
-    <path d="M36 128 L33 178 L44 178 L46 130Z" fill="#2c2420"/>
-    <path d="M64 128 L67 178 L56 178 L54 130Z" fill="#2c2420"/>
-    <path d="M30 176 L45 176 L46 190 L24 190 Q22 184 30 176Z" fill="${DARK}"/>
-    <path d="M55 176 L70 176 Q78 184 76 190 L54 190Z" fill="${DARK}"/>
-    <circle cx="25" cy="186" r="2.6" fill="${BRASS}"/><circle cx="75" cy="186" r="2.6" fill="${BRASS}"/>
+    <!-- piernas y botas, casi ocultas tras la mesa -->
+    <path d="M74 300 L68 392 L96 392 L98 302Z" fill="#241a12"/>
+    <path d="M126 300 L132 392 L104 392 L102 302Z" fill="#1d150e"/>
+
     <!-- faldones del guardapolvo -->
-    <g class="coat-l"><path d="M28 118 L24 170 L40 168 L42 120Z" fill="${coat}"/></g>
-    <g class="coat-r"><path d="M72 118 L76 170 L60 168 L58 120Z" fill="${coat}"/></g>
+    <g class="coat-l"><path d="M46 236 Q30 300 34 372 L74 366 Q66 300 72 240Z" fill="url(#coat-${k})"/>
+      <path d="M50 250 Q40 306 42 360" stroke="#1b1109" stroke-width="2.5" fill="none" opacity=".55"/></g>
+    <g class="coat-r"><path d="M154 236 Q170 300 166 372 L126 366 Q134 300 128 240Z" fill="url(#coat-${k})"/>
+      <path d="M150 250 Q160 306 158 360" stroke="#1b1109" stroke-width="2.5" fill="none" opacity=".55"/></g>
+
     <g class="upper">
-      <!-- torso / guardapolvo -->
-      <path d="M26 92 Q50 84 74 92 L76 122 L24 122Z" fill="${coat}"/>
-      <path d="M40 92 L50 130 L60 92Z" fill="${coatDark}"/>
-      <!-- camisa y chaleco -->
-      <path d="M42 92 L50 118 L58 92 Q50 88 42 92Z" fill="#8a7a63"/>
-      <path d="M36 94 L42 92 L50 124 L58 92 L64 94 L62 122 L38 122Z" fill="${coatDark}"/>
-      <!-- cinturón y hebilla -->
-      <rect x="26" y="121" width="48" height="7" fill="#3a2a1c"/>
-      <rect x="45" y="119.5" width="10" height="10" rx="1.5" fill="${BRASS}" stroke="#8a6524"/>
-      <!-- pistolera -->
-      <path d="M28 128 L27 146 Q33 150 36 146 L36 128Z" fill="#4a3222"/>
-      <!-- pañuelo -->
-      <path d="M40 90 Q50 100 60 90 Q50 96 40 90Z" fill="#8a2a24"/>
-      <!-- cuello -->
-      <rect x="45" y="78" width="10" height="12" fill="${SKIN2}"/>
+      <!-- torso: camisa, chaleco y guardapolvo -->
+      <path d="M44 214 Q100 196 156 214 L164 310 L36 310Z" fill="url(#shirt-${k})"/>
+      <g clip-path="url(#torso-${k})">
+        <path d="M78 206 L100 300 L122 206 Q100 198 78 206Z" fill="url(#shirt-${k})"/>
+        <path d="M100 210 L100 300" stroke="#6d6352" stroke-width="1.6" opacity=".7"/>
+        <circle cx="100" cy="236" r="2.2" fill="#4a4235"/><circle cx="100" cy="258" r="2.2" fill="#4a4235"/>
+        <!-- chaleco -->
+        <path d="M62 208 L82 204 L100 268 L118 204 L138 208 L134 310 L66 310Z" fill="url(#vest-${k})"/>
+        <path d="M70 214 L74 306 M130 214 L126 306" stroke="#1a170f" stroke-width="2" opacity=".8"/>
+        <!-- guardapolvo por encima -->
+        <path d="M44 214 Q58 204 66 206 L70 310 L36 310Z" fill="url(#coat-${k})"/>
+        <path d="M156 214 Q142 204 134 206 L130 310 L164 310Z" fill="url(#coat-${k})"/>
+        <path d="M60 218 Q54 264 56 308 M140 218 Q146 264 144 308" stroke="#1b1109" stroke-width="2" fill="none" opacity=".5"/>
+        <!-- cinturón y cartucheras -->
+        <rect x="36" y="296" width="128" height="18" fill="#3a2717"/>
+        <rect x="36" y="296" width="128" height="5" fill="#5a3e24" opacity=".7"/>
+        ${Array.from({ length: 9 }, (_, i) => `<rect x="${44 + i * 13}" y="299" width="7" height="12" rx="2" fill="#c99a3f" stroke="#6b4a12" stroke-width="1"/>`).join("")}
+        <rect x="92" y="293" width="20" height="22" rx="3" fill="url(#star-${k})" stroke="#5c3f0e" stroke-width="1.5"/>
+        <!-- sombra del ala sobre los hombros -->
+        <path d="M36 200 Q100 236 164 200 L164 214 Q100 248 36 214Z" fill="#000" opacity=".3"/>
+      </g>
+      <!-- estrella de sheriff -->
+      ${key === "sheriff" ? `<g><polygon points="62,224 67,238 82,238 70,247 75,262 62,253 49,262 54,247 42,238 57,238"
+        fill="url(#star-${k})" stroke="#5c3f0e" stroke-width="1.6" stroke-linejoin="round"/>
+        <circle cx="62" cy="243" r="4" fill="none" stroke="#7a5615" stroke-width="1.2"/></g>` : ""}
+
+      <!-- brazo izquierdo, apoyado en la mesa -->
+      <path d="M50 212 Q26 238 22 284 Q22 306 36 314 L58 308 Q40 262 66 222Z" fill="url(#coat-${k})"/>
+      <path d="M46 226 Q30 252 28 288" stroke="#1b1109" stroke-width="2.5" fill="none" opacity=".45"/>
+
+      <!-- cuello y pañuelo -->
+      <path d="M84 168 L84 206 Q100 214 116 206 L116 168Z" fill="${SK_MD}"/>
+      <path d="M84 168 Q100 190 116 168 L116 186 Q100 200 84 186Z" fill="${SK_SH}" opacity=".65"/>
+      <path d="M74 196 Q100 218 126 196 Q120 214 100 218 Q80 214 74 196Z" fill="url(#scarf-${k})"/>
+      <path d="M86 204 Q100 214 114 204" stroke="#4a150d" stroke-width="2" fill="none" opacity=".8"/>
+
+      <!-- orejas, por detrás -->
+      <ellipse cx="59" cy="142" rx="8" ry="12" fill="${SK_MD}"/><ellipse cx="58" cy="142" rx="4" ry="7" fill="${SK_SH}" opacity=".55"/>
+      <ellipse cx="141" cy="142" rx="8" ry="12" fill="${SK_MD}"/><ellipse cx="142" cy="142" rx="4" ry="7" fill="${SK_SH}" opacity=".55"/>
       <!-- cabeza -->
-      <ellipse cx="50" cy="58" rx="20" ry="24" fill="${SKIN}"/>
-      <ellipse cx="50" cy="63" rx="20" ry="19" fill="${SKIN2}" opacity=".25"/>
-      ${k.hair}
-      <g class="mouth-idle">${k.mouthIdle || `<path d="M42 71 Q50 74 58 71" stroke="#4a3222" stroke-width="2" fill="none" stroke-linecap="round"/>`}</g>
-      <g class="mouth-smirk"><path d="M40 70 Q52 78 60 68" stroke="#4a3222" stroke-width="2.2" fill="none" stroke-linecap="round"/></g>
-      <g class="mouth-ouch"><ellipse cx="50" cy="73" rx="5" ry="4" fill="#3a1a14"/></g>
-      <ellipse cx="42" cy="55" rx="4.2" ry="4" fill="#f3ead6"/><ellipse cx="58" cy="55" rx="4.2" ry="4" fill="#f3ead6"/>
-      <g class="pupils"><circle cx="42" cy="55" r="2.4" fill="${DARK}"/><circle cx="58" cy="55" r="2.4" fill="${DARK}"/></g>
-      <g class="lids"><ellipse cx="42" cy="55" rx="4.4" ry="4.2" fill="${SKIN}"/><ellipse cx="58" cy="55" rx="4.4" ry="4.2" fill="${SKIN}"/></g>
-      <g class="brows">${k.brows}</g>
-      ${k.extra ? `<g transform="translate(0,12)">${k.extra}</g>` : ""}
-      <g class="hat">${k.hat}</g>
-      <!-- brazo izquierdo (quieto) -->
-      <path d="M28 96 L22 134" stroke="${coat}" stroke-width="9" stroke-linecap="round"/>
-      <circle cx="22" cy="136" r="4.5" fill="${SKIN}"/>
-      <!-- brazo derecho con revólver -->
+      <ellipse cx="100" cy="132" rx="41" ry="49" fill="url(#sk-${k})"/>
+      <g clip-path="url(#face-${k})">
+        <!-- modelado: pómulos, sien, mandíbula -->
+        <ellipse cx="64" cy="140" rx="16" ry="26" fill="${SK_DK}" opacity=".35"/>
+        <ellipse cx="136" cy="140" rx="16" ry="26" fill="${SK_DK}" opacity=".28"/>
+        <ellipse cx="100" cy="178" rx="30" ry="16" fill="${SK_DK}" opacity=".3"/>
+        <ellipse cx="88" cy="118" rx="24" ry="16" fill="${SK_HI}" opacity=".35"/>
+        ${c.beard ? `<path d="M66 152 Q70 184 100 188 Q130 184 134 152 Q128 176 100 178 Q72 176 66 152Z" fill="url(#stub-${k})"/>
+        <path d="M68 158 Q74 184 100 187 Q126 184 132 158 Q124 176 100 178 Q76 176 68 158Z" fill="#3a2417" opacity=".16"/>` : ""}
+        <!-- nariz -->
+        <path d="M100 124 Q94 146 90 154 Q96 160 100 159 Q104 160 110 154 Q106 146 100 124Z" fill="${SK_MD}" opacity=".5"/>
+        <path d="M100 128 Q98 144 96 151" stroke="${SK_HI}" stroke-width="4.5" fill="none" opacity=".35" stroke-linecap="round"/>
+        <path d="M104 140 Q109 150 110 155" stroke="${SK_DK}" stroke-width="3" fill="none" opacity=".3" stroke-linecap="round"/>
+        <ellipse cx="92" cy="155" rx="3" ry="2.2" fill="${SK_SH}" opacity=".8"/>
+        <ellipse cx="108" cy="155" rx="3" ry="2.2" fill="${SK_SH}" opacity=".8"/>
+        <!-- boca -->
+        <g class="mouth-idle">
+          <path d="M86 170 Q100 175 114 170" stroke="${SK_SH}" stroke-width="3" fill="none" stroke-linecap="round"/>
+        </g>
+        <g class="mouth-smirk">
+          <path d="M84 168 Q102 180 116 165" stroke="${SK_SH}" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+          <path d="M104 172 L112 168" stroke="#f3ead6" stroke-width="2.5" stroke-linecap="round"/>
+        </g>
+        <g class="mouth-ouch">
+          <ellipse cx="100" cy="173" rx="11" ry="9" fill="#3a140f"/>
+          <path d="M92 168 Q100 172 108 168" stroke="#f3ead6" stroke-width="3" fill="none"/>
+        </g>
+        ${c.beard ? `<g opacity=".92">
+          <path d="M80 161 Q90 156 100 163 Q110 156 120 161 Q112 166 100 167 Q88 166 80 161Z" fill="${c.hair}"/>
+          <path d="M82 161 Q91 157 100 163 Q109 157 118 161 Q110 164 100 165 Q90 164 82 161Z" fill="#33210f" opacity=".7"/>
+          ${Array.from({ length: 11 }, (_, i) => `<path d="M${81 + i * 3.8} ${160 + Math.abs(i - 5) * 0.5} q-1 3 -1.6 5" stroke="${c.hair}" stroke-width="1.2" fill="none" opacity=".7" stroke-linecap="round"/>`).join("")}
+        </g>` : ""}
+        <!-- ojos -->
+        <ellipse cx="82" cy="134" rx="11" ry="7" fill="#f4ece0"/>
+        <ellipse cx="118" cy="134" rx="11" ry="7" fill="#f4ece0"/>
+        <ellipse cx="82" cy="134" rx="11" ry="7" fill="${SK_SH}" opacity=".18"/>
+        <ellipse cx="118" cy="134" rx="11" ry="7" fill="${SK_SH}" opacity=".18"/>
+        <g class="pupils">
+          <circle cx="82" cy="134" r="5.4" fill="#5a4128"/><circle cx="82" cy="134" r="2.6" fill="#120c07"/>
+          <circle cx="79.6" cy="131.6" r="1.7" fill="#fff" opacity=".9"/>
+          <circle cx="118" cy="134" r="5.4" fill="#5a4128"/><circle cx="118" cy="134" r="2.6" fill="#120c07"/>
+          <circle cx="115.6" cy="131.6" r="1.7" fill="#fff" opacity=".9"/>
+        </g>
+        <g class="lids">
+          <path d="M71 134 Q82 124 93 134 Q82 128 71 134Z" fill="${SK}"/>
+          <path d="M107 134 Q118 124 129 134 Q118 128 107 134Z" fill="${SK}"/>
+          <rect x="71" y="120" width="22" height="15" fill="${SK}"/>
+          <rect x="107" y="120" width="22" height="15" fill="${SK}"/>
+        </g>
+        <path d="M71 134 Q82 127 93 134" stroke="${SK_SH}" stroke-width="2" fill="none" opacity=".8"/>
+        <path d="M107 134 Q118 127 129 134" stroke="${SK_SH}" stroke-width="2" fill="none" opacity=".8"/>
+        <path d="M74 141 Q82 145 90 141" stroke="${SK_DK}" stroke-width="1.6" fill="none" opacity=".5"/>
+        <path d="M110 141 Q118 145 126 141" stroke="${SK_DK}" stroke-width="1.6" fill="none" opacity=".5"/>
+        <!-- cejas -->
+        <g class="brows">
+          <path d="M70 122 Q82 114 94 120" stroke="${c.hair}" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+          <path d="M130 122 Q118 114 106 120" stroke="${c.hair}" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+        </g>
+        <!-- sombra del ala del sombrero -->
+        <rect x="56" y="84" width="88" height="46" fill="url(#brimsh-${k})"/>
+      </g>
+
+      <!-- sombrero -->
+      <g class="hat">
+        ${key === "loco" ? `<path d="M118 96 L172 72 L164 104Z" fill="${c.band}" stroke="#2a1a0e" stroke-width="2"/>` : ""}
+        <path d="M100 44 Q66 46 60 96 Q80 88 100 88 Q120 88 140 96 Q134 46 100 44Z" fill="url(#hat-${k})"/>
+        <path d="M100 48 Q78 50 72 88 Q86 82 100 82" fill="#000" opacity=".18"/>
+        <path d="M96 46 Q100 62 104 46" stroke="#000" stroke-width="6" opacity=".25" fill="none"/>
+        <path d="M14 104 Q100 74 186 104 Q186 118 100 122 Q14 118 14 104Z" fill="url(#brim-${k})"/>
+        <path d="M14 104 Q100 74 186 104 Q100 84 14 104Z" fill="#fff" opacity=".07"/>
+        <path d="M60 96 Q100 86 140 96 L140 104 Q100 94 60 104Z" fill="${c.band}"/>
+        <path d="M60 100 Q100 90 140 100" stroke="#000" stroke-width="1.5" opacity=".35" fill="none"/>
+        <path d="M14 106 Q100 132 186 106 Q100 126 14 106Z" fill="#000" opacity=".35"/>
+      </g>
+
+      <!-- brazo derecho: hombro y húmero fijos -->
+      <path d="M150 212 Q174 230 180 266 L160 274 Q156 240 134 222Z" fill="url(#coat-${k})"/>
+      <path d="M154 222 Q172 240 176 264" stroke="#1b1109" stroke-width="2.5" fill="none" opacity=".45"/>
+      <!-- antebrazo articulado en el codo, con el revólver -->
       <g class="arm">
-        <path d="M72 96 L82 128" stroke="${coat}" stroke-width="9" stroke-linecap="round"/>
-        <circle cx="83" cy="130" r="5" fill="${SKIN}"/>
-        <path d="M80 127 L96 127 L96 131 L88 131 L88 138 L83 138Z" fill="#4a4a4a" stroke="${DARK}" stroke-width=".8"/>
-        <g class="flash"><polygon points="98,125 108,119 102,127 112,129 102,131 106,137" fill="#ffd36b"/><circle cx="99" cy="129" r="3.5" fill="#fff3c4"/></g>
-        <g class="smoke"><circle cx="100" cy="123" r="4" fill="#bdb5a8"/><circle cx="105" cy="118" r="3" fill="#bdb5a8"/></g>
+        <path d="M178 258 Q172 296 164 324 L142 320 Q152 288 156 256Z" fill="url(#coat-${k})"/>
+        <path d="M174 264 Q168 296 160 318" stroke="#1b1109" stroke-width="2" fill="none" opacity=".4"/>
+        <path d="M164 318 Q168 332 160 340 Q148 342 144 330 L146 316Z" fill="url(#sk-${k})"/>
+        <path d="M150 322 L166 326 L164 334 L156 332 L152 346 L144 344Z" fill="url(#steel-${k})" stroke="#15171b" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="156" cy="330" r="6.5" fill="#8a9099" stroke="#15171b" stroke-width="1.5"/>
+        <circle cx="156" cy="330" r="2" fill="#15171b"/>
+        <path d="M150 344 L156 346" stroke="#15171b" stroke-width="2" stroke-linecap="round"/>
+        <g class="flash"><polygon points="147,352 138,376 148,362 142,382 154,364 156,384 160,360" fill="#ffd36b" stroke="#ff8c1a" stroke-width="1.5"/><circle cx="150" cy="352" r="7" fill="#fff3c4"/></g>
+        <g class="smoke"><circle cx="147" cy="358" r="8" fill="#bdb5a8"/><circle cx="140" cy="372" r="6" fill="#bdb5a8"/></g>
       </g>
     </g>
   </g>`;
