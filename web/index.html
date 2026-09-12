@@ -39,9 +39,9 @@
   .lamp::after { content: ""; position: absolute; left: 50%; top: 46px; width: 220px; height: 260px; transform: translateX(-50%); background: radial-gradient(ellipse at 50% 0%, rgba(255,226,170,.3) 0%, rgba(255,226,170,.05) 42%, transparent 68%); pointer-events: none; }
   .backdrop { position: absolute; inset: 0; z-index: 1; }
   .backdrop[hidden] { display: none !important; }
-  .backdrop .halo { position: absolute; left: 50%; top: 50%; width: 260px; height: 260px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(200,128,28,.18) 0%, transparent 65%); animation: halo 3s ease-in-out infinite; }
+  .backdrop .halo { position: absolute; left: 74%; width: 190px; height: 190px; top: 50%; width: 260px; height: 260px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(200,128,28,.18) 0%, transparent 65%); animation: halo 3s ease-in-out infinite; }
   .backdrop.active .halo { animation-duration: 1.2s; background: radial-gradient(circle, rgba(216,32,58,.2) 0%, transparent 65%); }
-  .backdrop .stage { position: absolute; left: 50%; bottom: -128px; width: 230px; height: 460px; transform: translateX(-50%); cursor: pointer; transition: transform .35s ease-out; transform-origin: 50% 70%; }
+  .backdrop .stage { position: absolute; left: 74%; bottom: -96px; width: 168px; height: 336px; transform: translateX(-50%); cursor: pointer; transition: transform .35s ease-out; transform-origin: 50% 70%; }
   .backdrop.active .stage { transform: translateX(-50%) translateY(14px) scale(1.06); }
   /* gestos en reposo (los aplica el JS al azar) */
   .stage.g-tap .arm { animation: tap .9s ease-in-out 2; transform-origin: 0% 0%; }
@@ -55,7 +55,7 @@
   @keyframes shrug { 0%, 100% { transform: translateY(0) } 30% { transform: translateY(-5px) } 60% { transform: translateY(-4px) } }
   .stage.g-back .upper { animation: back .9s ease-out; transform-origin: 50% 100%; }
   @keyframes back { 0%, 100% { transform: rotate(0) } 30% { transform: rotate(2.5deg) translateY(-3px) } }
-  @media (max-width: 420px) { .far { height: 250px; } .backdrop .stage { width: 190px; height: 380px; bottom: -100px; } .me-fig { height: 94px; } }
+  @media (max-width: 420px) { .far { height: 250px; } .backdrop .stage { width: 132px; height: 264px; bottom: -70px; } }
   .portrait { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 6px 10px rgba(0,0,0,.7)); }
   .backdrop.dead .stage { filter: grayscale(1) brightness(.5); }
   .empty-seat { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); color: var(--ink-dim); font-size: 14px; text-align: center; z-index: 2; }
@@ -63,13 +63,13 @@
   .empty-seat .hat { width: 90px; height: 40px; margin: 0 auto 6px; background: radial-gradient(ellipse at 50% 60%, #2b211a 0 60%, transparent 61%); position: relative; }
   .empty-seat .hat::before { content: ""; position: absolute; left: 50%; top: -18px; width: 44px; height: 30px; transform: translateX(-50%); background: #2b211a; border-radius: 12px 12px 4px 4px; border-bottom: 3px solid var(--brass); }
 
-  .rival { position: absolute; left: 0; right: 0; top: 8px; z-index: 4; display: flex; justify-content: space-between; align-items: flex-start; padding: 0 12px; pointer-events: none; }
+  .rival { position: absolute; left: 0; right: 0; top: 6px; z-index: 4; display: flex; justify-content: flex-end; align-items: flex-start; gap: 10px; padding: 0 12px; pointer-events: none; }
   .rival > div:first-child { background: linear-gradient(90deg, rgba(0,0,0,.75), rgba(0,0,0,.15)); padding: 4px 10px 5px 6px; border-radius: 4px; }
   .rival[hidden] { display: none !important; }
-  .rival .name { font-family: "Rye", serif; font-size: 16px; color: var(--bone); text-shadow: 0 2px 0 #000; }
-  .rival .status { font-size: 13px; color: var(--ink-dim); text-shadow: 0 1px 0 #000; }
+  .rival .name { font-family: "Rye", serif; font-size: 14px; color: var(--bone); text-shadow: 0 2px 0 #000; white-space: nowrap; text-align: right; }
+  .rival .status { font-size: 12px; color: var(--ink-dim); text-shadow: 0 1px 0 #000; white-space: nowrap; text-align: right; }
   .rival .hearts { display: flex; gap: 4px; }
-  .cup { position: absolute; right: 14px; bottom: 44px; width: 120px; height: 60px; z-index: 5; }
+  .cup { position: absolute; right: 2px; bottom: 4px; width: 104px; height: 48px; z-index: 5; transform: scale(.82); transform-origin: 100% 100%; }
   .cup[hidden] { display: none !important; }
   .cup .dice-row { position: absolute; right: 0; bottom: 4px; display: flex; gap: 3px; opacity: 0; transform: translateX(10px); transition: opacity .3s .2s, transform .3s .2s; }
   .cup.up .dice-row { opacity: 1; transform: none; }
@@ -94,7 +94,14 @@
     background-image: repeating-linear-gradient(90deg, rgba(0,0,0,.15) 0 1px, transparent 1px 22px), linear-gradient(180deg, var(--wood-hi), var(--wood) 40%, var(--wood-2)); }
 
   /* tú, de espaldas, en primer plano contra la luz */
-  .me-fig { position: absolute; left: 0; right: 0; bottom: -2px; width: 100%; height: 112px; z-index: 6; pointer-events: none; overflow: visible; }
+  /* tú, enfrente de él, a la izquierda y en espejo */
+  .backdrop.me-side .stage { left: 26%; }
+  .backdrop.me-side .halo { left: 26%; width: 190px; height: 190px; background: radial-gradient(circle, rgba(140,170,200,.14) 0%, transparent 65%); }
+  .backdrop.me-side.active .halo { background: radial-gradient(circle, rgba(216,32,58,.18) 0%, transparent 65%); }
+  .me-name { position: absolute; left: 12px; top: 6px; z-index: 4; font-family: "Rye", serif; font-size: 14px;
+    color: var(--ink-dim); text-shadow: 0 2px 0 #000; }
+  .me-name[hidden] { display: none !important; }
+  .me-fig { display: none; position: absolute; left: 0; right: 0; bottom: -2px; width: 100%; height: 112px; z-index: 6; pointer-events: none; overflow: visible; }
   .me-fig[hidden] { display: none !important; }
   .me-fig * { transform-box: fill-box; }
   .me-fig .torso { transform-origin: 50% 100%; animation: mebreathe 3.8s ease-in-out infinite; }
@@ -351,6 +358,8 @@
   <div class="scene">
     <div class="far">
       <div class="lamp"></div>
+      <div class="backdrop me-side" id="me-backdrop" hidden aria-hidden="true"><div class="halo"></div><div class="stage" id="me-stage"><svg class="portrait" id="me-portrait" viewBox="0 0 200 400"></svg></div></div>
+      <div class="me-name" id="me-name" hidden>Tú</div>
       <div class="backdrop" id="backdrop" hidden aria-hidden="true"><div class="halo"></div><div class="stage" id="stage"><svg class="portrait" id="rv-portrait" viewBox="0 0 200 400"></svg></div></div>
       <div class="empty-seat" id="empty-seat"><div class="hat"></div>silla vacía</div>
       <section class="rival" id="rival" hidden aria-label="Rival">
@@ -1000,6 +1009,8 @@ const PALETTE = {
              vest: "#3a382c", shirt: "#b6ad95", scarf: "#4a5a6a", hair: "#5a4a3a", beard: 0 },
   tahur:   { hatA: "#2b2b33", hatB: "#111116", band: "#b8262b", coatA: "#33324a", coatB: "#15141f",
              vest: "#26253a", shirt: "#c3bca8", scarf: "#1f1f2a", hair: "#1d1a17", beard: 0 },
+  yo:      { hatA: "#5a4a3a", hatB: "#241c14", band: "#7a6a4a", coatA: "#4a5a5e", coatB: "#1c2426",
+             vest: "#2a2e2c", shirt: "#9a9384", scarf: "#3d5a62", hair: "#2e2419", beard: 1 },
   loco:    { hatA: "#7a5233", hatB: "#3a2515", band: "#c99a3f", coatA: "#6e4a2e", coatB: "#2e1d10",
              vest: "#3d3325", shirt: "#a8987c", scarf: "#6a5a2a", hair: "#6b4a33", beard: 0 },
 };
@@ -1179,13 +1190,20 @@ function rig(key) {
         <ellipse cx="136" cy="140" rx="16" ry="26" fill="${SK_DK}" opacity=".28"/>
         <ellipse cx="100" cy="178" rx="30" ry="16" fill="${SK_DK}" opacity=".3"/>
         <ellipse cx="88" cy="118" rx="24" ry="16" fill="${SK_HI}" opacity=".35"/>
+        ${c.beard ? `<path d="M66 152 Q70 184 100 188 Q130 184 134 152 Q128 176 100 178 Q72 176 66 152Z" fill="url(#stub-${k})"/>
+        <g opacity=".92">
+          <path d="M80 161 Q90 156 100 163 Q110 156 120 161 Q112 166 100 167 Q88 166 80 161Z" fill="${c.hair}"/>
+          <path d="M82 161 Q91 157 100 163 Q109 157 118 161 Q110 164 100 165 Q90 164 82 161Z" fill="#33210f" opacity=".6"/>
+        </g>` : ""}
         <path d="M100 124 Q94 146 90 154 Q96 160 100 159 Q104 160 110 154 Q106 146 100 124Z" fill="${SK_MD}" opacity=".5"/>
         <ellipse cx="92" cy="155" rx="3" ry="2.2" fill="${SK_SH}" opacity=".8"/>
         <ellipse cx="108" cy="155" rx="3" ry="2.2" fill="${SK_SH}" opacity=".8"/>
         <g class="mouth-idle"><path d="M86 170 Q100 175 114 170" stroke="${SK_SH}" stroke-width="3" fill="none" stroke-linecap="round"/></g>
         <g class="mouth-smirk"><path d="M84 168 Q102 180 116 165" stroke="${SK_SH}" stroke-width="3.2" fill="none" stroke-linecap="round"/></g>
         <g class="mouth-ouch"><ellipse cx="100" cy="173" rx="11" ry="9" fill="#3a140f"/></g>
-        <ellipse cx="82" cy="134" rx="11" ry="7" fill="#f4ece0"/><ellipse cx="118" cy="134" rx="11" ry="7" fill="#f4ece0"/>
+        <ellipse cx="82" cy="134" rx="10" ry="5.6" fill="#efe6d8"/><ellipse cx="118" cy="134" rx="10" ry="5.6" fill="#efe6d8"/>
+        <path d="M72 133 Q82 127 92 133" stroke="${SK_SH}" stroke-width="2" fill="none" opacity=".75"/>
+        <path d="M108 133 Q118 127 128 133" stroke="${SK_SH}" stroke-width="2" fill="none" opacity=".75"/>
         <g class="pupils">
           <circle cx="82" cy="134" r="5.4" fill="#5a4128"/><circle cx="82" cy="134" r="2.6" fill="#120c07"/>
           <circle cx="118" cy="134" r="5.4" fill="#5a4128"/><circle cx="118" cy="134" r="2.6" fill="#120c07"/>
@@ -1233,6 +1251,10 @@ function rig(key) {
   </g>`;
 }
 
+function drawMeFigure() {
+  const el = $("me-portrait");
+  if (!el.firstChild) el.innerHTML = rig("yo");
+}
 function drawMe() {
   $("me-fig").setAttribute("preserveAspectRatio", "none");
   $("me-fig").innerHTML = `
@@ -1267,10 +1289,10 @@ function drawMe() {
   </g>`;
 }
 function moodMe(cls, ms) {
-  const el = $("me-fig");
+  const el = $("me-backdrop");
   ["firing", "hit"].forEach(c => el.classList.remove(c));
   if (!cls) return;
-  void el.getBBox(); el.classList.add(cls);
+  void el.offsetWidth; el.classList.add(cls);
   if (ms) setTimeout(() => el.classList.remove(cls), ms);
 }
 
@@ -1287,7 +1309,9 @@ const hearts = (w, max) => Array.from({ length: max }, (_, i) => `<span class="c
 function renderRival(revealed) {
   const o = S.opponent, rv = $("rival"), bd = $("backdrop");
   rv.hidden = false; bd.hidden = false; $("empty-seat").hidden = true; $("rv-cup").hidden = false;
-  const meFig = $("me-fig"); if (!meFig.firstChild) drawMe(); meFig.removeAttribute("hidden"); rv.classList.toggle("active", !S.my_turn && !S.game_over); bd.classList.toggle("active", !S.my_turn && !S.game_over);
+  drawMeFigure();
+  $("me-backdrop").hidden = false; $("me-name").hidden = false;
+  $("me-backdrop").classList.toggle("active", S.my_turn && !S.game_over); rv.classList.toggle("active", !S.my_turn && !S.game_over); bd.classList.toggle("active", !S.my_turn && !S.game_over);
   $("rv-name").textContent = S.rival_name;
   const por = $("rv-portrait"); if (por.dataset.key !== S.rival) { por.innerHTML = rig(S.rival); por.dataset.key = S.rival; mood(null); }
   bd.classList.toggle("dead", S.game_over && S.victory);
@@ -1316,7 +1340,7 @@ function render() {
     renderRival(false);
     $("turn").textContent = S.game_over ? "" : S.my_turn ? "Tu turno" : `Turno de ${S.rival_name}`;
   } else {
-    $("rival").hidden = true; $("backdrop").hidden = true; $("me-fig").setAttribute("hidden", ""); $("turn").textContent = ""; $("empty-seat").hidden = false; $("rv-cup").hidden = true;
+    $("rival").hidden = true; $("backdrop").hidden = true; $("me-backdrop").hidden = true; $("me-name").hidden = true; $("turn").textContent = ""; $("empty-seat").hidden = false; $("rv-cup").hidden = true;
     $("meta-left").textContent = `Nivel ${S.level}/8`;
     $("meta-right").textContent = `${S.hands_left} ${S.hands_left === 1 ? "mano" : "manos"}`;
     $("score").textContent = S.score;
