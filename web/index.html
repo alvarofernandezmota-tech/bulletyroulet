@@ -2,13 +2,13 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rye&family=Special+Elite&family=Caveat:wght@600&display=swap">
 <style>
   :root {
-    --wood: #3b2416; --wood-2: #2a1810; --wood-hi: #6b4326;
-    --felt: #1e5a3a; --felt-2: #143f28; --felt-3: #0d2a1b;
-    --brass: #c99a3f; --brass-deep: #7a5a1c;
-    --bone: #efe6cf; --ink: #f1e9d6; --ink-dim: #b8ad94;
-    --chalk: #f4f1e6; --board: #1f2a24;
-    --blood: #b81e2c; --red-ink: #ff6b7a; --green: #6fcf7a; --orange: #e0912a;
-    --teal-ink: #7fe0c8;
+    --wood: #2c2118; --wood-2: #171109; --wood-hi: #463423;
+    --felt: #2a4038; --felt-2: #1a2a24; --felt-3: #0d1713;
+    --brass: #b8922f; --brass-deep: #6b5216;
+    --bone: #e9e1cc; --ink: #ded6c2; --ink-dim: #9a9684;
+    --chalk: #efeade; --board: #1a201c;
+    --blood: #8e1b22; --red-ink: #d95a52; --green: #7ea862; --orange: #c07a26;
+    --teal-ink: #8fbfae; --ember: #ff7a2a;
   }
   * { box-sizing: border-box; }
   body {
@@ -22,7 +22,7 @@
   }
   .table { max-width: 480px; margin: 0 auto; position: relative; z-index: 2; display: flex; flex-direction: column; }
   header { text-align: center; padding-bottom: 6px; }
-  h1 { font-family: "Rye", serif; font-weight: 400; font-size: clamp(26px, 7vw, 38px); margin: 0; color: var(--brass); text-shadow: 0 2px 0 var(--brass-deep), 0 6px 14px rgba(0,0,0,.7); }
+  h1 { font-family: "Rye", serif; font-weight: 400; font-size: clamp(26px, 7vw, 38px); margin: 0; color: var(--bone); text-shadow: 0 2px 0 #3a2a18, 0 3px 0 var(--blood), 0 8px 18px rgba(0,0,0,.8); }
   header p { margin: 0; color: var(--ink-dim); font-size: 15px; }
   .modes { display: flex; gap: 8px; justify-content: center; margin: 6px 0 10px; }
   .modes button { font-family: "Rye", serif; font-size: 12px; padding: 7px 12px; border: 2px solid var(--brass-deep); background: var(--wood); color: var(--ink-dim); cursor: pointer; border-radius: 3px; box-shadow: 0 3px 0 #000; }
@@ -36,7 +36,7 @@
   .far::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 30%, transparent 30%, rgba(0,0,0,.55) 100%); pointer-events: none; }
   .lamp { position: absolute; left: 50%; top: -30px; width: 80px; height: 60px; transform: translateX(-50%); z-index: 3; }
   .lamp::before { content: ""; position: absolute; left: 50%; top: 18px; width: 0; height: 0; border-left: 40px solid transparent; border-right: 40px solid transparent; border-top: 30px solid #2f3a2a; transform: translateX(-50%); }
-  .lamp::after { content: ""; position: absolute; left: 50%; top: 46px; width: 220px; height: 260px; transform: translateX(-50%); background: radial-gradient(ellipse at 50% 0%, rgba(255,214,120,.35) 0%, rgba(255,214,120,.08) 45%, transparent 70%); pointer-events: none; }
+  .lamp::after { content: ""; position: absolute; left: 50%; top: 46px; width: 220px; height: 260px; transform: translateX(-50%); background: radial-gradient(ellipse at 50% 0%, rgba(255,226,170,.3) 0%, rgba(255,226,170,.05) 42%, transparent 68%); pointer-events: none; }
   .backdrop { position: absolute; inset: 0; z-index: 1; }
   .backdrop[hidden] { display: none !important; }
   .backdrop .halo { position: absolute; left: 50%; top: 50%; width: 260px; height: 260px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(200,128,28,.18) 0%, transparent 65%); animation: halo 3s ease-in-out infinite; }
@@ -83,7 +83,7 @@
   .chip.lost::after { opacity: .2; }
 
   .felt { position: relative; z-index: 2; margin-top: -10px; padding: 14px 14px 18px;
-    background: radial-gradient(ellipse at 50% 20%, #2a7a4d 0%, var(--felt) 35%, var(--felt-2) 75%, var(--felt-3) 100%);
+    background: radial-gradient(ellipse at 50% 20%, #3a574b 0%, var(--felt) 32%, var(--felt-2) 72%, var(--felt-3) 100%);
     border-radius: 50% 50% 8px 8px / 30px 30px 8px 8px;
     box-shadow: inset 0 10px 24px rgba(0,0,0,.55), inset 0 -6px 14px rgba(0,0,0,.35);
     display: flex; flex-direction: column; gap: 12px;
@@ -141,8 +141,8 @@
   .btn { font-family: "Rye", serif; font-size: 16px; color: #1a1410; padding: 12px 8px; border-radius: 6px; border: 2px solid #1a1410; cursor: pointer; text-align: center; box-shadow: 0 5px 0 #000, inset 0 2px 0 rgba(255,255,255,.35); }
   .btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 #000, inset 0 2px 0 rgba(255,255,255,.35); }
   .btn:disabled { filter: grayscale(.7) brightness(.55); cursor: default; }
-  .btn.play { background: linear-gradient(180deg, #e2c169, var(--brass) 60%, #9c7328); order: 1; }
-  .btn.fire { background: linear-gradient(180deg, #d9464f, var(--blood) 60%, #7a1018); color: var(--bone); order: 2; }
+  .btn.play { background: linear-gradient(180deg, #d6bb7e, var(--brass) 55%, #7d611c); order: 1; }
+  .btn.fire { background: linear-gradient(180deg, #a83239, var(--blood) 55%, #5e0f14); color: var(--bone); order: 2; }
   .btn.aim { background: linear-gradient(180deg, #4a4a52, #2a2a30 60%, #141418); color: var(--bone); order: 3; grid-column: 1 / -1; }
   .btn.aim[hidden] { display: none !important; }
   .btn small { display: block; font-family: "Special Elite", monospace; font-size: 12px; margin-top: 3px; opacity: .85; }
@@ -282,8 +282,8 @@
   .portrait .coat-l, .portrait .coat-r { transform-origin: 50% 0%; animation: coat 3.4s ease-in-out infinite; }
   .portrait .coat-r { animation-delay: -1.7s; }
   @keyframes coat { 0%, 100% { transform: rotate(0) } 50% { transform: rotate(-1.5deg) } }
-  .portrait .lids { transform-origin: 50% 0%; transform: scaleY(0); animation: blink 4.2s infinite; }
-  @keyframes blink { 0%, 92%, 100% { transform: scaleY(0) } 95% { transform: scaleY(1) } }
+  .portrait .lids { transform-origin: 50% 0%; transform: scaleY(0); animation: blink 5.4s infinite; }
+  @keyframes blink { 0%, 90%, 100% { transform: scaleY(0) } 94%, 96% { transform: scaleY(1) } }
   .portrait .pupils { transform: translate(0, 0); transition: transform .25s ease; }
   /* pensando: mira a los dados y de reojo */
   .backdrop.active .portrait .pupils { animation: look 2.4s ease-in-out infinite; }
@@ -817,7 +817,7 @@ const DiceTable = (() => {
     ctx.clearRect(0, 0, W, H);
     // charco de luz de la lámpara sobre el tapete
     const pool = ctx.createRadialGradient(W / 2, H * 0.35, 8, W / 2, H * 0.35, W * 0.62);
-    pool.addColorStop(0, "rgba(255,214,120,.13)"); pool.addColorStop(1, "rgba(255,214,120,0)");
+    pool.addColorStop(0, "rgba(255,230,180,.1)"); pool.addColorStop(1, "rgba(255,230,180,0)");
     ctx.fillStyle = pool; ctx.fillRect(0, 0, W, H);
     // línea de la zona de guardados
     ctx.save(); ctx.setLineDash([6, 8]); ctx.strokeStyle = "rgba(201,154,63,.28)"; ctx.lineWidth = 1.5;
@@ -978,8 +978,8 @@ function drawCylinder() {
 // Se conservan los enganches de animación: body, upper, coat-l, coat-r, hat,
 // pupils, lids, brows, mouth-idle/smirk/ouch, arm, flash, smoke.
 const PALETTE = {
-  sheriff: { hatA: "#443a2e", hatB: "#191410", band: "#c99a3f", coatA: "#7d5739", coatB: "#33210f",
-             vest: "#312c23", shirt: "#a99b81", scarf: "#93301f", hair: "#4a3526", beard: 1 },
+  sheriff: { hatA: "#3b342a", hatB: "#15110d", band: "#b8922f", coatA: "#55412e", coatB: "#241708",
+             vest: "#272319", shirt: "#8d8470", scarf: "#6e2015", hair: "#3a2c1f", skull: 1 },
   cauto:   { hatA: "#6b6154", hatB: "#3a342c", band: "#8d8f97", coatA: "#5a5747", coatB: "#2b291f",
              vest: "#3a382c", shirt: "#b6ad95", scarf: "#4a5a6a", hair: "#5a4a3a", beard: 0 },
   tahur:   { hatA: "#2b2b33", hatB: "#111116", band: "#b8262b", coatA: "#33324a", coatB: "#15141f",
@@ -993,6 +993,21 @@ function rig(key) {
   const SK_HI = "#f0c79a", SK = "#d7a274", SK_MD = "#b47a4f", SK_DK = "#8a5634", SK_SH = "#5d3620";
   return `
   <defs>
+    <radialGradient id="bone-${k}" cx="40%" cy="28%" r="80%">
+      <stop offset="0" stop-color="#f5efdd"/><stop offset="45%" stop-color="#ddd3b8"/>
+      <stop offset="78%" stop-color="#b0a488"/><stop offset="100%" stop-color="#6f664f"/>
+    </radialGradient>
+    <radialGradient id="socket-${k}" cx="50%" cy="45%" r="60%">
+      <stop offset="0" stop-color="#0a0705"/><stop offset="70%" stop-color="#120c08"/><stop offset="100%" stop-color="#2a1e12"/>
+    </radialGradient>
+    <radialGradient id="ember-${k}" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#fff0c0"/><stop offset="35%" stop-color="#ff8c2a"/>
+      <stop offset="70%" stop-color="#c03a10" stop-opacity=".7"/><stop offset="100%" stop-color="#7a1c06" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="crack-${k}" width="26" height="26" patternUnits="userSpaceOnUse">
+      <path d="M2 18 L9 12 L14 17 L22 8" stroke="#8a7d60" stroke-width="0.7" fill="none" opacity=".5"/>
+      <path d="M18 24 L21 19" stroke="#8a7d60" stroke-width="0.6" fill="none" opacity=".4"/>
+    </pattern>
     <radialGradient id="sk-${k}" cx="42%" cy="32%" r="78%">
       <stop offset="0" stop-color="${SK_HI}"/><stop offset="45%" stop-color="${SK}"/>
       <stop offset="80%" stop-color="${SK_MD}"/><stop offset="100%" stop-color="${SK_DK}"/>
@@ -1076,78 +1091,100 @@ function rig(key) {
       <path d="M50 212 Q26 238 22 284 Q22 306 36 314 L58 308 Q40 262 66 222Z" fill="url(#coat-${k})"/>
       <path d="M46 226 Q30 252 28 288" stroke="#1b1109" stroke-width="2.5" fill="none" opacity=".45"/>
 
-      <!-- cuello y pañuelo -->
+      <!-- cuello: vértebras si es calavera -->
+      ${c.skull ? `
+      <path d="M86 168 L86 208 Q100 214 114 208 L114 168Z" fill="#120c08"/>
+      ${Array.from({ length: 4 }, (_, i) => `<ellipse cx="100" cy="${178 + i * 10}" rx="${11 - i * 0.6}" ry="4.2" fill="url(#bone-${k})"/><ellipse cx="100" cy="${180 + i * 10}" rx="${9 - i * 0.6}" ry="2" fill="#6f664f" opacity=".5"/>`).join("")}
+      ` : `
       <path d="M84 168 L84 206 Q100 214 116 206 L116 168Z" fill="${SK_MD}"/>
       <path d="M84 168 Q100 190 116 168 L116 186 Q100 200 84 186Z" fill="${SK_SH}" opacity=".65"/>
+      `}
       <path d="M74 196 Q100 218 126 196 Q120 214 100 218 Q80 214 74 196Z" fill="url(#scarf-${k})"/>
       <path d="M86 204 Q100 214 114 204" stroke="#4a150d" stroke-width="2" fill="none" opacity=".8"/>
 
+      ${c.skull ? `
+      <!-- craneo -->
+      <path d="M100 80 Q62 80 60 122 Q60 146 68 158 L70 172 Q72 182 82 184 L84 194 Q100 202 116 194 L118 184 Q128 182 130 172 L132 158 Q140 146 140 122 Q138 80 100 80Z" fill="url(#bone-${k})"/>
+      <path d="M100 80 Q62 80 60 122 Q60 146 68 158 L132 158 Q140 146 140 122 Q138 80 100 80Z" fill="url(#crack-${k})" opacity=".8"/>
+      <path d="M66 118 Q72 96 100 92 Q128 96 134 118 Q120 104 100 102 Q80 104 66 118Z" fill="#fdf8e8" opacity=".3"/>
+      <path d="M62 126 Q60 150 70 160 Q64 144 64 126Z" fill="#6f664f" opacity=".5"/>
+      <path d="M138 126 Q140 150 130 160 Q136 144 136 126Z" fill="#6f664f" opacity=".45"/>
+      <!-- pómulos y sien -->
+      <path d="M66 140 Q76 152 84 156 Q74 158 66 150Z" fill="#8f8468" opacity=".6"/>
+      <path d="M134 140 Q124 152 116 156 Q126 158 134 150Z" fill="#8f8468" opacity=".55"/>
+      <!-- cuencas -->
+      <path d="M70 124 Q84 118 92 128 Q94 142 84 150 Q72 148 68 138Z" fill="url(#socket-${k})"/>
+      <path d="M130 124 Q116 118 108 128 Q106 142 116 150 Q128 148 132 138Z" fill="url(#socket-${k})"/>
+      <g class="pupils">
+        <circle cx="81" cy="136" r="13" fill="url(#ember-${k})"/>
+        <circle cx="119" cy="136" r="13" fill="url(#ember-${k})"/>
+        <circle cx="81" cy="136" r="3.4" fill="#fff4d4"/>
+        <circle cx="119" cy="136" r="3.4" fill="#fff4d4"/>
+      </g>
+      <g class="lids">
+        <path d="M68 118 L94 118 L94 152 L68 152Z" fill="#120c08"/>
+        <path d="M106 118 L132 118 L132 152 L106 152Z" fill="#120c08"/>
+      </g>
+      <!-- arcos superciliares -->
+      <g class="brows">
+        <path d="M66 118 Q82 110 94 118" stroke="#8f8468" stroke-width="5" fill="none" stroke-linecap="round" opacity=".9"/>
+        <path d="M134 118 Q118 110 106 118" stroke="#8f8468" stroke-width="5" fill="none" stroke-linecap="round" opacity=".9"/>
+      </g>
+      <!-- nariz -->
+      <path d="M100 142 Q94 156 92 164 Q100 168 108 164 Q106 156 100 142Z" fill="#171009"/>
+      <path d="M100 146 Q97 158 96 163" stroke="#8f8468" stroke-width="1.4" fill="none" opacity=".5"/>
+      <!-- dentadura -->
+      <g class="mouth-idle">
+        <path d="M76 170 Q100 166 124 170 L122 182 Q100 188 78 182Z" fill="#efe8d2" stroke="#8a7d60" stroke-width="1.2"/>
+        ${Array.from({ length: 7 }, (_, i) => `<path d="M${80 + i * 6.8} 168 L${80 + i * 6.8} 185" stroke="#9a8f72" stroke-width="1.3" opacity=".85"/>`).join("")}
+        <path d="M76 176 Q100 180 124 176" stroke="#6f6450" stroke-width="1.4" fill="none" opacity=".7"/>
+      </g>
+      <g class="mouth-smirk">
+        <path d="M74 168 Q100 164 126 172 L122 184 Q98 190 78 180Z" fill="#efe8d2" stroke="#8a7d60" stroke-width="1.2"/>
+        ${Array.from({ length: 7 }, (_, i) => `<path d="M${79 + i * 7} ${166 + i * 1.1} L${79 + i * 7} ${184 + i * 0.6}" stroke="#9a8f72" stroke-width="1.3" opacity=".85"/>`).join("")}
+      </g>
+      <g class="mouth-ouch">
+        <path d="M74 166 Q100 162 126 166 L124 176 Q100 182 76 176Z" fill="#efe8d2" stroke="#8a7d60" stroke-width="1.2"/>
+        <path d="M76 188 Q100 182 124 188 L122 198 Q100 204 78 198Z" fill="#efe8d2" stroke="#8a7d60" stroke-width="1.2"/>
+        <path d="M78 176 Q100 186 122 176 Q100 196 78 176Z" fill="#0d0805"/>
+        ${Array.from({ length: 6 }, (_, i) => `<path d="M${82 + i * 7.4} 164 L${82 + i * 7.4} 179" stroke="#9a8f72" stroke-width="1.2" opacity=".8"/>`).join("")}
+      </g>
+      <!-- mandíbula -->
+      <path d="M72 176 Q74 196 100 202 Q126 196 128 176 Q120 194 100 198 Q80 194 72 176Z" fill="url(#bone-${k})"/>
+      <path d="M74 180 Q78 196 100 200 Q122 196 126 180" stroke="#8f8468" stroke-width="1.2" fill="none" opacity=".6"/>
+      ` : `
       <!-- orejas, por detrás -->
       <ellipse cx="59" cy="142" rx="8" ry="12" fill="${SK_MD}"/><ellipse cx="58" cy="142" rx="4" ry="7" fill="${SK_SH}" opacity=".55"/>
       <ellipse cx="141" cy="142" rx="8" ry="12" fill="${SK_MD}"/><ellipse cx="142" cy="142" rx="4" ry="7" fill="${SK_SH}" opacity=".55"/>
       <!-- cabeza -->
       <ellipse cx="100" cy="132" rx="41" ry="49" fill="url(#sk-${k})"/>
       <g clip-path="url(#face-${k})">
-        <!-- modelado: pómulos, sien, mandíbula -->
         <ellipse cx="64" cy="140" rx="16" ry="26" fill="${SK_DK}" opacity=".35"/>
         <ellipse cx="136" cy="140" rx="16" ry="26" fill="${SK_DK}" opacity=".28"/>
         <ellipse cx="100" cy="178" rx="30" ry="16" fill="${SK_DK}" opacity=".3"/>
         <ellipse cx="88" cy="118" rx="24" ry="16" fill="${SK_HI}" opacity=".35"/>
-        ${c.beard ? `<path d="M66 152 Q70 184 100 188 Q130 184 134 152 Q128 176 100 178 Q72 176 66 152Z" fill="url(#stub-${k})"/>
-        <path d="M68 158 Q74 184 100 187 Q126 184 132 158 Q124 176 100 178 Q76 176 68 158Z" fill="#3a2417" opacity=".16"/>` : ""}
-        <!-- nariz -->
         <path d="M100 124 Q94 146 90 154 Q96 160 100 159 Q104 160 110 154 Q106 146 100 124Z" fill="${SK_MD}" opacity=".5"/>
-        <path d="M100 128 Q98 144 96 151" stroke="${SK_HI}" stroke-width="4.5" fill="none" opacity=".35" stroke-linecap="round"/>
-        <path d="M104 140 Q109 150 110 155" stroke="${SK_DK}" stroke-width="3" fill="none" opacity=".3" stroke-linecap="round"/>
         <ellipse cx="92" cy="155" rx="3" ry="2.2" fill="${SK_SH}" opacity=".8"/>
         <ellipse cx="108" cy="155" rx="3" ry="2.2" fill="${SK_SH}" opacity=".8"/>
-        <!-- boca -->
-        <g class="mouth-idle">
-          <path d="M86 170 Q100 175 114 170" stroke="${SK_SH}" stroke-width="3" fill="none" stroke-linecap="round"/>
-        </g>
-        <g class="mouth-smirk">
-          <path d="M84 168 Q102 180 116 165" stroke="${SK_SH}" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-          <path d="M104 172 L112 168" stroke="#f3ead6" stroke-width="2.5" stroke-linecap="round"/>
-        </g>
-        <g class="mouth-ouch">
-          <ellipse cx="100" cy="173" rx="11" ry="9" fill="#3a140f"/>
-          <path d="M92 168 Q100 172 108 168" stroke="#f3ead6" stroke-width="3" fill="none"/>
-        </g>
-        ${c.beard ? `<g opacity=".92">
-          <path d="M80 161 Q90 156 100 163 Q110 156 120 161 Q112 166 100 167 Q88 166 80 161Z" fill="${c.hair}"/>
-          <path d="M82 161 Q91 157 100 163 Q109 157 118 161 Q110 164 100 165 Q90 164 82 161Z" fill="#33210f" opacity=".7"/>
-          ${Array.from({ length: 11 }, (_, i) => `<path d="M${81 + i * 3.8} ${160 + Math.abs(i - 5) * 0.5} q-1 3 -1.6 5" stroke="${c.hair}" stroke-width="1.2" fill="none" opacity=".7" stroke-linecap="round"/>`).join("")}
-        </g>` : ""}
-        <!-- ojos -->
-        <ellipse cx="82" cy="134" rx="11" ry="7" fill="#f4ece0"/>
-        <ellipse cx="118" cy="134" rx="11" ry="7" fill="#f4ece0"/>
-        <ellipse cx="82" cy="134" rx="11" ry="7" fill="${SK_SH}" opacity=".18"/>
-        <ellipse cx="118" cy="134" rx="11" ry="7" fill="${SK_SH}" opacity=".18"/>
+        <g class="mouth-idle"><path d="M86 170 Q100 175 114 170" stroke="${SK_SH}" stroke-width="3" fill="none" stroke-linecap="round"/></g>
+        <g class="mouth-smirk"><path d="M84 168 Q102 180 116 165" stroke="${SK_SH}" stroke-width="3.2" fill="none" stroke-linecap="round"/></g>
+        <g class="mouth-ouch"><ellipse cx="100" cy="173" rx="11" ry="9" fill="#3a140f"/></g>
+        <ellipse cx="82" cy="134" rx="11" ry="7" fill="#f4ece0"/><ellipse cx="118" cy="134" rx="11" ry="7" fill="#f4ece0"/>
         <g class="pupils">
           <circle cx="82" cy="134" r="5.4" fill="#5a4128"/><circle cx="82" cy="134" r="2.6" fill="#120c07"/>
-          <circle cx="79.6" cy="131.6" r="1.7" fill="#fff" opacity=".9"/>
           <circle cx="118" cy="134" r="5.4" fill="#5a4128"/><circle cx="118" cy="134" r="2.6" fill="#120c07"/>
-          <circle cx="115.6" cy="131.6" r="1.7" fill="#fff" opacity=".9"/>
         </g>
         <g class="lids">
-          <path d="M71 134 Q82 124 93 134 Q82 128 71 134Z" fill="${SK}"/>
-          <path d="M107 134 Q118 124 129 134 Q118 128 107 134Z" fill="${SK}"/>
           <rect x="71" y="120" width="22" height="15" fill="${SK}"/>
           <rect x="107" y="120" width="22" height="15" fill="${SK}"/>
         </g>
-        <path d="M71 134 Q82 127 93 134" stroke="${SK_SH}" stroke-width="2" fill="none" opacity=".8"/>
-        <path d="M107 134 Q118 127 129 134" stroke="${SK_SH}" stroke-width="2" fill="none" opacity=".8"/>
-        <path d="M74 141 Q82 145 90 141" stroke="${SK_DK}" stroke-width="1.6" fill="none" opacity=".5"/>
-        <path d="M110 141 Q118 145 126 141" stroke="${SK_DK}" stroke-width="1.6" fill="none" opacity=".5"/>
-        <!-- cejas -->
         <g class="brows">
           <path d="M70 122 Q82 114 94 120" stroke="${c.hair}" stroke-width="5.5" fill="none" stroke-linecap="round"/>
           <path d="M130 122 Q118 114 106 120" stroke="${c.hair}" stroke-width="5.5" fill="none" stroke-linecap="round"/>
         </g>
-        <!-- sombra del ala del sombrero -->
         <rect x="56" y="84" width="88" height="46" fill="url(#brimsh-${k})"/>
       </g>
-
+      `}
       <!-- sombrero -->
       <g class="hat">
         ${key === "loco" ? `<path d="M118 96 L172 72 L164 104Z" fill="${c.band}" stroke="#2a1a0e" stroke-width="2"/>` : ""}
@@ -1168,7 +1205,7 @@ function rig(key) {
       <g class="arm">
         <path d="M178 258 Q172 296 164 324 L142 320 Q152 288 156 256Z" fill="url(#coat-${k})"/>
         <path d="M174 264 Q168 296 160 318" stroke="#1b1109" stroke-width="2" fill="none" opacity=".4"/>
-        <path d="M164 318 Q168 332 160 340 Q148 342 144 330 L146 316Z" fill="url(#sk-${k})"/>
+        <path d="M164 318 Q168 332 160 340 Q148 342 144 330 L146 316Z" fill="${c.skull ? `url(#bone-${k})` : `url(#sk-${k})`}"/>
         <path d="M150 322 L166 326 L164 334 L156 332 L152 346 L144 344Z" fill="url(#steel-${k})" stroke="#15171b" stroke-width="1.8" stroke-linejoin="round"/>
         <circle cx="156" cy="330" r="6.5" fill="#8a9099" stroke="#15171b" stroke-width="1.5"/>
         <circle cx="156" cy="330" r="2" fill="#15171b"/>
