@@ -1,0 +1,39 @@
+name: Ejecutable
+
+# Construye el juego como programa suelto: .exe para Windows y binario para
+# Linux. El navegador se abre solo; dentro va web/index.html empaquetado.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            nombre: bones-and-bullets-windows
+            salida: bones-and-bullets.exe
+          - os: ubuntu-latest
+            nombre: bones-and-bullets-linux
+            salida: bones-and-bullets
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyinstaller
+      - name: Construir
+        run: >
+          pyinstaller --onefile --name bones-and-bullets
+          --add-data "web${{ runner.os == 'Windows' && ';' || ':' }}web"
+          --collect-submodules bones_bullets
+          run_desktop.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.nombre }}
+          path: dist/${{ matrix.salida }}
+          if-no-files-found: error
