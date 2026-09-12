@@ -100,7 +100,8 @@
   .pip { display: flex; align-items: center; justify-content: center; }
   .pip::after { content: ""; width: 3px; height: 3px; background: var(--black); opacity: 0; }
   .pip.on::after { opacity: 1; }
-  .sd .mini-dice .d .pip::after, .cup .d .pip::after { width: 3px; height: 3px; }
+  .sd .mini-dice .d .pip::after { width: 4px; height: 4px; }
+  .cup .d .pip::after { width: 3px; height: 3px; }
 
   /* ---------- tapete ---------- */
   .felt { position: relative; z-index: 2; padding: 10px 10px 12px; background: var(--felt);
@@ -245,9 +246,18 @@
 
   .banner { position: fixed; left: 0; right: 0; top: 32%; z-index: 55; text-align: center; pointer-events: none; }
   .banner[hidden] { display: none !important; }
-  .banner .t { display: inline-block; font-size: clamp(13px, 5vw, 22px); color: var(--gold); background: var(--black);
-    padding: 10px 14px; box-shadow: inset 0 0 0 3px var(--gold); animation: bannerIn 1.3s steps(6) both; }
-  .banner .m { display: block; margin-top: 8px; font-size: 14px; color: var(--red-hi); animation: pulse .4s steps(2) infinite alternate; }
+  .banner .t { position: relative; display: inline-block; font-size: clamp(13px, 5vw, 22px); color: var(--gold); background: var(--black);
+    padding: 14px 18px; box-shadow: inset 0 0 0 3px var(--gold); animation: bannerIn 1.3s steps(6) both; }
+  /* bombillas de marquesina: dos filas de puntos que se alternan */
+  .banner .t::before, .banner .t::after { content: ""; position: absolute; left: 6px; right: 6px; height: 4px;
+    background: repeating-linear-gradient(90deg, var(--gold) 0 4px, transparent 4px 12px);
+    animation: bulbs .5s steps(2) infinite; }
+  .banner .t::before { top: 4px; }
+  .banner .t::after { bottom: 4px; background-position: 8px 0; animation-delay: .25s; }
+  @keyframes bulbs { 0% { opacity: 1 } 100% { opacity: .25 } }
+  .banner.epic .t::before, .banner.epic .t::after { background-image: repeating-linear-gradient(90deg, var(--red-hi) 0 4px, transparent 4px 12px); }
+  .banner .m { display: block; width: max-content; margin: 8px auto 0; padding: 5px 9px; font-size: 14px; color: var(--red-hi);
+    background: var(--black); box-shadow: inset 0 0 0 2px var(--red-dk); animation: pulse .4s steps(2) infinite alternate; }
   @keyframes bannerIn { 0% { opacity: 0; transform: scale(.6) } 25%, 75% { opacity: 1; transform: scale(1) } 100% { opacity: 0 } }
   .banner.epic .t { color: var(--red-hi); box-shadow: inset 0 0 0 3px var(--red); }
   .curtain { position: fixed; inset: 0; z-index: 60; background: var(--black); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; animation: curtain 1.5s steps(8) both; }
@@ -260,12 +270,20 @@
   .showdown[hidden] { display: none !important; }
   .sd { background: #101418; box-shadow: inset 0 0 0 4px var(--steel), inset 0 0 0 6px var(--black); padding: 14px; max-width: 380px; width: 100%; display: flex; flex-direction: column; gap: 8px; }
   .sd h2 { font-size: 11px; color: var(--gold); margin: 0; text-align: center; }
-  .sd .side { display: grid; grid-template-columns: 48px 1fr auto; gap: 6px 8px; align-items: center; padding: 7px; background: var(--black); box-shadow: inset 0 0 0 2px #1a1e22; }
+  /* los dos sprites cara a cara, el ganador iluminado */
+  .sd-duel { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 8px;
+    background: #0a0e12; box-shadow: inset 0 0 0 2px #1a1e22; padding: 8px 6px 0; }
+  .sd-duel .fighter { height: 104px; display: flex; align-items: flex-end; justify-content: center; }
+  .sd-duel .fighter.flip { transform: scaleX(-1); }
+  .sd-duel .fighter svg { height: 100%; width: auto; }
+  .sd-duel .fighter.winner { background: linear-gradient(var(--gold), var(--gold)) 50% 100% / 60% 2px no-repeat; }
+  .sd-duel .vs { font-size: 12px; color: var(--red-hi); padding-bottom: 34px; text-shadow: 2px 2px 0 #000; }
+  .sd .side { display: grid; grid-template-columns: 44px 1fr auto; gap: 6px 8px; align-items: center; padding: 7px; background: var(--black); box-shadow: inset 0 0 0 2px #1a1e22; }
   .sd .side.win { box-shadow: inset 0 0 0 2px var(--gold); }
   .sd .side.bang { box-shadow: inset 0 0 0 2px var(--red); }
   .sd .who { font-size: 8px; color: var(--ink); }
   .sd .mini-dice { display: flex; gap: 3px; grid-column: 1 / -1; }
-  .sd .mini-dice .d { width: 16px; height: 16px; background: var(--bone); display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr); padding: 2px; }
+  .sd .mini-dice .d { width: 20px; height: 20px; background: var(--bone); display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr); padding: 2px; }
   .sd .pts { font-size: 18px; color: var(--gold); }
   .sd .desc { font-size: 7px; color: var(--ink-dim); line-height: 2; }
   .sd .desc b { color: var(--ink); }
@@ -286,7 +304,7 @@
   .poke[hidden] { display: none !important; }
 
   @media (prefers-reduced-motion: reduce) {
-    .cyl.spinning, .bang-flash.on, body.shake, .bump, .pulse .big, .banner .t, .curtain, .taunt, .me-bubble { animation: none !important; }
+    .banner .t::before, .banner .t::after, .cyl.spinning, .bang-flash.on, body.shake, .bump, .pulse .big, .banner .t, .curtain, .taunt, .me-bubble { animation: none !important; }
     .fly, .score .track > div, .cup .leather { transition: none; }
   }
   @media (max-width: 420px) {
@@ -386,7 +404,7 @@
 <div class="splat" id="splat" aria-hidden="true"></div>
 <div class="spin-ov" id="spin-ov" hidden aria-hidden="true"><svg viewBox="0 0 300 160" id="gun" class="gun"></svg><svg viewBox="0 0 300 300" id="fp" class="fp" hidden></svg><div class="txt" id="spin-txt">GIRANDO EL TAMBOR</div></div>
 <div class="me-bubble" id="me-bubble" hidden></div>
-<div class="showdown" id="showdown" hidden><div class="sd" role="dialog" aria-labelledby="sd-title"><h2 id="sd-title">Ronda</h2><div id="sd-body"></div><div class="verdict" id="sd-verdict"></div><div class="hint">toca para seguir</div></div></div>
+<div class="showdown" id="showdown" hidden><div class="sd" role="dialog" aria-labelledby="sd-title"><h2 id="sd-title">Ronda</h2><div class="sd-duel" id="sd-duel" aria-hidden="true"></div><div id="sd-body"></div><div class="verdict" id="sd-verdict"></div><div class="hint">toca para seguir</div></div></div>
 <div class="banner" id="banner" hidden aria-live="polite"><span class="t" id="banner-t"></span><span class="m" id="banner-m"></span></div>
 <div class="curtain" id="curtain" hidden aria-hidden="true"><div class="lvl" id="curtain-lvl"></div><div class="sub" id="curtain-sub"></div></div>
 
@@ -1155,7 +1173,13 @@ function showdown(lr) {
     const [me, rv] = lr.hands, [pm, pr] = lr.points;
     $("sd-title").textContent = `Ronda ${lr.round}`;
     const side = (who, hd, cls) => `<div class="side ${cls}${hd.banged ? " bang" : ""}"><div class="who">${who}</div><div class="desc">${hd.banged ? "<b>BANG</b> · la mano vale cero" : `<b>${hd.hand}</b> · ${hd.total} × ${hd.mult}`}</div><div class="pts">${hd.points}</div><div class="mini-dice">${hd.dice.map(v => `<span class="d">${pipsHTML(v)}</span>`).join("")}</div></div>`;
-    $("sd-body").innerHTML = side("Tú", me, pm > pr ? "win" : "") + side(S.rival_name, rv, pr > pm ? "rival win" : "rival");
+    const myFrame = pm > pr ? "smirk" : pm < pr ? "ouch" : "idle";
+    const rvFrame = pr > pm ? "smirk" : pr < pm ? "ouch" : "idle";
+    $("sd-duel").innerHTML =
+      `<div class="fighter${pm > pr ? " winner" : ""}">${rig("yo", myFrame)}</div>` +
+      `<div class="vs">VS</div>` +
+      `<div class="fighter flip${pr > pm ? " winner" : ""}">${rig(S.rival, rvFrame)}</div>`;
+    $("sd-body").innerHTML = side("Tú", me, pm > pr ? "win" : "") + side(S.rival_name, rv, pr > pm ? "them win" : "them");
     const v = $("sd-verdict");
     if (pm === pr) { v.textContent = "Empate. Nadie sangra."; v.className = "verdict"; }
     else if (lr.loser === "Tú") { v.textContent = me.banged ? "Ya sangraste por la bala." : "Recibes una herida."; v.className = "verdict blood"; }
