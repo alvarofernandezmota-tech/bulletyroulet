@@ -45,13 +45,13 @@
 
   /* ---------- escena ---------- */
   .scene { position: relative; }
-  .far { position: relative; height: 190px; overflow: hidden; background: #101418;
+  .far { position: relative; height: 218px; overflow: hidden; background: #101418;
     border: 4px solid var(--steel); box-shadow: inset 0 0 0 2px var(--black); }
-  .far::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 14px; z-index: 0;
-    background: repeating-linear-gradient(90deg, #2a1c10 0 15px, #1a1108 15px 17px); box-shadow: inset 0 2px 0 #3a2410; }
   .far::after { content: ""; position: absolute; inset: 0; pointer-events: none;
     background: repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 4px); }
   .lamp { display: none; }
+  .saloon { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0;
+    object-fit: cover; object-position: 50% 100%; }
   /* en solitario no hay rival: la escena se encoge y no queda un hueco negro */
   .far:has(.empty-seat:not([hidden])) { height: 86px; }
   .backdrop { position: absolute; inset: 0; z-index: 1; }
@@ -61,7 +61,7 @@
   .backdrop.active .halo { background: var(--red); opacity: .16; }
   .backdrop.me-side .halo { left: 26%; background: var(--blue); opacity: .1; }
   .backdrop.me-side.active .halo { background: var(--red); opacity: .16; }
-  .backdrop .stage { position: absolute; left: 74%; bottom: 4px; width: 132px; height: 160px; transform: translateX(-50%); cursor: pointer; }
+  .backdrop .stage { position: absolute; left: 74%; bottom: 24px; width: 120px; height: 152px; transform: translateX(-50%); cursor: pointer; }
   .backdrop.me-side .stage { left: 26%; }
   .portrait { display: block; width: 100%; height: 100%; }
   .backdrop.dead .stage { filter: grayscale(1) brightness(.45); }
@@ -71,13 +71,22 @@
   .empty-seat .hat { width: 42px; height: 14px; margin: 0 auto 6px; background: var(--brown-dk); position: relative; }
   .empty-seat .hat::before { content: ""; position: absolute; left: 50%; top: -10px; width: 22px; height: 10px; transform: translateX(-50%); background: var(--brown-dk); }
 
-  .me-name { text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; position: absolute; left: 8px; top: 6px; z-index: 4; font-size: 8px; color: var(--blue); }
+  .me-name { position: absolute; left: 8px; top: 6px; z-index: 4; font-size: 8px; color: var(--blue); }
   .me-name[hidden] { display: none !important; }
-  .rival { position: absolute; left: 0; right: 0; top: 6px; z-index: 4; display: flex; justify-content: flex-end; gap: 8px; padding: 0 8px; pointer-events: none; }
+  .rival { position: absolute; left: 0; right: 0; top: 4px; z-index: 4; display: flex; justify-content: flex-end; gap: 8px; padding: 0 8px; pointer-events: none; }
   .rival[hidden] { display: none !important; }
-  .rival .name { font-size: 8px; color: var(--red-hi); white-space: nowrap; text-align: right; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; }
-  .rival .status { text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; font-size: 7px; color: var(--ink-dim); white-space: nowrap; text-align: right; line-height: 2.2; }
-  .rival .hearts, .hearts { display: flex; gap: 3px; }
+  .rival > div:first-child { background: rgba(0,0,0,.75); padding: 3px 5px; }
+  .me-name { background: rgba(0,0,0,.75); padding: 3px 5px; }
+  .rival .name { font-size: 8px; color: var(--red-hi); white-space: nowrap; text-align: right; }
+  .rival .status { font-size: 7px; color: var(--ink-dim); white-space: nowrap; text-align: right; line-height: 2.2; }
+  .rival .hearts, .hearts { display: flex; gap: 4px; align-items: flex-end; padding-top: 5px; }
+  /* vidas: balas de píxeles, casquillo de latón y punta de plomo */
+  .bullet { width: 6px; height: 14px; background: var(--gold); position: relative;
+    box-shadow: inset -2px 0 0 var(--gold-dk), inset 2px 0 0 #ffe890; }
+  .bullet::before { content: ""; position: absolute; left: 1px; top: -4px; width: 4px; height: 4px;
+    background: var(--steel-hi); box-shadow: inset -1px 0 0 var(--steel); }
+  .bullet.spent { background: #2a2e33; box-shadow: inset -2px 0 0 #16181b, inset 2px 0 0 #3a3f45; }
+  .bullet.spent::before { background: #3a3f45; box-shadow: none; }
   .chip { width: 10px; height: 10px; background: var(--red); box-shadow: inset -2px -2px 0 var(--red-dk), inset 2px 2px 0 var(--red-hi); }
   .chip.lost { background: #2a2e33; box-shadow: inset -2px -2px 0 #16181b, inset 2px 2px 0 #3a3f45; }
   .cup { position: absolute; right: 4px; bottom: 4px; width: 74px; height: 34px; z-index: 5; }
@@ -281,7 +290,7 @@
     .fly, .score .track > div, .cup .leather { transition: none; }
   }
   @media (max-width: 420px) {
-    .far { height: 168px; } .backdrop .stage { width: 112px; height: 136px; }
+    .far { height: 196px; } .backdrop .stage { width: 104px; height: 132px; bottom: 20px; }
     .score .big { font-size: 24px; } .table-gun { width: 78px; height: 42px; }
   }
 </style>
@@ -298,6 +307,7 @@
 
   <div class="scene">
     <div class="far">
+      <canvas class="saloon" id="saloon" width="160" height="96" aria-hidden="true"></canvas>
       <div class="lamp"></div>
       <div class="backdrop me-side" id="me-backdrop" hidden aria-hidden="true"><div class="halo"></div><div class="stage" id="me-stage"></div></div>
       <div class="me-name" id="me-name" hidden>Tú</div>
@@ -448,6 +458,39 @@ const SFX = {
   document.body.style.backgroundSize = "24px 24px";
 })();
 
+// ---------- salón de píxeles, pintado una vez ----------
+(function saloon() {
+  const cv = $("saloon"); if (!cv) return;
+  const g = cv.getContext("2d"), W = 160, H = 96;
+  const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+  // pared de tablones
+  R(0, 0, W, H, "#241a12");
+  for (let x = 0; x < W; x += 9) R(x, 0, 1, H, "#1a120b");
+  for (let y = 0; y < H; y += 24) R(0, y, W, 1, "#1a120b");
+  // ventana con luna y marco
+  R(10, 10, 30, 24, "#0a0e14"); R(10, 10, 30, 1, "#3a2410"); R(10, 33, 30, 1, "#3a2410");
+  R(10, 10, 1, 24, "#3a2410"); R(39, 10, 1, 24, "#3a2410"); R(24, 10, 1, 24, "#3a2410");
+  R(29, 15, 6, 6, "#e8e0c8"); R(29, 15, 2, 2, "#9a9480"); // luna
+  R(14, 27, 2, 1, "#3a4a5a"); R(32, 25, 2, 1, "#3a4a5a");
+  // estantería con botellas detrás de la barra
+  R(108, 8, 46, 3, "#3a2410"); R(108, 26, 46, 3, "#3a2410");
+  const bot = ["#30b050", "#c02020", "#8a5a30", "#3050a0", "#e8a020", "#30b050", "#c02020"];
+  bot.forEach((c, i) => { const x = 111 + i * 6; R(x, 14, 4, 12, c); R(x, 14, 1, 12, "#e8e0c8"); R(x + 1, 11, 2, 3, c); });
+  // puerta de vaivén al fondo
+  R(62, 34, 34, 40, "#1a120b"); R(62, 34, 34, 2, "#3a2410");
+  R(64, 40, 14, 26, "#3a2410"); R(80, 40, 14, 26, "#3a2410");
+  R(64, 46, 14, 2, "#241a12"); R(80, 46, 14, 2, "#241a12");
+  R(64, 58, 14, 2, "#241a12"); R(80, 58, 14, 2, "#241a12");
+  // lámpara colgante con su charco de luz
+  R(78, 0, 4, 8, "#2a2e33"); R(70, 8, 20, 3, "#3a3e44"); R(72, 11, 16, 4, "#f0c020"); R(74, 15, 12, 2, "#8a6010");
+  g.fillStyle = "rgba(240,192,32,.10)";
+  for (let i = 0; i < 7; i++) g.fillRect(80 - 6 - i * 5, 17 + i * 4, 12 + i * 10, 4);
+  // suelo de tablones
+  R(0, 74, W, 22, "#2a1c10");
+  R(0, 74, W, 2, "#3a2410");
+  for (let x = 0; x < W; x += 16) R(x, 76, 1, 20, "#1a1108");
+})();
+
 // ---------- polvo de fondo ----------
 (function dust() {
   const cv = $("dust"); if (reduced) return; const ctx = cv.getContext("2d");
@@ -516,11 +559,24 @@ $("btn-poke").addEventListener("click", () => {
   (function tick() {
     setTimeout(() => {
       const live = S && S.mode === "duel" && !S.game_over && !$("backdrop").hidden;
-      if (live && $("stage").dataset.frame === "idle") setFrame("rv", "blink", 160);
-      if (live && $("me-stage").dataset.frame === "idle") setTimeout(() => setFrame("me", "blink", 160), 500);
+      if (live && restingFrame("stage")) setFrame("rv", "blink", 160);
+      if (live && restingFrame("me-stage")) setTimeout(() => setFrame("me", "blink", 160), 500);
       tick();
     }, 2200 + Math.random() * 3200);
   })();
+})();
+
+(function breathe() {
+  // respiración de sprite: dos fotogramas de reposo alternándose, como en los recreativos
+  if (reduced) return;
+  let on = false;
+  setInterval(() => {
+    if (!S || S.mode !== "duel" || S.game_over || $("backdrop").hidden) return;
+    on = !on;
+    const f = on ? "idle2" : "idle";
+    if (restingFrame("stage")) setFrame("rv", f);
+    if (restingFrame("me-stage")) setFrame("me", f);
+  }, 1100);
 })();
 
 (function pokeStage() {
@@ -629,7 +685,7 @@ const DiceTable = (() => {
     const rect = cv.getBoundingClientRect();
     const cssW = rect.width || cv.parentElement.clientWidth || 360;
     SZ = Math.max(38, Math.min(62, cssW / 7.2));
-    const cssH = Math.round(SZ * 3.3);
+    const cssH = Math.round(SZ * 2.8);
     dpr = Math.min(2, devicePixelRatio || 1);
     cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
     cv.style.height = cssH + "px";
@@ -858,9 +914,9 @@ function drawCylinder() {
 // completo; setFrame() cambia de fotograma en vez de animar con CSS.
 const PALETTE = {
   sheriff: { hat: "#3a2410", hatHi: "#8a5a30", coat: "#3a3e44", coatHi: "#6b6f75",
-             shirt: "#8a929c", scarf: "#c02020", legs: "#2a2e33", skull: 1 },
+             shirt: "#8a929c", scarf: "#c02020", legs: "#4a4e54", band: "#f0c020", skull: 1 },
   yo:      { hat: "#3a2410", hatHi: "#8a5a30", coat: "#1e2c50", coatHi: "#3050a0",
-             shirt: "#9a9480", scarf: "#e8a020", legs: "#14203a", skull: 0 },
+             shirt: "#9a9480", scarf: "#e8a020", legs: "#2c4a8a", band: "#8a5a30", skull: 0 },
   cauto:   { hat: "#3a342c", hatHi: "#6b6154", coat: "#2b291f", coatHi: "#5a5747",
              shirt: "#b6ad95", scarf: "#3050a0", legs: "#2b291f", skull: 0 },
   tahur:   { hat: "#111116", hatHi: "#2b2b33", coat: "#15141f", coatHi: "#33324a",
@@ -871,50 +927,71 @@ const PALETTE = {
 const SKIN = "#d9a878", SKIN_DK = "#8a5634", BONE = "#e8e0c8", BONE_DK = "#9a9480";
 
 function rig(key, frame = "idle") {
+  // Rejilla de 32x40. Cada bloque es un píxel gordo; no hay curvas ni medios tonos.
   const c = PALETTE[key] || PALETTE.sheriff;
   const R = (x, y, w, h, f) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}"/>`;
-  const fire = frame === "fire", ouch = frame === "ouch", smirk = frame === "smirk", blink = frame === "blink";
+  const fire = frame === "fire", ouch = frame === "ouch", smirk = frame === "smirk",
+        blink = frame === "blink", bob = frame === "idle2", dead = frame === "dead";
+  const band = c.band || "#f0c020";
   let s = "";
-  // sombrero
-  s += R(7, 0, 10, 4, c.hatHi) + R(7, 3, 10, 1, c.hat) + R(1, 4, 22, 2, c.hat) + R(3, 6, 18, 1, c.hat);
-  // cabeza: calavera para el Sheriff, cara para el resto
+  // ---- sombrero ----
+  s += R(10, 0, 12, 5, c.hatHi) + R(10, 0, 12, 1, c.hat) + R(10, 4, 12, 2, band);
+  s += R(4, 6, 24, 2, c.hat) + R(6, 8, 20, 1, "#1a1108");
+  // ---- cabeza ----
   if (c.skull) {
-    s += R(7, 7, 10, 7, BONE) + R(7, 13, 10, 1, BONE_DK);
-    if (blink) { s += R(8, 10, 3, 1, "#000") + R(13, 10, 3, 1, "#000"); }
-    else if (ouch) { s += R(8, 9, 3, 3, "#000") + R(13, 9, 3, 3, "#000") + R(9, 10, 1, 1, "#c02020") + R(14, 10, 1, 1, "#c02020"); }
-    else { s += R(8, 9, 3, 3, "#000") + R(13, 9, 3, 3, "#000") + R(9, 10, 1, 1, "#e8a020") + R(14, 10, 1, 1, "#e8a020"); }
-    s += R(11, 12, 2, 1, BONE_DK);
-    s += ouch ? R(9, 14, 6, 2, "#000") : R(9, 14, 6, 1, "#000") + R(10, 14, 1, 1, BONE) + R(12, 14, 1, 1, BONE) + R(14, 14, 1, 1, BONE);
+    s += R(10, 9, 12, 10, BONE) + R(10, 9, 12, 1, "#fff8e0") + R(21, 9, 1, 10, BONE_DK);
+    s += R(9, 12, 1, 4, BONE_DK) + R(22, 12, 1, 4, BONE_DK); // pómulos
+    const ember = ouch || dead ? "#c02020" : "#e8a020";
+    if (blink) s += R(11, 14, 4, 1, "#000") + R(17, 14, 4, 1, "#000");
+    else s += R(11, 12, 4, 4, "#000") + R(17, 12, 4, 4, "#000") + R(12, 13, 2, 2, ember) + R(18, 13, 2, 2, ember);
+    s += R(15, 15, 2, 2, BONE_DK) + R(15, 16, 2, 1, "#000"); // nariz
+    // dentadura
+    s += R(12, 18, 8, 2, "#000");
+    if (!ouch) for (let i = 0; i < 4; i++) s += R(12 + i * 2, 18, 1, 2, BONE);
   } else {
-    s += R(7, 7, 10, 8, SKIN) + R(7, 14, 10, 1, SKIN_DK);
-    if (blink) s += R(8, 10, 3, 1, "#000") + R(13, 10, 3, 1, "#000");
-    else if (ouch) s += R(8, 9, 3, 1, "#000") + R(13, 9, 3, 1, "#000") + R(8, 10, 3, 2, "#000") + R(13, 10, 3, 2, "#000");
-    else s += R(8, 9, 3, 3, "#fff") + R(13, 9, 3, 3, "#fff") + R(9, 10, 2, 2, "#000") + R(14, 10, 2, 2, "#000");
-    s += R(8, 13, 8, 1, SKIN_DK); // bigote
-    s += ouch ? R(10, 15, 4, 1, "#000") : smirk ? R(11, 15, 4, 1, "#000") + R(14, 14, 1, 1, "#000") : R(10, 15, 4, 1, "#000");
+    s += R(10, 9, 12, 11, SKIN) + R(10, 9, 12, 1, "#f0c79a") + R(21, 9, 1, 11, SKIN_DK);
+    s += R(9, 13, 1, 3, SKIN) + R(22, 13, 1, 3, SKIN); // orejas
+    if (blink) s += R(11, 14, 4, 1, "#000") + R(17, 14, 4, 1, "#000");
+    else if (ouch) s += R(11, 12, 4, 1, "#000") + R(17, 12, 4, 1, "#000") + R(11, 13, 4, 3, "#000") + R(17, 13, 4, 3, "#000");
+    else s += R(11, 12, 4, 4, "#fff") + R(17, 12, 4, 4, "#fff") + R(12, 13, 2, 2, "#000") + R(18, 13, 2, 2, "#000");
+    s += R(11, 11, 4, 1, "#000") + R(17, 11, 4, 1, "#000"); // cejas
+    s += R(15, 14, 2, 3, SKIN_DK); // nariz
+    s += R(12, 17, 8, 2, SKIN_DK) + R(13, 19, 6, 1, SKIN_DK); // bigote y barba
+    s += ouch ? R(14, 18, 4, 2, "#000") : smirk ? R(15, 18, 4, 1, "#000") + R(18, 17, 1, 1, "#000") : R(14, 18, 4, 1, "#000");
   }
-  // pañuelo, hombros y abrigo
-  s += R(9, 16, 6, 2, c.scarf);
-  s += R(3, 17, 18, 3, c.coat) + R(5, 20, 14, 6, c.coat) + R(5, 20, 14, 1, c.coatHi);
-  s += R(9, 18, 6, 7, c.shirt) + R(9, 18, 2, 7, "#5a5448");
-  if (key === "sheriff") s += R(6, 20, 2, 2, "#f0c020"); // estrella
-  // brazos: el derecho se levanta con el revólver al disparar
-  s += R(2, 18, 3, 7, c.coat) + R(2, 18, 1, 7, c.coatHi) + R(2, 25, 3, 2, SKIN);
+  // ---- cuello y pañuelo ----
+  s += R(14, 19, 4, 2, SKIN_DK);
+  s += R(11, 20, 10, 3, c.scarf) + R(15, 23, 3, 2, c.scarf);
+  // ---- abrigo y pecho ----
+  s += R(6, 21, 20, 3, c.coat) + R(6, 21, 20, 1, c.coatHi);
+  s += R(9, 24, 14, 7, c.coat);
+  s += R(13, 22, 6, 9, c.shirt) + R(13, 22, 2, 9, "#5a5448");
+  s += R(11, 22, 2, 6, c.coatHi) + R(19, 22, 2, 6, c.coatHi); // solapas
+  if (key === "sheriff") s += R(9, 25, 3, 3, "#f0c020") + R(10, 26, 1, 1, "#8a6010"); // estrella
+  // ---- brazos ----
+  s += R(5, 22, 4, 9, c.coat) + R(5, 22, 1, 9, c.coatHi) + R(5, 31, 4, 2, SKIN);
   if (fire) {
-    s += R(19, 13, 3, 6, c.coat) + R(21, 12, 3, 2, SKIN) + R(22, 10, 2, 3, "#6b6f75") + R(20, 11, 4, 1, "#2a2e33");
-    s += `<g class="flash">${R(23, 6, 1, 4, "#f0c020") + R(22, 7, 4, 2, "#fff3c4") + R(21, 5, 1, 2, "#c02020")}</g>`;
-    s += `<g class="smoke">${R(22, 4, 2, 2, "#8a929c")}</g>`;
+    s += R(24, 17, 4, 7, c.coat) + R(24, 17, 1, 7, c.coatHi) + R(26, 15, 3, 3, SKIN);
+    s += R(28, 13, 4, 3, "#6b6f75") + R(28, 13, 4, 1, "#a8adb4") + R(26, 14, 2, 3, "#2a2e33");
+    s += `<g class="flash">${R(31, 10, 1, 4, "#f0c020") + R(29, 9, 3, 3, "#fff3c4") + R(30, 7, 1, 2, "#c02020")}</g>`;
+    s += `<g class="smoke">${R(29, 5, 2, 2, "#8a929c") + R(31, 3, 1, 1, "#8a929c")}</g>`;
   } else {
-    s += R(19, 18, 3, 7, c.coat) + R(21, 18, 1, 7, c.coatHi) + R(19, 25, 3, 2, SKIN);
+    s += R(23, 22, 4, 9, c.coat) + R(26, 22, 1, 9, c.coatHi) + R(23, 31, 4, 2, SKIN);
   }
-  // cinturón, piernas y botas
-  s += R(5, 26, 14, 2, "#000") + R(11, 26, 2, 2, "#f0c020");
-  s += R(6, 28, 4, 3, c.legs) + R(14, 28, 4, 3, c.legs);
-  s += R(5, 31, 6, 1, "#3a2410") + R(13, 31, 6, 1, "#3a2410");
-  return `<svg class="portrait" viewBox="0 0 24 32" shape-rendering="crispEdges" preserveAspectRatio="xMidYMax meet" aria-hidden="true">${s}</svg>`;
+  // ---- cinturón, funda y piernas ----
+  s += R(9, 31, 14, 2, "#000") + R(14, 31, 3, 2, "#f0c020");
+  for (let i = 0; i < 4; i++) s += R(9 + i * 2, 31, 1, 1, "#c99a3f"); // cartuchos
+  s += R(21, 30, 3, 2, "#6b6f75") + R(21, 32, 4, 4, "#3a2410"); // culata y funda
+  s += R(10, 33, 5, 5, c.legs) + R(17, 33, 5, 5, c.legs);
+  s += R(10, 33, 1, 5, "#000") + R(21, 33, 1, 5, "#000"); // costuras
+  s += R(9, 38, 7, 2, "#6b4a33") + R(16, 38, 7, 2, "#6b4a33"); // botas
+  s += R(9, 38, 7, 1, "#8a5a30") + R(16, 38, 7, 1, "#8a5a30");
+  s += R(9, 39, 2, 1, "#3a2410") + R(21, 39, 2, 1, "#3a2410"); // tacones
+  const fig = `<g class="fig" transform="translate(0,${bob ? 1 : 0})">${s}</g>`;
+  return `<svg class="portrait" viewBox="0 0 32 40" shape-rendering="crispEdges" preserveAspectRatio="xMidYMax meet" aria-hidden="true">${fig}</svg>`;
 }
-
 // ---- fotogramas ----
+const restingFrame = id => { const f = $(id).dataset.frame; return f === "idle" || f === "idle2"; };
 function setFrame(which, frame, ms) {
   const host = $(which === "me" ? "me-stage" : "stage");
   const key = which === "me" ? "yo" : (S && S.rival) || "sheriff";
@@ -963,7 +1040,7 @@ function drawMe() {
   </g>`;
 }
 
-const hearts = (w, max) => Array.from({ length: max }, (_, i) => `<span class="chip${i < max - w ? "" : " lost"}"></span>`).join("");
+const hearts = (w, max) => Array.from({ length: max }, (_, i) => `<span class="bullet${i < max - w ? "" : " spent"}"></span>`).join("");
 
 function renderRival(revealed) {
   const o = S.opponent, rv = $("rival"), bd = $("backdrop");
