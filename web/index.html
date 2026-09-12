@@ -41,7 +41,7 @@
   .backdrop[hidden] { display: none !important; }
   .backdrop .halo { position: absolute; left: 50%; top: 50%; width: 260px; height: 260px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(200,128,28,.18) 0%, transparent 65%); animation: halo 3s ease-in-out infinite; }
   .backdrop.active .halo { animation-duration: 1.2s; background: radial-gradient(circle, rgba(216,32,58,.2) 0%, transparent 65%); }
-  .backdrop .stage { position: absolute; left: 50%; bottom: -140px; width: 240px; height: 480px; transform: translateX(-50%); cursor: pointer; transition: transform .35s ease-out; transform-origin: 50% 70%; }
+  .backdrop .stage { position: absolute; left: 50%; bottom: -128px; width: 230px; height: 460px; transform: translateX(-50%); cursor: pointer; transition: transform .35s ease-out; transform-origin: 50% 70%; }
   .backdrop.active .stage { transform: translateX(-50%) translateY(14px) scale(1.06); }
   /* gestos en reposo (los aplica el JS al azar) */
   .stage.g-tap .arm { animation: tap .9s ease-in-out 2; transform-origin: 0% 0%; }
@@ -55,7 +55,7 @@
   @keyframes shrug { 0%, 100% { transform: translateY(0) } 30% { transform: translateY(-5px) } 60% { transform: translateY(-4px) } }
   .stage.g-back .upper { animation: back .9s ease-out; transform-origin: 50% 100%; }
   @keyframes back { 0%, 100% { transform: rotate(0) } 30% { transform: rotate(2.5deg) translateY(-3px) } }
-  @media (max-width: 420px) { .far { height: 250px; } .backdrop .stage { width: 200px; height: 400px; bottom: -110px; } }
+  @media (max-width: 420px) { .far { height: 250px; } .backdrop .stage { width: 190px; height: 380px; bottom: -100px; } .me-fig { height: 94px; } }
   .portrait { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 6px 10px rgba(0,0,0,.7)); }
   .backdrop.dead .stage { filter: grayscale(1) brightness(.5); }
   .empty-seat { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); color: var(--ink-dim); font-size: 14px; text-align: center; z-index: 2; }
@@ -69,7 +69,7 @@
   .rival .name { font-family: "Rye", serif; font-size: 16px; color: var(--bone); text-shadow: 0 2px 0 #000; }
   .rival .status { font-size: 13px; color: var(--ink-dim); text-shadow: 0 1px 0 #000; }
   .rival .hearts { display: flex; gap: 4px; }
-  .cup { position: absolute; right: 16px; bottom: 6px; width: 120px; height: 60px; z-index: 5; }
+  .cup { position: absolute; right: 14px; bottom: 44px; width: 120px; height: 60px; z-index: 5; }
   .cup[hidden] { display: none !important; }
   .cup .dice-row { position: absolute; right: 0; bottom: 4px; display: flex; gap: 3px; opacity: 0; transform: translateX(10px); transition: opacity .3s .2s, transform .3s .2s; }
   .cup.up .dice-row { opacity: 1; transform: none; }
@@ -93,6 +93,21 @@
   .rim { height: 26px; margin-top: -4px; position: relative; z-index: 2; border-radius: 0 0 14px 14px; box-shadow: 0 8px 12px rgba(0,0,0,.6);
     background-image: repeating-linear-gradient(90deg, rgba(0,0,0,.15) 0 1px, transparent 1px 22px), linear-gradient(180deg, var(--wood-hi), var(--wood) 40%, var(--wood-2)); }
 
+  /* tú, de espaldas, en primer plano contra la luz */
+  .me-fig { position: absolute; left: 0; right: 0; bottom: -2px; width: 100%; height: 112px; z-index: 6; pointer-events: none; overflow: visible; }
+  .me-fig[hidden] { display: none !important; }
+  .me-fig * { transform-box: fill-box; }
+  .me-fig .torso { transform-origin: 50% 100%; animation: mebreathe 3.8s ease-in-out infinite; }
+  @keyframes mebreathe { 0%, 100% { transform: scaleY(1) } 50% { transform: scaleY(1.014) } }
+  .me-fig .me-arm { transform-box: view-box; transform-origin: 240px 108px; transform: rotate(0deg);
+    transition: transform .32s cubic-bezier(.3,1.4,.5,1); }
+  .me-fig.firing .me-arm { transform: rotate(-62deg); }
+  .me-fig.hit .torso { animation: meflinch .55s ease-out; }
+  @keyframes meflinch { 0% { transform: translate(0) rotate(0) } 25% { transform: translate(6px, 5px) rotate(2.5deg) } 100% { transform: translate(0) rotate(0) } }
+  .me-fig .mflash { opacity: 0; }
+  .me-fig.firing .mflash { animation: mfl .3s ease-out .3s; }
+  @keyframes mfl { 0% { opacity: 0; transform: scale(.4) } 35% { opacity: 1; transform: scale(1.2) } 100% { opacity: 0; transform: scale(1.6) } }
+  @media (prefers-reduced-motion: reduce) { .me-fig .torso, .me-fig .mflash { animation: none !important; } .me-fig .me-arm { transition: none; } }
   .turn-banner { position: relative; z-index: 3; text-align: center; font-family: "Rye", serif; font-size: 13px; color: var(--brass); min-height: 1.2em; text-shadow: 0 2px 0 #000; letter-spacing: .04em; }
 
   .score { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 4px 2px 0; }
@@ -229,7 +244,7 @@
   .cup .d .pip::after { width: 4px; height: 4px; }
   .cup .d.keep { box-shadow: 0 0 0 2px var(--brass), 1px 2px 0 rgba(0,0,0,.6); }
   /* provocar */
-  .poke { position: absolute; left: 12px; bottom: 10px; z-index: 6; pointer-events: auto; font-family: "Rye", serif; font-size: 11px; padding: 5px 9px; background: rgba(0,0,0,.45); color: var(--brass); border: 1px solid var(--brass-deep); border-radius: 3px; cursor: pointer; }
+  .poke { position: absolute; left: 12px; bottom: 10px; z-index: 7; pointer-events: auto; font-family: "Rye", serif; font-size: 11px; padding: 5px 9px; background: rgba(0,0,0,.45); color: var(--brass); border: 1px solid var(--brass-deep); border-radius: 3px; cursor: pointer; }
   .poke[hidden] { display: none !important; }
   .me-bubble { position: fixed; left: 50%; bottom: 16%; transform: translateX(-50%); z-index: 6; max-width: 280px; background: #1a1410; color: var(--bone); font-family: "Special Elite", monospace; font-size: 14px; padding: 6px 10px; border: 2px solid var(--brass); border-radius: 8px; box-shadow: 3px 3px 0 #000; pointer-events: none; animation: tauntIn 2s ease-out both; }
   .me-bubble[hidden] { display: none !important; }
@@ -343,6 +358,7 @@
         <div class="hearts" id="rv-hearts"></div>
       </section>
       <div class="cup" id="rv-cup" hidden><div class="dice-row" id="rv-dice"></div><div class="leather"></div></div>
+      <svg class="me-fig" id="me-fig" viewBox="0 0 300 110" hidden aria-hidden="true"></svg>
       <div class="taunt" id="taunt" hidden></div>
       <button class="poke" id="btn-poke" type="button" hidden>Provocar</button>
     </div>
@@ -1217,6 +1233,47 @@ function rig(key) {
   </g>`;
 }
 
+function drawMe() {
+  $("me-fig").setAttribute("preserveAspectRatio", "none");
+  $("me-fig").innerHTML = `
+  <defs>
+    <linearGradient id="mesil" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000"/><stop offset="100%" stop-color="#000"/>
+    </linearGradient>
+    <linearGradient id="merim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="rgba(255,224,164,.95)"/><stop offset="100%" stop-color="rgba(255,224,164,0)"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="86" cy="70" rx="120" ry="44" fill="rgba(255,214,140,.09)"/>
+  <g class="torso">
+    <!-- hombros, bajos, cruzando la mesa -->
+    <path d="M-10 110 L-10 96 Q60 80 150 78 L320 82 L320 110Z" fill="url(#mesil)"/>
+    <path d="M-10 96 Q60 80 150 78 L320 82" stroke="url(#merim)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- tu cabeza y sombrero, a un lado para no taparle -->
+    <path d="M52 86 Q44 58 86 56 Q128 58 120 86Z" fill="url(#mesil)"/>
+    <path d="M62 60 Q66 36 86 34 Q106 36 110 60Z" fill="url(#mesil)"/>
+    <path d="M18 58 Q86 26 154 58 Q86 74 18 58Z" fill="url(#mesil)"/>
+    <path d="M18 58 Q86 26 154 58" stroke="url(#merim)" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+    <path d="M62 56 Q66 36 86 34 Q106 36 110 56" stroke="rgba(255,224,164,.45)" stroke-width="2.2" fill="none"/>
+    <path d="M64 52 Q86 44 108 52" stroke="rgba(184,146,47,.4)" stroke-width="2.4" fill="none"/>
+  </g>
+  <!-- tu brazo con el revólver, sube al disparar -->
+  <g class="me-arm">
+    <path d="M236 110 Q250 92 270 84 L280 98 Q262 106 252 114Z" fill="url(#mesil)"/>
+    <path d="M268 82 Q282 76 290 82 Q292 92 282 96 L272 94Z" fill="#000"/>
+    <path d="M284 80 L310 72 L312 80 L294 86 L294 96 L284 96Z" fill="#2a2f36" stroke="rgba(255,224,164,.55)" stroke-width="1.4"/>
+    <circle cx="286" cy="86" r="5.5" fill="#3b4048" stroke="rgba(255,224,164,.4)" stroke-width="1.2"/>
+    <g class="mflash"><polygon points="313,74 334,62 325,74 344,76 324,81 338,94" fill="#ffd36b" stroke="#ff8c1a" stroke-width="1.2"/><circle cx="315" cy="75" r="5" fill="#fff3c4"/></g>
+  </g>`;
+}
+function moodMe(cls, ms) {
+  const el = $("me-fig");
+  ["firing", "hit"].forEach(c => el.classList.remove(c));
+  if (!cls) return;
+  void el.getBBox(); el.classList.add(cls);
+  if (ms) setTimeout(() => el.classList.remove(cls), ms);
+}
+
 function mood(cls, ms) {
   const rv = $("backdrop");
   ["firing", "hit", "won", "lost"].forEach(c => rv.classList.remove(c));
@@ -1229,7 +1286,8 @@ const hearts = (w, max) => Array.from({ length: max }, (_, i) => `<span class="c
 
 function renderRival(revealed) {
   const o = S.opponent, rv = $("rival"), bd = $("backdrop");
-  rv.hidden = false; bd.hidden = false; $("empty-seat").hidden = true; $("rv-cup").hidden = false; rv.classList.toggle("active", !S.my_turn && !S.game_over); bd.classList.toggle("active", !S.my_turn && !S.game_over);
+  rv.hidden = false; bd.hidden = false; $("empty-seat").hidden = true; $("rv-cup").hidden = false;
+  const meFig = $("me-fig"); if (!meFig.firstChild) drawMe(); meFig.removeAttribute("hidden"); rv.classList.toggle("active", !S.my_turn && !S.game_over); bd.classList.toggle("active", !S.my_turn && !S.game_over);
   $("rv-name").textContent = S.rival_name;
   const por = $("rv-portrait"); if (por.dataset.key !== S.rival) { por.innerHTML = rig(S.rival); por.dataset.key = S.rival; mood(null); }
   bd.classList.toggle("dead", S.game_over && S.victory);
@@ -1258,7 +1316,7 @@ function render() {
     renderRival(false);
     $("turn").textContent = S.game_over ? "" : S.my_turn ? "Tu turno" : `Turno de ${S.rival_name}`;
   } else {
-    $("rival").hidden = true; $("backdrop").hidden = true; $("turn").textContent = ""; $("empty-seat").hidden = false; $("rv-cup").hidden = true;
+    $("rival").hidden = true; $("backdrop").hidden = true; $("me-fig").setAttribute("hidden", ""); $("turn").textContent = ""; $("empty-seat").hidden = false; $("rv-cup").hidden = true;
     $("meta-left").textContent = `Nivel ${S.level}/8`;
     $("meta-right").textContent = `${S.hands_left} ${S.hands_left === 1 ? "mano" : "manos"}`;
     $("score").textContent = S.score;
@@ -1315,7 +1373,7 @@ async function playAiEvents(event) {
       const aiBang = ev.chamber === "LIVE"; if (aiBang) SFX.bang(); else SFX.click();
       await resolveGun(aiBang ? "bang" : "click");
       if (atMe) {
-        if (aiBang) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); shake(); splat(); log(`¡BANG! ${name} te da: una herida.`, "bang"); mood("won", 1800); }
+        if (aiBang) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); shake(); splat(); log(`¡BANG! ${name} te da: una herida.`, "bang"); mood("won", 1800); moodMe("hit", 1400); }
         else { log(`Click. ${name} falla: su mano vale cero esta ronda.`, "good"); mood("lost", 1800); }
         if (!reduced) await sleep(800); continue;
       }
@@ -1367,7 +1425,8 @@ const lock = i => guarded(async () => { SFX.click(); await api("lock", { index: 
 
 const fire = (target = "self") => guarded(async () => {
   if (S.mode === "duel" && target === "self" && S.cylinder.risk >= 0.34 && Math.random() < .6) { taunt("fireWarn"); if (!reduced) await sleep(700); }
-  if (target === "rival") { taunt("aimedAt"); if (!reduced) await sleep(600); }
+  if (S.mode === "duel") { moodMe("firing", 2200); if (!reduced) await sleep(520); }
+  if (target === "rival") { taunt("aimedAt"); if (!reduced) await sleep(500); }
   const cyl = $("cyl"); cyl.classList.remove("spinning"); void cyl.offsetWidth; cyl.classList.add("spinning");
   log(`Giras el tambor... riesgo ${Math.round(S.cylinder.risk * 100)}%`);
   const req = api("fire", { target });
@@ -1384,7 +1443,7 @@ const fire = (target = "self") => guarded(async () => {
     if (!reduced) await sleep(700);
     return event;
   }
-  if (event.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); shake(); splat(); log(msg, "bang"); if (S.mode === "duel") { mood("won", 2000); taunt("yourBang"); } }
+  if (event.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); shake(); splat(); log(msg, "bang"); if (S.mode === "duel") { mood("won", 2000); taunt("yourBang"); moodMe("hit", 1400); } }
   else if (event.shielded) { shake(); log(msg, "good"); }
   else { log(msg, event.chamber === "EMPTY" || event.chamber === "BLANK" ? "" : "good"); await animateRoll(); bannerHand(S.hand); }
   if (event.wounded && !reduced) await sleep(700);
