@@ -698,6 +698,7 @@ const DiceTable = (() => {
   const N = 5, GRAV = 3400, REST = 0.34, FRIC = 5.0, SPIN_FRIC = 5.4;
   let W = 0, H = 0, SZ = 56, R = 0, dpr = 1;
   let dice = [], rolling = false, resolveRoll = null, raf = 0, last = 0, lampX = 0, lampY = -120;
+  let hold = false; // los dados esperan quietos mientras traquetean
 
   function layout() {
     const rect = cv.getBoundingClientRect();
@@ -779,6 +780,7 @@ const DiceTable = (() => {
 
   // ---- física ----
   function step(dt) {
+    if (hold) return false; // los dados traquetean antes de salir
     let moving = false;
     for (const d of dice) {
       if (d.locked) { // se desliza a su sitio y se queda
@@ -857,14 +859,26 @@ const DiceTable = (() => {
     kick(); draw();
   }
 
-  function throwFree(list) {
+  async function throwFree(list) {
     if (!dice.length) make();
-    const free = [];
-    list.forEach((d, i) => {
+    const free = list.map((d, i) => (d.locked ? null : dice[i])).filter(Boolean);
+    if (!free.length) { sync(list); return; }
+
+    if (!reduced) { // traqueteo: los dados que hay en la mesa se sacuden antes de la tirada
+      const home = free.map(d => ({ d, x: d.x, y: d.y }));
+      hold = true; rolling = true; kick();
+      for (const off of [-3, 3, -2, 2]) {
+        home.forEach(k => { k.d.x = k.x + off; k.d.y = k.y - Math.abs(off); });
+        draw(); SFX.tick(); await sleep(55);
+      }
+      home.forEach(k => { k.d.x = k.x; k.d.y = k.y; });
+      hold = false;
+    }
+
+    list.forEach((d, i) => { // y ahora salen por arriba, girando
       const t = dice[i];
       t.locked = !!d.locked; t.loaded = !!d.loaded; t.value = d.value;
       if (t.locked) { t.shown = d.value; return; }
-      free.push(t);
       t.settled = false;
       t.x = W * (0.32 + Math.random() * 0.36);
       t.y = -SZ * (0.5 + Math.random() * 0.4);
@@ -875,7 +889,6 @@ const DiceTable = (() => {
       t.vrot = (Math.random() - 0.5) * 22;
       t.shown = 1 + Math.floor(Math.random() * 6);
     });
-    if (!free.length) { sync(list); return Promise.resolve(); }
     rolling = true; kick();
     return new Promise(res => {
       resolveRoll = res;
