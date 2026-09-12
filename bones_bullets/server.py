@@ -21,7 +21,16 @@ from .dice import FACES
 from .duel import Duel
 from .game import MAX_LEVEL, MAX_WOUNDS, STREAK_BONUS, GameState, Upgrade
 
-WEB_DIR = Path(__file__).resolve().parent.parent / "web"
+def _web_dir() -> Path:
+    """Carpeta con index.html. En el ejecutable empaquetado va dentro del propio
+    binario, que PyInstaller descomprime en sys._MEIPASS."""
+    bundled = getattr(sys, "_MEIPASS", None)
+    if bundled:
+        return Path(bundled) / "web"
+    return Path(__file__).resolve().parent.parent / "web"
+
+
+WEB_DIR = _web_dir()
 MAX_GAMES = 500
 
 UPGRADE_DESC: dict[Upgrade, str] = {

@@ -6,3 +6,8 @@ dist/
 build/
 .venv/
 venv/
+
+# ejecutables construidos con pyinstaller
+build/
+dist/
+*.spec

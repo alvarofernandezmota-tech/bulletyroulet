@@ -31,6 +31,7 @@ Solo stdlib (pytest únicamente para tests). Python 3.11+. Paquete `bones_bullet
 ## Estructura
 - `bones_bullets/dice.py` Die + helpers; `hands.py` evaluación/puntuación; `revolver.py` Cylinder; `game.py` GameState SIN I/O; `duel.py` Duel SIN I/O; `ai.py` rivales; `cli.py` y `cli_duel.py` interfaces; `__main__.py`.
 - `tests/` con pytest: `python -m pytest -q`.
+- `run_desktop.py` + `bones_bullets/desktop.py`: arranque de escritorio (elige puerto libre, sirve y abre el navegador). Es el punto de entrada del ejecutable que construye `.github/workflows/exe.yml` con PyInstaller (`.exe` en Windows y binario en Linux; el `.exe` solo puede construirse en Windows, PyInstaller no cruza compilación). `WEB_DIR` mira `sys._MEIPASS` para encontrar `web/index.html` dentro del binario.
 - `tools/simulate.py` bot que juega N partidas para calibrar el balance: `python tools/simulate.py 2000 0.34`.
 - Todo el RNG pasa por un `random.Random` inyectado, nunca `random` global.
 - Type hints y dataclasses. Sin dependencias.
