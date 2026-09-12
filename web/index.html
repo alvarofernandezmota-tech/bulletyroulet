@@ -179,6 +179,21 @@
   .overlay[hidden] { display: none !important; }
   .panel { background: #101418; box-shadow: inset 0 0 0 4px var(--steel), inset 0 0 0 6px var(--black); padding: 16px; max-width: 380px; width: 100%; display: flex; flex-direction: column; gap: 10px; }
   .panel h2 { font-size: 12px; color: var(--gold); margin: 0; text-shadow: 2px 2px 0 var(--black); }
+  /* pantalla final: cartel, figura y marcador */
+  .panel.end { align-items: center; text-align: center; }
+  .panel.end p { font-size: 8px; color: var(--ink-dim); line-height: 2; }
+  .end-plate { position: relative; background: var(--black); box-shadow: inset 0 0 0 3px var(--gold); padding: 14px 20px; }
+  .end-plate::before, .end-plate::after { content: ""; position: absolute; left: 5px; right: 5px; height: 4px;
+    background: repeating-linear-gradient(90deg, var(--gold) 0 4px, transparent 4px 12px); animation: bulbs .5s steps(2) infinite; }
+  .end-plate::before { top: 4px; } .end-plate::after { bottom: 4px; animation-delay: .25s; }
+  .panel.end h2 { font-size: clamp(14px, 5vw, 20px); }
+  .end-plate:has(h2.bad) { box-shadow: inset 0 0 0 3px var(--red); }
+  .end-plate:has(h2.bad)::before, .end-plate:has(h2.bad)::after { background-image: repeating-linear-gradient(90deg, var(--red) 0 4px, transparent 4px 12px); }
+  .end-fig { height: 110px; }
+  .end-fig svg { height: 100%; width: auto; }
+  .end-stats { border-collapse: collapse; font-size: 8px; }
+  .end-stats td { padding: 3px 10px; color: var(--ink-dim); }
+  .end-stats td + td { color: var(--gold); text-align: right; }
   .panel h2.bad { color: var(--red-hi); }
   .upgrade { text-align: left; font-family: inherit; font-size: 8px; line-height: 1.9; padding: 8px; background: var(--black); border: 0;
     box-shadow: inset 0 0 0 2px var(--steel); color: var(--ink); cursor: pointer; }
@@ -262,8 +277,17 @@
   .banner.epic .t { color: var(--red-hi); box-shadow: inset 0 0 0 3px var(--red); }
   .curtain { position: fixed; inset: 0; z-index: 60; background: var(--black); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; animation: curtain 1.5s steps(8) both; }
   .curtain[hidden] { display: none !important; }
+  .curtain .plate { position: relative; background: #0a0e12; box-shadow: inset 0 0 0 3px var(--gold); padding: 16px 22px; }
+  .curtain .plate::before, .curtain .plate::after { content: ""; position: absolute; left: 6px; right: 6px; height: 4px;
+    background: repeating-linear-gradient(90deg, var(--gold) 0 4px, transparent 4px 12px); animation: bulbs .5s steps(2) infinite; }
+  .curtain .plate::before { top: 5px; }
+  .curtain .plate::after { bottom: 5px; animation-delay: .25s; }
   .curtain .lvl { font-size: clamp(16px, 6vw, 26px); color: var(--gold); text-shadow: 3px 3px 0 var(--red-dk); }
   .curtain .sub { font-size: 9px; color: var(--ink-dim); }
+  .curtain .stars { display: flex; gap: 6px; }
+  .star { width: 12px; height: 12px; background: var(--gold-dk);
+    clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+  .star.on { background: var(--gold); }
   @keyframes curtain { 0% { opacity: 0 } 15%, 80% { opacity: 1 } 100% { opacity: 0 } }
 
   .showdown { position: fixed; inset: 0; z-index: 52; background: rgba(0,0,0,.92); display: flex; align-items: center; justify-content: center; padding: 12px; }
@@ -406,7 +430,7 @@
 <div class="me-bubble" id="me-bubble" hidden></div>
 <div class="showdown" id="showdown" hidden><div class="sd" role="dialog" aria-labelledby="sd-title"><h2 id="sd-title">Ronda</h2><div class="sd-duel" id="sd-duel" aria-hidden="true"></div><div id="sd-body"></div><div class="verdict" id="sd-verdict"></div><div class="hint">toca para seguir</div></div></div>
 <div class="banner" id="banner" hidden aria-live="polite"><span class="t" id="banner-t"></span><span class="m" id="banner-m"></span></div>
-<div class="curtain" id="curtain" hidden aria-hidden="true"><div class="lvl" id="curtain-lvl"></div><div class="sub" id="curtain-sub"></div></div>
+<div class="curtain" id="curtain" hidden aria-hidden="true"><div class="plate"><div class="lvl" id="curtain-lvl"></div></div><div class="sub" id="curtain-sub"></div><div class="stars" id="curtain-stars" aria-hidden="true"></div></div>
 
 <div class="overlay" id="ov-upgrade" hidden>
   <div class="panel" role="dialog" aria-labelledby="up-title">
@@ -416,8 +440,10 @@
   </div>
 </div>
 <div class="overlay" id="ov-end" hidden>
-  <div class="panel" role="dialog" aria-labelledby="end-title">
-    <h2 id="end-title">Fin</h2>
+  <div class="panel end" role="dialog" aria-labelledby="end-title">
+    <div class="end-plate"><h2 id="end-title">Fin</h2></div>
+    <div class="end-fig" id="end-fig" aria-hidden="true"></div>
+    <table class="end-stats mono" id="end-stats"></table>
     <p id="end-text" style="margin:0"></p>
     <button class="btn play" id="btn-again">Otra partida</button>
   </div>
@@ -675,6 +701,8 @@ async function resolveGun(result) {
 }
 async function curtain(title, sub) {
   if (reduced) return; const c = $("curtain"); $("curtain-lvl").textContent = title; $("curtain-sub").textContent = sub || "";
+  const done = Math.max(0, (S ? S.level : 1) - 1);   // una estrella por nivel limpiado
+  $("curtain-stars").innerHTML = Array.from({ length: 8 }, (_, i) => `<span class="star${i < done ? " on" : ""}"></span>`).join("");
   c.hidden = false; c.style.animation = "none"; void c.offsetWidth; c.style.animation = ""; await sleep(1500); c.hidden = true;
 }
 let S = null, token = null, busy = false, mode = "solo", rival = "sheriff";
@@ -982,7 +1010,11 @@ function rig(key, frame = "idle") {
   } else {
     s += R(10, 9, 12, 11, SKIN) + R(10, 9, 12, 1, "#f0c79a") + R(21, 9, 1, 11, SKIN_DK);
     s += R(9, 13, 1, 3, SKIN) + R(22, 13, 1, 3, SKIN); // orejas
-    if (blink) s += R(11, 14, 4, 1, "#000") + R(17, 14, 4, 1, "#000");
+    if (dead) { // ojos en cruz, como en los recreativos
+      s += R(11, 12, 1, 1, "#000") + R(12, 13, 1, 1, "#000") + R(13, 14, 1, 1, "#000") + R(13, 12, 1, 1, "#000") + R(12, 14, 1, 1, "#000") + R(11, 14, 1, 1, "#000");
+      s += R(17, 12, 1, 1, "#000") + R(18, 13, 1, 1, "#000") + R(19, 14, 1, 1, "#000") + R(19, 12, 1, 1, "#000") + R(18, 14, 1, 1, "#000") + R(17, 14, 1, 1, "#000");
+    }
+    else if (blink) s += R(11, 14, 4, 1, "#000") + R(17, 14, 4, 1, "#000");
     else if (ouch) s += R(11, 12, 4, 1, "#000") + R(17, 12, 4, 1, "#000") + R(11, 13, 4, 3, "#000") + R(17, 13, 4, 3, "#000");
     else s += R(11, 12, 4, 4, "#fff") + R(17, 12, 4, 4, "#fff") + R(12, 13, 2, 2, "#000") + R(18, 13, 2, 2, "#000");
     s += R(11, 11, 4, 1, "#000") + R(17, 11, 4, 1, "#000"); // cejas
@@ -1284,8 +1316,15 @@ function showUpgrades() {
 function endGame(win, text) {
   if (!$("ov-end").hidden) return;
   if (win) SFX.fanfare(); else SFX.lose();
-  $("end-title").textContent = win ? "Victoria" : "Game over"; $("end-title").className = win ? "" : "bad";
-  $("end-text").textContent = text + ` Semilla ${S.seed}.`; $("ov-end").hidden = false; $("btn-again").focus();
+  $("end-title").textContent = win ? "¡GANASTE!" : "GAME OVER"; $("end-title").className = win ? "" : "bad";
+  $("end-fig").innerHTML = rig("yo", win ? "smirk" : "dead");
+  const duel = S.mode === "duel";
+  const rows = duel
+    ? [["Rondas", S.round], ["Tus heridas", `${S.me.wounds}/${S.me.max_wounds}`], ["Heridas del rival", `${S.opponent.wounds}/${S.opponent.max_wounds}`]]
+    : [["Nivel", `${S.level}/8`], ["Objetivo", S.target], ["Heridas", `${S.wounds}/3`]];
+  rows.push(["Semilla", S.seed]);
+  $("end-stats").innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+  $("end-text").textContent = text; $("ov-end").hidden = false; $("btn-again").focus();
 }
 
 async function newGame(seed) {
