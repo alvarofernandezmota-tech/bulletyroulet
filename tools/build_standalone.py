@@ -54,9 +54,15 @@ def build() -> Path:
 
     salida = WEB / "standalone.html"
     salida.write_text(html, encoding="utf-8")
+    # misma página en docs/index.html: es lo que sirve GitHub Pages
+    docs = WEB.parent / "docs"
+    docs.mkdir(exist_ok=True)
+    (docs / "index.html").write_text(html, encoding="utf-8")
+    (docs / ".nojekyll").write_text("", encoding="utf-8")
     return salida
 
 
 if __name__ == "__main__":
     p = build()
     print(f"{p} ({p.stat().st_size // 1024} KB)")
+    print(f"{p.parent.parent / 'docs' / 'index.html'} (la misma página, para GitHub Pages)")
