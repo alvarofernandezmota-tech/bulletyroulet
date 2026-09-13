@@ -7,6 +7,7 @@ from enum import Enum
 
 from .dice import Die, new_hand, roll_all, unlock_all
 from .hands import BASE_MULT, UPGRADABLE_HANDS, HandType, score
+from .results import HandResult, TriggerResult
 from .revolver import Chamber, Cylinder
 
 # --- Constantes de balance ----------------------------------------------------
@@ -46,21 +47,6 @@ MULT_UPGRADES: dict[Upgrade, HandType] = dict(
         UPGRADABLE_HANDS,
     )
 )
-
-
-@dataclass
-class HandResult:
-    hand: HandType
-    total: int
-    mult: float
-    points: int
-
-
-@dataclass
-class TriggerResult:
-    chamber: Chamber
-    wounded: bool = False
-    shielded: bool = False
 
 
 
