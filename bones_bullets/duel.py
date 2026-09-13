@@ -8,6 +8,7 @@ from .config import DEFAULT_DUEL_CONFIG
 from .dice import Die, new_hand, roll_all, unlock_all
 from .hands import BASE_MULT, HandType, score
 from .results import HandResult, TriggerResult
+from .scoring import apply_streak_and_silver
 from .revolver import Chamber, Cylinder
 
 CYLINDER_SIZE = DEFAULT_DUEL_CONFIG.cylinder_size
@@ -71,10 +72,10 @@ class Duel:
 
     def hand_of(self, p: Player) -> HandResult:
         hand, total, mult, _ = score(p.dice, self.mults)
-        mult += p.streak * STREAK_BONUS
-        if p.silver_active:
-            mult *= SILVER_MULT
-        return HandResult(hand, total, mult, int(round(total * mult)))
+        mult, points = apply_streak_and_silver(
+            total, mult, p.streak, p.silver_active, STREAK_BONUS, SILVER_MULT
+        )
+        return HandResult(hand, total, mult, points)
 
     # --- Acciones del jugador en turno ----------------------------------------
     def toggle_lock(self, index: int) -> bool:
