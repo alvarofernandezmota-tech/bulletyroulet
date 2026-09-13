@@ -8,6 +8,7 @@ from enum import Enum
 from .dice import Die, new_hand, roll_all, unlock_all
 from .hands import BASE_MULT, UPGRADABLE_HANDS, HandType, score
 from .results import HandResult, TriggerResult
+from .scoring import apply_streak_and_silver
 from .revolver import Chamber, Cylinder
 
 # --- Constantes de balance ----------------------------------------------------
@@ -93,10 +94,10 @@ class GameState:
 
     def current_hand(self) -> HandResult:
         hand, total, mult, _ = score(self.dice, self.mults)
-        mult += self.streak * STREAK_BONUS
-        if self.silver_active:
-            mult *= SILVER_MULT
-        return HandResult(hand, total, mult, int(round(total * mult)))
+        mult, points = apply_streak_and_silver(
+            total, mult, self.streak, self.silver_active, STREAK_BONUS, SILVER_MULT
+        )
+        return HandResult(hand, total, mult, points)
 
     # --- Acciones ------------------------------------------------------------
     def toggle_lock(self, index: int) -> bool:
