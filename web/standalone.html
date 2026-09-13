@@ -1,0 +1,1891 @@
+<title>Bones & Bullets</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+<style>
+
+  :root {
+    --black: #000; --ink: #e8eef2; --ink-dim: #8a929c;
+    --steel: #6b6f75; --steel-hi: #a8adb4;
+    --bone: #e8e0c8; --bone-dim: #9a9480;
+    --red: #c02020; --red-dk: #6a1010; --red-hi: #f06060;
+    --amber: #e8a020; --gold: #f0c020; --gold-dk: #8a6010;
+    --green: #30b050; --green-dk: #14502c;
+    --felt: #14502c; --felt-dk: #0c3a1e;
+    --blue: #3050a0;
+    --brown: #8a5a30; --brown-dk: #3a2410;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--black); }
+  body {
+    margin: 0; min-height: 100vh; background: var(--black); color: var(--ink);
+    font-family: "Press Start 2P", monospace; font-size: 10px; line-height: 1.9;
+    padding-block: 10px 34px; padding-inline: 12px;
+    image-rendering: pixelated; -webkit-font-smoothing: none;
+  }
+  /* pantalla de tubo: líneas de escaneo y viñeta */
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 90;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.38) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0,0,0,.75) 100%);
+  }
+  canvas, img { image-rendering: pixelated; }
+
+  .table { max-width: 420px; margin: 0 auto; position: relative; z-index: 2; display: flex; flex-direction: column; gap: 8px; }
+  header { text-align: center; }
+  h1 { font-size: clamp(13px, 4.4vw, 19px); margin: 0; color: var(--gold); letter-spacing: 1px;
+    text-shadow: 3px 3px 0 var(--red-dk), 0 0 0 #000; }
+  header p { margin: 6px 0 0; font-size: 8px; color: var(--ink-dim); line-height: 1.8; }
+
+  .modes { display: flex; gap: 6px; justify-content: center; }
+  .modes button { font-family: inherit; font-size: 8px; padding: 7px 8px; border: 0;
+    background: var(--steel); color: var(--black); cursor: pointer;
+    box-shadow: inset -3px -3px 0 #4a4e54, inset 3px 3px 0 var(--steel-hi); }
+  .modes button[aria-pressed="true"] { background: var(--gold); box-shadow: inset -3px -3px 0 var(--gold-dk), inset 3px 3px 0 #ffe890; }
+  .modes button:focus-visible, .btn:focus-visible, .sr-dice button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  /* ---------- escena ---------- */
+  .scene { position: relative; }
+  .far { position: relative; height: 218px; overflow: hidden; background: #101418;
+    border: 4px solid var(--steel); box-shadow: inset 0 0 0 2px var(--black); }
+  .far::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 4px); }
+  .lamp { display: none; }
+  .saloon { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0;
+    object-fit: cover; object-position: 50% 100%; }
+  /* en solitario no hay rival: la escena se encoge y no queda un hueco negro */
+  .far:has(.empty-seat:not([hidden])) { height: 86px; }
+  .backdrop { position: absolute; inset: 0; z-index: 1; }
+  .backdrop[hidden] { display: none !important; }
+  .backdrop .halo { position: absolute; left: 74%; top: 46%; width: 96px; height: 96px; transform: translate(-50%, -50%);
+    background: var(--gold); opacity: .07; }
+  .backdrop.active .halo { background: var(--red); opacity: .16; }
+  .backdrop.me-side .halo { left: 26%; background: var(--blue); opacity: .1; }
+  .backdrop.me-side.active .halo { background: var(--red); opacity: .16; }
+  .backdrop .stage { position: absolute; left: 74%; bottom: 24px; width: 120px; height: 152px; transform: translateX(-50%); cursor: pointer; }
+  .backdrop.me-side .stage { left: 26%; }
+  .portrait { display: block; width: 100%; height: 100%; }
+  .backdrop.dead .stage { filter: grayscale(1) brightness(.45); }
+  .me-fig { display: none; }
+  .empty-seat { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); color: var(--ink-dim); font-size: 8px; text-align: center; z-index: 2; }
+  .empty-seat[hidden] { display: none !important; }
+  .empty-seat .hat { width: 42px; height: 14px; margin: 0 auto 6px; background: var(--brown-dk); position: relative; }
+  .empty-seat .hat::before { content: ""; position: absolute; left: 50%; top: -10px; width: 22px; height: 10px; transform: translateX(-50%); background: var(--brown-dk); }
+
+  .me-name { position: absolute; left: 8px; top: 6px; z-index: 4; font-size: 8px; color: var(--blue); }
+  .me-name[hidden] { display: none !important; }
+  .rival { position: absolute; left: 0; right: 0; top: 4px; z-index: 4; display: flex; justify-content: flex-end; gap: 8px; padding: 0 8px; pointer-events: none; }
+  .rival[hidden] { display: none !important; }
+  .rival > div:first-child { background: rgba(0,0,0,.75); padding: 3px 5px; }
+  .me-name { background: rgba(0,0,0,.75); padding: 3px 5px; }
+  .rival .name { font-size: 8px; color: var(--red-hi); white-space: nowrap; text-align: right; }
+  .rival .status { font-size: 7px; color: var(--ink-dim); white-space: nowrap; text-align: right; line-height: 2.2; }
+  .rival .hearts, .hearts { display: flex; gap: 4px; align-items: flex-end; padding-top: 5px; }
+  /* vidas: balas de píxeles, casquillo de latón y punta de plomo */
+  .bullet { width: 6px; height: 14px; background: var(--gold); position: relative;
+    box-shadow: inset -2px 0 0 var(--gold-dk), inset 2px 0 0 #ffe890; }
+  .bullet::before { content: ""; position: absolute; left: 1px; top: -4px; width: 4px; height: 4px;
+    background: var(--steel-hi); box-shadow: inset -1px 0 0 var(--steel); }
+  .bullet.spent { background: #2a2e33; box-shadow: inset -2px 0 0 #16181b, inset 2px 0 0 #3a3f45; }
+  .bullet.spent::before { background: #3a3f45; box-shadow: none; }
+  .chip { width: 10px; height: 10px; background: var(--red); box-shadow: inset -2px -2px 0 var(--red-dk), inset 2px 2px 0 var(--red-hi); }
+  .chip.lost { background: #2a2e33; box-shadow: inset -2px -2px 0 #16181b, inset 2px 2px 0 #3a3f45; }
+  .cup { position: absolute; right: 4px; bottom: 4px; width: 74px; height: 34px; z-index: 5; }
+  .cup[hidden] { display: none !important; }
+  .cup .dice-row { position: absolute; right: 0; bottom: 2px; display: flex; gap: 2px; opacity: 0; transition: opacity .2s .15s; }
+  .cup.up .dice-row { opacity: 1; }
+  .cup .d { width: 14px; height: 14px; background: var(--bone); display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr); padding: 2px; }
+  .cup .leather { position: absolute; right: 26px; bottom: 0; width: 22px; height: 28px; background: var(--brown);
+    box-shadow: inset -3px -3px 0 var(--brown-dk), inset 3px 3px 0 #b07a44; transition: transform .25s steps(3); }
+  .cup.up .leather { transform: translate(-26px, -20px); }
+  .pip { display: flex; align-items: center; justify-content: center; }
+  .pip::after { content: ""; width: 3px; height: 3px; background: var(--black); opacity: 0; }
+  .pip.on::after { opacity: 1; }
+  .sd .mini-dice .d .pip::after { width: 4px; height: 4px; }
+  .cup .d .pip::after { width: 3px; height: 3px; }
+
+  /* ---------- tapete ---------- */
+  .felt { position: relative; z-index: 2; padding: 10px 10px 12px; background: var(--felt);
+    border: 4px solid var(--steel); border-top: 0; box-shadow: inset 0 0 0 2px var(--black);
+    display: flex; flex-direction: column; gap: 8px; }
+  .felt::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+    background: repeating-conic-gradient(var(--felt-dk) 0 25%, transparent 0 50%) 0 0 / 4px 4px; }
+  .rim { display: none; }
+  .turn-banner { position: relative; z-index: 3; text-align: center; font-size: 8px; color: var(--gold); min-height: 1.4em; }
+
+  /* marcador */
+  .score { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .score .meta { display: flex; justify-content: space-between; width: 100%; font-size: 7px; color: var(--ink-dim); }
+  .score .hero { display: flex; align-items: baseline; gap: 8px; }
+  .score .big { font-size: clamp(22px, 8vw, 34px); color: var(--ink); text-shadow: 3px 3px 0 var(--black); }
+  .score .of { font-size: 8px; color: var(--ink-dim); }
+  .score .track { width: 100%; height: 6px; background: var(--black); box-shadow: inset 0 0 0 1px #2a2e33; }
+  .score .track[hidden] { display: none !important; }
+  .score .track > div { height: 100%; width: 0%; background: var(--gold); transition: width .3s steps(8); }
+  .mono { font-variant-numeric: tabular-nums; }
+
+  /* revólver y riesgo */
+  .center { position: relative; z-index: 3; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+  .table-gun { width: 92px; height: 50px; justify-self: center; }
+  .table-gun.to-rival { transform: scaleX(-1); }
+  .risk-tag { text-align: center; }
+  .risk-tag .label { font-size: 7px; color: var(--ink-dim); display: block; }
+  .risk { font-size: 20px; line-height: 1.4; }
+  .risk.low { color: var(--green); } .risk.mid { color: var(--amber); } .risk.high { color: var(--red-hi); }
+  .chamber-list { font-size: 7px; color: var(--ink-dim); }
+  .cyl { width: 22px; height: 22px; vertical-align: middle; }
+  .cyl.spinning { animation: spin .8s steps(8); }
+  @keyframes spin { from { transform: rotate(0) } to { transform: rotate(720deg) } }
+
+  .me-row { position: relative; z-index: 3; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .label { font-size: 7px; color: var(--ink-dim); }
+  .dice-table { position: relative; z-index: 3; }
+  #dice-canvas { display: block; width: 100%; height: auto; cursor: pointer; }
+  .sr-dice { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .sr-dice button:focus-visible { position: fixed; top: 6px; left: 6px; width: auto; height: auto; clip: auto; z-index: 95;
+    background: var(--gold); color: var(--black); padding: 6px; font-family: inherit; font-size: 8px; }
+  .hand { position: relative; z-index: 3; text-align: center; font-size: 9px; color: var(--ink-dim); }
+  .hand b { color: var(--gold); }
+  .tags { position: relative; z-index: 3; display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; min-height: 14px; }
+  .tag { font-size: 7px; padding: 3px 5px; background: var(--black); color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold-dk); }
+  .tag.silver { color: var(--steel-hi); box-shadow: inset 0 0 0 1px var(--steel); }
+  .tag.streak { color: var(--green); box-shadow: inset 0 0 0 1px var(--green-dk); }
+  .tag.shield { color: var(--amber); box-shadow: inset 0 0 0 1px var(--gold-dk); }
+
+  /* botones de arcade */
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 8px; position: relative; z-index: 3; }
+  .btn { font-family: inherit; font-size: 9px; line-height: 1.7; color: var(--black); padding: 11px 6px; border: 0; cursor: pointer; text-align: center; }
+  .btn:active:not(:disabled) { box-shadow: inset 3px 3px 0 rgba(0,0,0,.35) !important; transform: translate(1px, 1px); }
+  .btn:disabled { filter: grayscale(1) brightness(.45); cursor: default; }
+  .btn.play { background: var(--green); box-shadow: inset -4px -4px 0 var(--green-dk), inset 4px 4px 0 #70e090; order: 1; }
+  .btn.fire { background: var(--red); box-shadow: inset -4px -4px 0 var(--red-dk), inset 4px 4px 0 var(--red-hi); color: var(--ink); order: 2; }
+  .btn.aim { background: var(--steel); box-shadow: inset -4px -4px 0 #3a3e44, inset 4px 4px 0 var(--steel-hi); order: 3; grid-column: 1 / -1; }
+  .btn.aim[hidden] { display: none !important; }
+  .btn small { display: block; font-size: 7px; margin-top: 5px; opacity: .8; }
+
+  .log { min-height: 3.4em; margin-top: 8px; padding: 8px; background: var(--black); color: var(--green);
+    font-size: 8px; line-height: 1.9; box-shadow: inset 0 0 0 2px #1a1e22; }
+  .log.bang { color: var(--red-hi); } .log.good { color: var(--green); }
+
+  details { color: var(--ink-dim); font-size: 8px; margin-top: 6px; }
+  summary { cursor: pointer; color: var(--gold); font-size: 8px; }
+  details table { border-collapse: collapse; margin-top: 6px; } details td { padding: 2px 10px 2px 0; }
+  details ul { padding-left: 14px; margin: 6px 0; line-height: 2; }
+  .seed { display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; color: var(--ink-dim); font-size: 8px; margin-top: 8px; }
+  .seed input { width: 96px; background: var(--black); border: 0; box-shadow: inset 0 0 0 2px var(--steel); color: var(--ink); padding: 5px; font-family: inherit; font-size: 8px; }
+  .seed button { background: var(--steel); border: 0; box-shadow: inset -3px -3px 0 #4a4e54, inset 3px 3px 0 var(--steel-hi); color: var(--black); padding: 6px 8px; cursor: pointer; font-family: inherit; font-size: 7px; }
+
+  /* superposiciones */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.9); display: flex; align-items: center; justify-content: center; padding: 12px; z-index: 40; }
+  .overlay[hidden] { display: none !important; }
+  .panel { background: #101418; box-shadow: inset 0 0 0 4px var(--steel), inset 0 0 0 6px var(--black); padding: 16px; max-width: 380px; width: 100%; display: flex; flex-direction: column; gap: 10px; }
+  .panel h2 { font-size: 12px; color: var(--gold); margin: 0; text-shadow: 2px 2px 0 var(--black); }
+  /* pantalla final: cartel, figura y marcador */
+  .panel.end { align-items: center; text-align: center; }
+  .panel.end p { font-size: 8px; color: var(--ink-dim); line-height: 2; }
+  .end-plate { position: relative; background: var(--black); box-shadow: inset 0 0 0 3px var(--gold); padding: 14px 20px; }
+  .end-plate::before, .end-plate::after { content: ""; position: absolute; left: 5px; right: 5px; height: 4px;
+    background: repeating-linear-gradient(90deg, var(--gold) 0 4px, transparent 4px 12px); animation: bulbs .5s steps(2) infinite; }
+  .end-plate::before { top: 4px; } .end-plate::after { bottom: 4px; animation-delay: .25s; }
+  .panel.end h2 { font-size: clamp(14px, 5vw, 20px); }
+  .end-plate:has(h2.bad) { box-shadow: inset 0 0 0 3px var(--red); }
+  .end-plate:has(h2.bad)::before, .end-plate:has(h2.bad)::after { background-image: repeating-linear-gradient(90deg, var(--red) 0 4px, transparent 4px 12px); }
+  .end-fig { height: 110px; }
+  .end-fig svg { height: 100%; width: auto; }
+  .end-stats { border-collapse: collapse; font-size: 8px; }
+  .end-stats td { padding: 3px 10px; color: var(--ink-dim); }
+  .end-stats td + td { color: var(--gold); text-align: right; }
+  .panel h2.bad { color: var(--red-hi); }
+  .upgrade { text-align: left; font-family: inherit; font-size: 8px; line-height: 1.9; padding: 8px; background: var(--black); border: 0;
+    box-shadow: inset 0 0 0 2px var(--steel); color: var(--ink); cursor: pointer; }
+  .upgrade:hover, .upgrade:focus-visible { box-shadow: inset 0 0 0 2px var(--gold); outline: none; }
+  .upgrade b { display: block; color: var(--gold); margin-bottom: 4px; }
+  .bang-flash { position: fixed; inset: 0; background: var(--red); opacity: 0; pointer-events: none; z-index: 30; }
+  .bang-flash.on { animation: flash .3s steps(3); }
+  @keyframes flash { 0% { opacity: .9 } 100% { opacity: 0 } }
+  .sound { position: fixed; top: 8px; right: 8px; z-index: 95; font-family: inherit; font-size: 7px; padding: 6px;
+    background: var(--steel); border: 0; box-shadow: inset -3px -3px 0 #4a4e54, inset 3px 3px 0 var(--steel-hi); color: var(--black); cursor: pointer; }
+  .sound[aria-pressed="true"] { background: var(--green); box-shadow: inset -3px -3px 0 var(--green-dk), inset 3px 3px 0 #70e090; }
+
+  canvas#dust { display: none; }
+  .cell.bump { animation: bump .3s steps(4); }
+  @keyframes bump { 0% { transform: scale(1) } 40% { transform: scale(1.14) } 100% { transform: scale(1) } }
+  .cell.pulse .big { animation: pulse .4s steps(2) 2; }
+  @keyframes pulse { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.16) } }
+  .fly { position: fixed; z-index: 45; font-family: inherit; font-size: 16px; color: var(--gold); text-shadow: 2px 2px 0 var(--black);
+    pointer-events: none; transition: transform .5s steps(8), opacity .5s steps(4); }
+  body.shake { animation: shake .4s steps(4); }
+  @keyframes shake { 0%, 100% { transform: translate(0) } 25% { transform: translate(-4px, 3px) } 50% { transform: translate(4px, -3px) } 75% { transform: translate(-3px, 2px) } }
+  .splat { position: fixed; inset: 0; pointer-events: none; z-index: 32; opacity: 0; transition: opacity 2s steps(6) 1s;
+    background:
+      linear-gradient(var(--red), var(--red)) 4% 6% / 26px 26px no-repeat,
+      linear-gradient(var(--red), var(--red)) 92% 14% / 18px 18px no-repeat,
+      linear-gradient(var(--red), var(--red)) 10% 88% / 30px 22px no-repeat,
+      linear-gradient(var(--red), var(--red)) 88% 84% / 22px 26px no-repeat; }
+  .splat.on { opacity: .85; transition: opacity .05s; }
+
+  .spin-ov { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.92); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; }
+  .spin-ov[hidden] { display: none !important; }
+  .spin-ov svg, .spin-ov canvas { width: min(88vw, 320px); height: auto; }
+  .spin-ov .txt { font-size: 9px; color: var(--gold); }
+  .spin-ov.bang { background: rgba(120,0,0,.85); }
+  .gun .cylinder { transform-box: fill-box; transform-origin: 50% 50%; }
+  .gun.spin .cylinder { animation: cylspin 1s steps(12) both; }
+  @keyframes cylspin { from { transform: rotate(0) } to { transform: rotate(1080deg) } }
+  .gun .hammer, .gun .trigger, .gun .whole, .gun .flash, .gun .smoke, .gun .shell { transform-box: fill-box; }
+  .gun .hammer { transform-origin: 20% 80%; } .gun .trigger { transform-origin: 50% 0%; }
+  .gun.cock .hammer { animation: cock .4s steps(3) both; } .gun.cock .trigger { animation: squeeze .4s steps(3) both .1s; }
+  @keyframes cock { from { transform: rotate(0) } to { transform: rotate(-38deg) } }
+  @keyframes squeeze { from { transform: rotate(0) } to { transform: rotate(-22deg) } }
+  .gun .flash, .gun .smoke, .gun .shell, .fp .flash, .fp .smoke { opacity: 0; }
+  .gun.bang .hammer { animation: slam .08s steps(2) both; }
+  @keyframes slam { from { transform: rotate(-38deg) } to { transform: rotate(4deg) } }
+  .gun.bang .whole { animation: recoil .4s steps(4) both; transform-origin: 80% 90%; }
+  @keyframes recoil { 0% { transform: translate(0) } 20% { transform: translate(-8px, -4px) } 100% { transform: translate(0) } }
+  .gun.bang .flash { animation: gflash .3s steps(3) both; }
+  @keyframes gflash { 0% { opacity: 0 } 33% { opacity: 1 } 100% { opacity: 0 } }
+  .gun.bang .smoke { animation: gsmoke 1.2s steps(6) both .1s; }
+  @keyframes gsmoke { 0% { opacity: 0; transform: translate(0,0) } 25% { opacity: .9 } 100% { opacity: 0; transform: translate(24px, -48px) } }
+  .gun.bang .shell { animation: shell .6s steps(6) both .1s; }
+  @keyframes shell { 0% { opacity: 1; transform: translate(0,0) } 100% { opacity: 0; transform: translate(-32px, 72px) } }
+  .gun.click .hammer { animation: slam .08s steps(2) both; }
+  .fp { width: min(88vw, 300px); height: auto; }
+  .fp * { transform-box: fill-box; }
+  .fp .cyl-ring { transform-origin: 50% 50%; }
+  .fp.spin .cyl-ring { animation: cylspin 1s steps(12) both; }
+  .fp .hammer { transform-origin: 50% 100%; }
+  .fp.cock .hammer { animation: fpcock .4s steps(3) both; }
+  @keyframes fpcock { from { transform: translateY(0) } to { transform: translateY(-16px) } }
+  .fp.bang .flash { animation: gflash .35s steps(3) both; }
+  .fp.bang .smoke { animation: gsmoke 1.2s steps(6) both .1s; }
+  .fp.click .hammer { animation: fpcock .12s steps(2) reverse both; }
+
+  .banner { position: fixed; left: 0; right: 0; top: 32%; z-index: 55; text-align: center; pointer-events: none; }
+  .banner[hidden] { display: none !important; }
+  .banner .t { position: relative; display: inline-block; font-size: clamp(13px, 5vw, 22px); color: var(--gold); background: var(--black);
+    padding: 14px 18px; box-shadow: inset 0 0 0 3px var(--gold); animation: bannerIn 1.3s steps(6) both; }
+  /* bombillas de marquesina: dos filas de puntos que se alternan */
+  .banner .t::before, .banner .t::after { content: ""; position: absolute; left: 6px; right: 6px; height: 4px;
+    background: repeating-linear-gradient(90deg, var(--gold) 0 4px, transparent 4px 12px);
+    animation: bulbs .5s steps(2) infinite; }
+  .banner .t::before { top: 4px; }
+  .banner .t::after { bottom: 4px; background-position: 8px 0; animation-delay: .25s; }
+  @keyframes bulbs { 0% { opacity: 1 } 100% { opacity: .25 } }
+  .banner.epic .t::before, .banner.epic .t::after { background-image: repeating-linear-gradient(90deg, var(--red-hi) 0 4px, transparent 4px 12px); }
+  .banner .m { display: block; width: max-content; margin: 8px auto 0; padding: 5px 9px; font-size: 14px; color: var(--red-hi);
+    background: var(--black); box-shadow: inset 0 0 0 2px var(--red-dk); animation: pulse .4s steps(2) infinite alternate; }
+  @keyframes bannerIn { 0% { opacity: 0; transform: scale(.6) } 25%, 75% { opacity: 1; transform: scale(1) } 100% { opacity: 0 } }
+  .banner.epic .t { color: var(--red-hi); box-shadow: inset 0 0 0 3px var(--red); }
+  .curtain { position: fixed; inset: 0; z-index: 60; background: var(--black); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; animation: curtain 1.5s steps(8) both; }
+  .curtain[hidden] { display: none !important; }
+  .curtain .plate { position: relative; background: #0a0e12; box-shadow: inset 0 0 0 3px var(--gold); padding: 16px 22px; }
+  .curtain .plate::before, .curtain .plate::after { content: ""; position: absolute; left: 6px; right: 6px; height: 4px;
+    background: repeating-linear-gradient(90deg, var(--gold) 0 4px, transparent 4px 12px); animation: bulbs .5s steps(2) infinite; }
+  .curtain .plate::before { top: 5px; }
+  .curtain .plate::after { bottom: 5px; animation-delay: .25s; }
+  .curtain .lvl { font-size: clamp(16px, 6vw, 26px); color: var(--gold); text-shadow: 3px 3px 0 var(--red-dk); }
+  .curtain .sub { font-size: 9px; color: var(--ink-dim); }
+  .curtain .stars { display: flex; gap: 6px; }
+  .star { width: 12px; height: 12px; background: var(--gold-dk);
+    clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+  .star.on { background: var(--gold); }
+  @keyframes curtain { 0% { opacity: 0 } 15%, 80% { opacity: 1 } 100% { opacity: 0 } }
+
+  .showdown { position: fixed; inset: 0; z-index: 52; background: rgba(0,0,0,.92); display: flex; align-items: center; justify-content: center; padding: 12px; }
+  .showdown[hidden] { display: none !important; }
+  .sd { background: #101418; box-shadow: inset 0 0 0 4px var(--steel), inset 0 0 0 6px var(--black); padding: 14px; max-width: 380px; width: 100%; display: flex; flex-direction: column; gap: 8px; }
+  .sd h2 { font-size: 11px; color: var(--gold); margin: 0; text-align: center; }
+  /* los dos sprites cara a cara, el ganador iluminado */
+  .sd-duel { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 8px;
+    background: #0a0e12; box-shadow: inset 0 0 0 2px #1a1e22; padding: 8px 6px 0; }
+  .sd-duel .fighter { height: 104px; display: flex; align-items: flex-end; justify-content: center; }
+  .sd-duel .fighter.flip { transform: scaleX(-1); }
+  .sd-duel .fighter svg { height: 100%; width: auto; }
+  .sd-duel .fighter.winner { background: linear-gradient(var(--gold), var(--gold)) 50% 100% / 60% 2px no-repeat; }
+  .sd-duel .vs { font-size: 12px; color: var(--red-hi); padding-bottom: 34px; text-shadow: 2px 2px 0 #000; }
+  .sd .side { display: grid; grid-template-columns: 44px 1fr auto; gap: 6px 8px; align-items: center; padding: 7px; background: var(--black); box-shadow: inset 0 0 0 2px #1a1e22; }
+  .sd .side.win { box-shadow: inset 0 0 0 2px var(--gold); }
+  .sd .side.bang { box-shadow: inset 0 0 0 2px var(--red); }
+  .sd .who { font-size: 8px; color: var(--ink); }
+  .sd .mini-dice { display: flex; gap: 3px; grid-column: 1 / -1; }
+  .sd .mini-dice .d { width: 20px; height: 20px; background: var(--bone); display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr); padding: 2px; }
+  .sd .pts { font-size: 18px; color: var(--gold); }
+  .sd .desc { font-size: 7px; color: var(--ink-dim); line-height: 2; }
+  .sd .desc b { color: var(--ink); }
+  .sd .verdict { text-align: center; font-size: 9px; color: var(--ink); }
+  .sd .verdict.blood { color: var(--red-hi); }
+  .sd .hint { text-align: center; font-size: 7px; color: var(--ink-dim); }
+  .taunt { position: absolute; left: 50%; top: 34px; transform: translateX(-50%); z-index: 6; max-width: 230px;
+    background: var(--bone); color: var(--black); font-size: 7px; line-height: 2; padding: 6px 7px;
+    box-shadow: 3px 3px 0 var(--black); pointer-events: none; animation: tauntIn 2.3s steps(8) both; }
+  .taunt[hidden] { display: none !important; }
+  @keyframes tauntIn { 0% { opacity: 0 } 10%, 80% { opacity: 1 } 100% { opacity: 0 } }
+  .me-bubble { position: fixed; left: 50%; bottom: 16%; transform: translateX(-50%); z-index: 46; max-width: 230px;
+    background: var(--black); color: var(--gold); font-size: 7px; line-height: 2; padding: 6px 7px;
+    box-shadow: inset 0 0 0 2px var(--gold), 3px 3px 0 rgba(0,0,0,.6); pointer-events: none; animation: tauntIn 2s steps(8) both; }
+  .me-bubble[hidden] { display: none !important; }
+  .poke { position: absolute; left: 8px; bottom: 8px; z-index: 7; pointer-events: auto; font-family: inherit; font-size: 7px;
+    padding: 5px 6px; background: var(--black); color: var(--gold); border: 0; box-shadow: inset 0 0 0 2px var(--gold-dk); cursor: pointer; }
+  .poke[hidden] { display: none !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .banner .t::before, .banner .t::after, .cyl.spinning, .bang-flash.on, body.shake, .bump, .pulse .big, .banner .t, .curtain, .taunt, .me-bubble { animation: none !important; }
+    .fly, .score .track > div, .cup .leather { transition: none; }
+  }
+  @media (max-width: 420px) {
+    .far { height: 196px; } .backdrop .stage { width: 104px; height: 132px; bottom: 20px; }
+    .score .big { font-size: 24px; } .table-gun { width: 78px; height: 42px; }
+  }
+</style>
+
+<div class="table">
+  <header>
+    <h1>Bones &amp; Bullets</h1>
+    <p>Cinco dados. Un revólver. Relanzar cuesta apretar el gatillo.</p>
+  </header>
+  <nav class="modes" aria-label="Modo de juego">
+    <button type="button" id="mode-solo" aria-pressed="true">Solitario</button>
+    <button type="button" id="mode-sheriff" aria-pressed="false">Duelo · El Sheriff</button>
+  </nav>
+
+  <div class="scene">
+    <div class="far">
+      <canvas class="saloon" id="saloon" width="160" height="96" aria-hidden="true"></canvas>
+      <div class="lamp"></div>
+      <div class="backdrop me-side" id="me-backdrop" hidden aria-hidden="true"><div class="halo"></div><div class="stage" id="me-stage"></div></div>
+      <div class="me-name" id="me-name" hidden>Tú</div>
+      <div class="backdrop" id="backdrop" hidden aria-hidden="true"><div class="halo"></div><div class="stage" id="stage"></div></div>
+      <div class="empty-seat" id="empty-seat"><div class="hat"></div>silla vacía</div>
+      <section class="rival" id="rival" hidden aria-label="Rival">
+        <div><div class="name" id="rv-name">El Sheriff</div><div class="status" id="rv-status">esperando</div></div>
+        <div class="hearts" id="rv-hearts"></div>
+      </section>
+      <div class="cup" id="rv-cup" hidden><div class="dice-row" id="rv-dice"></div><div class="leather"></div></div>
+      <svg class="me-fig" id="me-fig" viewBox="0 0 300 110" hidden aria-hidden="true"></svg>
+      <div class="taunt" id="taunt" hidden></div>
+      <button class="poke" id="btn-poke" type="button" hidden>Provocar</button>
+    </div>
+
+    <div class="felt">
+      <div class="turn-banner" id="turn"></div>
+
+      <section class="score" aria-label="Marcador">
+        <div class="meta"><span id="meta-left">Nivel 1/8</span><span id="meta-right">3 manos</span></div>
+        <div class="cell hero"><span class="big mono" id="score">0</span><span class="of" id="sub-txt">de 69</span></div>
+        <div class="track" id="track"><div id="bar"></div></div>
+      </section>
+
+      <div class="center">
+        <svg class="table-gun" id="table-gun" viewBox="0 0 300 160" aria-hidden="true"></svg>
+        <div class="risk-tag">
+          <span class="label">Riesgo de bala</span>
+          <div class="risk mono" id="risk">17%</div>
+          <div class="chamber-list"><svg class="cyl" id="cyl" viewBox="0 0 100 100" aria-hidden="true"></svg> <span id="chambers"></span></div>
+        </div>
+      </div>
+
+      <div class="me-row">
+        <div class="hearts" id="hearts" aria-label="Vida"></div>
+        <div class="tags" id="tags"></div>
+      </div>
+      <section class="dice-table" aria-label="Dados">
+        <canvas id="dice-canvas"></canvas>
+        <div class="sr-dice" id="dice"></div>
+      </section>
+      <div class="hand" id="hand"></div>
+    </div>
+    <div class="rim"></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn play" id="btn-play">Jugar mano<small>suma y gasta una mano</small></button>
+    <button class="btn fire" id="btn-fire">Gatillo a ti<small id="fire-sub">relanza · riesgo 17%</small></button>
+    <button class="btn aim" id="btn-aim" hidden>Disparar al Sheriff<small>bala: él sangra · click: tu mano vale 0</small></button>
+  </div>
+  <div class="log" id="log">Toca un dado para bloquearlo. Los bloqueados no se relanzan.</div>
+
+  <details>
+    <summary>Reglas y multiplicadores</summary>
+    <ul>
+      <li>Cada mano suma <b>los cinco dados</b> (huesos) y multiplica según la combinación. Tres manos por nivel; llega al objetivo o pierdes.</li>
+      <li>El tambor tiene 6 recámaras y 1 bala. Cada apretón descarta una recámara al azar, así que el riesgo sube hasta que se recarga.</li>
+      <li>Bala: una herida, la mano vale cero y se gasta. Tres heridas y se acabó.</li>
+      <li>Racha: cada click seguro seguido suma +0,5 al multiplicador de esa mano.</li>
+      <li>En duelo puedes apuntar al rival: si sale bala, la herida es suya y sigues; si sale click, tu mano vale cero esta ronda.</li>
+      <li>Sangre fría: superar un nivel sin apretar el gatillo cura una herida.</li>
+    </ul>
+    <table id="mults" class="mono"></table>
+  </details>
+  <div class="seed">
+    <label for="seed">Semilla</label>
+    <input id="seed" class="mono" inputmode="numeric" placeholder="azar">
+    <button id="btn-new" type="button">Nueva partida</button>
+  </div>
+</div>
+
+<canvas id="dust" aria-hidden="true"></canvas>
+<button class="sound" id="btn-sound" type="button" aria-pressed="false">Sonido: off</button>
+<div class="bang-flash" id="flash"></div>
+<div class="splat" id="splat" aria-hidden="true"></div>
+<div class="spin-ov" id="spin-ov" hidden aria-hidden="true"><svg viewBox="0 0 300 160" id="gun" class="gun"></svg><svg viewBox="0 0 300 300" id="fp" class="fp" hidden></svg><div class="txt" id="spin-txt">GIRANDO EL TAMBOR</div></div>
+<div class="me-bubble" id="me-bubble" hidden></div>
+<div class="showdown" id="showdown" hidden><div class="sd" role="dialog" aria-labelledby="sd-title"><h2 id="sd-title">Ronda</h2><div class="sd-duel" id="sd-duel" aria-hidden="true"></div><div id="sd-body"></div><div class="verdict" id="sd-verdict"></div><div class="hint">toca para seguir</div></div></div>
+<div class="banner" id="banner" hidden aria-live="polite"><span class="t" id="banner-t"></span><span class="m" id="banner-m"></span></div>
+<div class="curtain" id="curtain" hidden aria-hidden="true"><div class="plate"><div class="lvl" id="curtain-lvl"></div></div><div class="sub" id="curtain-sub"></div><div class="stars" id="curtain-stars" aria-hidden="true"></div></div>
+
+<div class="overlay" id="ov-upgrade" hidden>
+  <div class="panel" role="dialog" aria-labelledby="up-title">
+    <h2 id="up-title">Nivel superado</h2>
+    <p id="up-sub" style="margin:0;color:var(--ink-dim)">Elige una mejora.</p>
+    <div id="up-list" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+<div class="overlay" id="ov-end" hidden>
+  <div class="panel end" role="dialog" aria-labelledby="end-title">
+    <div class="end-plate"><h2 id="end-title">Fin</h2></div>
+    <div class="end-fig" id="end-fig" aria-hidden="true"></div>
+    <table class="end-stats mono" id="end-stats"></table>
+    <p id="end-text" style="margin:0"></p>
+    <button class="btn play" id="btn-again">Otra partida</button>
+  </div>
+</div>
+
+<script>
+// Motor del juego en JavaScript para la versión de un solo archivo (sin servidor).
+//
+// Es un port fiel de bones_bullets/{dice,hands,revolver,game,duel,ai}.py y de
+// serialize()/apply_action() de server.py: devuelve exactamente los mismos
+// objetos de estado, así que la interfaz de web/index.html no cambia nada.
+// Si tocas las reglas en Python, hay que tocarlas aquí igual.
+(function (global) {
+  "use strict";
+
+  // --- azar reproducible (no coincide con el random de Python, pero una semilla
+  //     siempre da la misma partida dentro de esta versión) -------------------
+  function RNG(seed) {
+    this.s = (seed >>> 0) || 1;
+  }
+  RNG.prototype.next = function () {
+    this.s = (this.s + 0x6D2B79F5) >>> 0;
+    let t = this.s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  RNG.prototype.randrange = function (n) { return Math.floor(this.next() * n); };
+  RNG.prototype.choice = function (list) { return list[this.randrange(list.length)]; };
+  RNG.prototype.shuffle = function (list) {
+    for (let i = list.length - 1; i > 0; i--) { const j = this.randrange(i + 1); [list[i], list[j]] = [list[j], list[i]]; }
+  };
+  RNG.prototype.sample = function (list, k) { const c = list.slice(); this.shuffle(c); return c.slice(0, k); };
+
+  // --- constantes de balance (game.py) --------------------------------------
+  const FACES = [1, 2, 3, 4, 5, 6];
+  const MAX_LEVEL = 8, HANDS_PER_LEVEL = 3, MAX_WOUNDS = 3;
+  const CYLINDER_SIZE = 6, LIVE_ROUNDS = 1, SILVER_MULT = 3.0;
+  const UPGRADE_CHOICES = 3, STREAK_BONUS = 0.5;
+  const LOADED_FACES = [3, 4, 5, 6, 6, 6];
+  const levelTarget = n => 40 + 25 * n + 4 * n * n;
+
+  const HIGH = "carta alta", PAIR = "pareja", TWO_PAIR = "dobles parejas", THREE = "trío",
+        STRAIGHT = "escalera", FULL = "full", FOUR = "póker", FIVE = "repóker";
+  const BASE_MULT = { [HIGH]: 1, [PAIR]: 1.5, [TWO_PAIR]: 2, [THREE]: 3, [STRAIGHT]: 5, [FULL]: 6, [FOUR]: 8, [FIVE]: 12 };
+
+  // Python redondea al par en los empates (round(16.5) == 16) y JS no: sin esto
+  // las manos con .5 puntúan uno de más respecto a la versión de Python.
+  function pyRound(x) {
+    const piso = Math.floor(x), resto = x - piso;
+    if (Math.abs(resto - 0.5) > 1e-9) return Math.round(x);
+    return piso % 2 === 0 ? piso : piso + 1;
+  }
+
+  function evaluate(values) {
+    const v = values.slice().sort((a, b) => a - b);
+    const c = {};
+    v.forEach(x => { c[x] = (c[x] || 0) + 1; });
+    const counts = Object.values(c).sort((a, b) => b - a);
+    if (counts[0] === 5) return FIVE;
+    if (counts[0] === 4) return FOUR;
+    if (counts[0] === 3 && counts[1] === 2) return FULL;
+    if (v.length === 5 && counts.length === 5 && v[4] - v[0] === 4) return STRAIGHT;
+    if (counts[0] === 3) return THREE;
+    if (counts[0] === 2 && counts[1] === 2) return TWO_PAIR;
+    if (counts[0] === 2) return PAIR;
+    return HIGH;
+  }
+  function scoreOf(values, mults) {
+    const hand = evaluate(values);
+    const total = values.reduce((a, b) => a + b, 0);
+    const mult = (mults || BASE_MULT)[hand];
+    return { hand, total, mult, points: pyRound(total * mult) };
+  }
+  // la mano que se muestra: multiplicador con racha y plata aplicadas
+  function handWith(values, mults, streak, silver) {
+    const s = scoreOf(values, mults);
+    let mult = s.mult + streak * STREAK_BONUS;
+    if (silver) mult *= SILVER_MULT;
+    return { hand: s.hand, total: s.total, mult, points: pyRound(s.total * mult) };
+  }
+
+  // --- dados ----------------------------------------------------------------
+  const newDie = () => ({ value: 1, locked: false, faces: FACES.slice() });
+  function newHand(rng) { return Array.from({ length: 5 }, () => { const d = newDie(); d.value = rng.choice(d.faces); return d; }); }
+  function rollAll(dice, rng) { dice.forEach(d => { if (!d.locked) d.value = rng.choice(d.faces); }); }
+  const unlockAll = dice => dice.forEach(d => { d.locked = false; });
+  const isLoaded = d => d.faces.join() === LOADED_FACES.join();
+
+  // --- revólver (revolver.py) ----------------------------------------------
+  function Cylinder(size, live) {
+    this.size = size; this.live = live; this.blanks = 0; this.silver = 0; this.bounce = 0; this.chambers = [];
+  }
+  Cylinder.prototype.reload = function (rng) {
+    const c = [];
+    for (let i = 0; i < this.live; i++) c.push("LIVE");
+    for (let i = 0; i < this.blanks; i++) c.push("BLANK");
+    for (let i = 0; i < this.silver; i++) c.push("SILVER");
+    for (let i = 0; i < this.bounce; i++) c.push("BOUNCE");
+    while (c.length < this.size) c.push("EMPTY");
+    rng.shuffle(c); this.chambers = c;
+  };
+  Cylinder.prototype.pullTrigger = function (rng) {
+    if (!this.chambers.length) this.reload(rng);
+    const chamber = this.chambers.splice(rng.randrange(this.chambers.length), 1)[0];
+    if (chamber === "LIVE" || !this.chambers.length) this.reload(rng);
+    return chamber;
+  };
+  Cylinder.prototype.known = function () {
+    const n = k => this.chambers.filter(c => c === k).length;
+    return { remaining: this.chambers.length, live: n("LIVE"), blank: n("BLANK"), silver: n("SILVER"), bounce: n("BOUNCE") };
+  };
+  Cylinder.prototype.risk = function () { return this.chambers.length ? this.chambers.filter(c => c === "LIVE").length / this.chambers.length : 0; };
+
+  // --- mejoras (game.py) ----------------------------------------------------
+  const UPGRADES = {
+    MULT_PAIR: "+1 mult. pareja", MULT_TWO_PAIR: "+1 mult. dobles parejas", MULT_THREE: "+1 mult. trío",
+    MULT_STRAIGHT: "+1 mult. escalera", MULT_FULL: "+1 mult. full",
+    ADD_BLANK: "Fogueo: +1 recámara inofensiva en el tambor",
+    ADD_SILVER: "Plata: +1 recámara que triplica la mano",
+    ADD_BOUNCE: "Rebote: +1 recámara que relanza dos veces y se queda con lo mejor",
+    LOADED_DIE: "Dado cargado: un dado pasa a tener caras 3-4-5-6-6-6",
+    SHIELD: "Chaleco: la primera bala de cada nivel no hiere",
+    EXTRA_HAND: "Mano extra: +1 mano por nivel",
+    HEAL: "Curar 1 herida",
+  };
+  const MULT_UPGRADES = { MULT_PAIR: PAIR, MULT_TWO_PAIR: TWO_PAIR, MULT_THREE: THREE, MULT_STRAIGHT: STRAIGHT, MULT_FULL: FULL };
+  const UPGRADE_DESC = {
+    ADD_BLANK: "Una recámara más en el tambor que nunca hiere.",
+    ADD_SILVER: "Una recámara que triplica la mano en la que sale.",
+    ADD_BOUNCE: "Una recámara que relanza dos veces y se queda con lo mejor.",
+    LOADED_DIE: "Un dado pasa a tener caras 3-4-5-6-6-6.",
+    SHIELD: "La primera bala de cada nivel no hiere.",
+    EXTRA_HAND: "Una mano más en cada nivel.",
+    HEAL: "Recuperas un corazón.",
+  };
+  function upgradeInfo(id) {
+    const name = UPGRADES[id].split(":")[0];
+    return { id, name, desc: UPGRADE_DESC[id] || `El multiplicador de ${name.slice(8)} sube en 1.` };
+  }
+
+  const fmt = x => (Number.isInteger(x) ? String(x) : String(Math.round(x * 1000) / 1000));
+
+  // --- partida en solitario (game.py) --------------------------------------
+  function Game(rng) {
+    this.rng = rng; this.level = 1; this.score = 0;
+    this.maxHands = HANDS_PER_LEVEL; this.handsLeft = HANDS_PER_LEVEL; this.wounds = 0;
+    this.dice = newHand(rng);
+    this.cylinder = new Cylinder(CYLINDER_SIZE, LIVE_ROUNDS); this.cylinder.reload(rng);
+    this.mults = Object.assign({}, BASE_MULT);
+    this.silver = false; this.streak = 0; this.shieldMax = 0; this.shield = 0;
+    this.pulled = false; this.pending = []; this.message = "";
+  }
+  Game.prototype.target = function () { return levelTarget(this.level); };
+  Game.prototype.cleared = function () { return this.score >= this.target(); };
+  Game.prototype.gameOver = function () { return this.wounds >= MAX_WOUNDS || (this.handsLeft <= 0 && this.score < this.target()); };
+  Game.prototype.hand = function () { return handWith(this.dice.map(d => d.value), this.mults, this.streak, this.silver); };
+  Game.prototype.toggleLock = function (i) { this.dice[i].locked = !this.dice[i].locked; return this.dice[i].locked; };
+  Game.prototype.resetHand = function () { this.silver = false; this.streak = 0; unlockAll(this.dice); rollAll(this.dice, this.rng); };
+  Game.prototype.pullTrigger = function () {
+    this.pulled = true;
+    const chamber = this.cylinder.pullTrigger(this.rng);
+    if (chamber === "LIVE") {
+      if (this.shield > 0) {
+        this.shield -= 1; rollAll(this.dice, this.rng);
+        this.message = "¡BANG! ...el chaleco aguanta. Sin herida. Relanzas los dados libres.";
+        return { chamber, wounded: false, shielded: true };
+      }
+      this.wounds += 1; this.handsLeft -= 1; this.resetHand();
+      this.message = "¡BANG! Herida. La mano se pierde y el tambor se recarga.";
+      return { chamber, wounded: true, shielded: false };
+    }
+    this.streak += 1;
+    if (chamber === "SILVER") this.silver = true;
+    if (chamber === "BOUNCE") {
+      rollAll(this.dice, this.rng);
+      const first = this.hand().points;
+      const snapshot = this.dice.map(d => d.value);
+      rollAll(this.dice, this.rng);
+      if (this.hand().points < first) this.dice.forEach((d, i) => { d.value = snapshot[i]; });
+    } else rollAll(this.dice, this.rng);
+    const texts = {
+      EMPTY: "Click. Relanzas los dados libres.",
+      BLANK: "Fogueo. Relanzas los dados libres.",
+      SILVER: `¡Plata! Esta mano vale x${fmt(SILVER_MULT)}. Relanzas los dados libres.`,
+      BOUNCE: "¡Rebote! Dos tiradas y te quedas con la mejor.",
+    };
+    this.message = texts[chamber] + ` Racha ${this.streak}: +${fmt(this.streak * STREAK_BONUS)} al multiplicador.`;
+    return { chamber, wounded: false, shielded: false };
+  };
+  Game.prototype.playHand = function () {
+    const r = this.hand();
+    this.score += r.points; this.handsLeft -= 1; this.resetHand();
+    this.message = `${r.hand}: ${r.total} × ${fmt(r.mult)} = ${r.points}`;
+    if (this.cleared()) {
+      if (!this.pulled && this.wounds > 0) { this.wounds -= 1; this.message += " Sangre fría: curas 1 herida."; }
+      this.offerUpgrades();
+    }
+    return r;
+  };
+  Game.prototype.offerUpgrades = function () {
+    let pool = Object.keys(UPGRADES);
+    if (this.wounds === 0) pool = pool.filter(u => u !== "HEAL");
+    if (this.shieldMax > 0) pool = pool.filter(u => u !== "SHIELD");
+    if (this.dice.every(isLoaded)) pool = pool.filter(u => u !== "LOADED_DIE");
+    this.pending = this.rng.sample(pool, Math.min(UPGRADE_CHOICES, pool.length));
+    return this.pending;
+  };
+  Game.prototype.applyUpgrade = function (u) {
+    if (MULT_UPGRADES[u]) this.mults[MULT_UPGRADES[u]] += 1;
+    else if (u === "ADD_BLANK") this.cylinder.blanks += 1;
+    else if (u === "ADD_SILVER") this.cylinder.silver += 1;
+    else if (u === "ADD_BOUNCE") this.cylinder.bounce += 1;
+    else if (u === "LOADED_DIE") { const d = this.dice.find(x => !isLoaded(x)); if (d) d.faces = LOADED_FACES.slice(); }
+    else if (u === "SHIELD") this.shieldMax += 1;
+    else if (u === "EXTRA_HAND") this.maxHands += 1;
+    else if (u === "HEAL") this.wounds = Math.max(0, this.wounds - 1);
+    this.pending = [];
+  };
+  Game.prototype.nextLevel = function () {
+    this.level += 1; this.score = 0; this.handsLeft = this.maxHands; this.shield = this.shieldMax;
+    this.pulled = false; this.pending = [];
+    this.cylinder.reload(this.rng); this.resetHand();
+  };
+
+  // --- duelo (duel.py) ------------------------------------------------------
+  function Player(name, isAI, maxWounds) {
+    this.name = name; this.isAI = !!isAI; this.wounds = 0; this.maxWounds = maxWounds || MAX_WOUNDS;
+    this.dice = []; this.streak = 0; this.silver = false; this.played = null; this.banged = false; this.roundsWon = 0;
+  }
+  Player.prototype.alive = function () { return this.wounds < this.maxWounds; };
+  const who = (p, third, second) => (p.name === "Tú" ? second.charAt(0).toUpperCase() + second.slice(1) : `${p.name} ${third}`);
+
+  function Duel(rng, players, cylinder) {
+    this.rng = rng; this.players = players; this.cylinder = cylinder;
+    this.mults = Object.assign({}, BASE_MULT);
+    this.round = 1; this.turn = 0; this.message = ""; this.lastRound = null;
+    this.players.forEach(p => { if (!p.dice.length) p.dice = newHand(rng); });
+    if (!this.cylinder.chambers.length) this.cylinder.reload(rng);
+  }
+  Duel.prototype.current = function () { return this.players[this.turn]; };
+  Duel.prototype.other = function (p) { return this.players.find(q => q !== p); };
+  Duel.prototype.winner = function () { const a = this.players.filter(p => p.alive()); return a.length === 1 ? a[0] : null; };
+  Duel.prototype.gameOver = function () { return this.winner() !== null; };
+  Duel.prototype.handOf = function (p) { return handWith(p.dice.map(d => d.value), this.mults, p.streak, p.silver); };
+  Duel.prototype.toggleLock = function (i) { const d = this.current().dice; d[i].locked = !d[i].locked; return d[i].locked; };
+
+  Duel.prototype.pullTrigger = function (target) {
+    const p = this.current();
+    if (target === "rival") return this.shootRival();
+    const chamber = this.cylinder.pullTrigger(this.rng);
+    if (chamber === "LIVE") {
+      p.wounds += 1; p.banged = true;
+      p.played = { hand: HIGH, total: 0, mult: 0, points: 0 };
+      const verb = p.name === "Tú" ? "pierdes" : "pierde";
+      this.message = `¡BANG! ${who(p, "recibe", "recibes")} una herida y ${verb} la mano.`;
+      this.endTurn();
+      return { chamber, wounded: true };
+    }
+    p.streak += 1;
+    if (chamber === "SILVER") p.silver = true;
+    rollAll(p.dice, this.rng);
+    this.message = `${p.name === "Tú" ? "Click" : p.name + ": click"}. Racha ${p.streak}.`;
+    return { chamber, wounded: false };
+  };
+  Duel.prototype.shootRival = function () {
+    const p = this.current(), other = this.other(p);
+    const chamber = this.cylinder.pullTrigger(this.rng);
+    if (chamber === "LIVE") {
+      other.wounds += 1;
+      this.message = `¡BANG! ${who(other, "recibe", "recibes")} la bala: una herida.`;
+      if (!other.alive()) this.message += ` ${who(p, "gana", "ganas")} el duelo.`;
+      return { chamber, wounded: true };
+    }
+    const head = p.name === "Tú" ? "Click" : p.name + ": click";
+    this.message = `${head}. El disparo falla: ${p.name === "Tú" ? "tu" : "su"} mano vale cero esta ronda.`;
+    p.played = { hand: HIGH, total: 0, mult: 0, points: 0 };
+    this.endTurn();
+    return { chamber, wounded: false };
+  };
+  Duel.prototype.playHand = function () {
+    const p = this.current(), r = this.handOf(p);
+    p.played = r;
+    this.message = `${who(p, "juega", "juegas")} ${r.hand}: ${r.total} × ${fmt(r.mult)} = ${r.points}.`;
+    this.endTurn();
+    return r;
+  };
+  Duel.prototype.endTurn = function () {
+    const p = this.current();
+    p.streak = 0; p.silver = false; unlockAll(p.dice);
+    if (this.players.every(q => q.played)) this.resolveRound();
+    else this.turn = (this.turn + 1) % this.players.length;
+  };
+  Duel.prototype.resolveRound = function () {
+    const [a, b] = this.players, pa = a.played.points, pb = b.played.points;
+    let loser = null, summary;
+    if (pa === pb) summary = `Ronda ${this.round}: empate a ${pa}. Nadie sangra.`;
+    else {
+      const winner = pa > pb ? a : b; loser = pa > pb ? b : a;
+      winner.roundsWon += 1;
+      summary = `Ronda ${this.round}: ${who(winner, "gana", "ganas")} ${Math.max(pa, pb)} a ${Math.min(pa, pb)}.`;
+      if (loser.banged) summary += ` ${who(loser, "ya sangró", "ya sangraste")} por la bala.`;
+      else { loser.wounds += 1; summary += ` ${who(loser, "recibe", "recibes")} una herida.`; }
+    }
+    this.lastRound = {
+      round: this.round, points: [pa, pb], loser: loser ? loser.name : null,
+      hands: this.players.map(p => ({ hand: p.played.hand, total: p.played.total, mult: p.played.mult,
+                                      points: p.played.points, dice: p.dice.map(d => d.value), banged: p.banged })),
+    };
+    this.message += " " + summary;
+    if (this.gameOver()) { this.message += ` ${who(this.winner(), "gana", "ganas")} el duelo.`; return; }
+    this.round += 1;
+    this.turn = loser ? this.players.indexOf(loser) : (this.turn + 1) % 2;
+    this.players.forEach(p => { p.played = null; p.banged = false; rollAll(p.dice, this.rng); });
+  };
+
+  // --- rivales (ai.py) ------------------------------------------------------
+  const SAMPLES = 32;
+  const PERSONALITIES = {
+    cauto: { key: "cauto", name: "El Cauto", maxRisk: 0.20, greed: 0.9, taunt: "Prefiero llegar vivo a casa.", lives: 3, liveRounds: 1, smart: false },
+    tahur: { key: "tahur", name: "El Tahúr", maxRisk: 0.34, greed: 1.1, taunt: "Las cartas no mienten. Los dados tampoco.", lives: 3, liveRounds: 1, smart: false },
+    loco: { key: "loco", name: "El Loco", maxRisk: 0.50, greed: 1.4, taunt: "¿Solo una bala? Qué aburrido.", lives: 3, liveRounds: 1, smart: false },
+    sheriff: { key: "sheriff", name: "El Sheriff", maxRisk: 0.67, greed: 1.0, taunt: "Tres balas. Una por cada vez que me mentiste.", lives: 4, liveRounds: 3, smart: true },
+  };
+  const DEFAULT_RIVAL = "sheriff";
+
+  const pointsOf = (values, mults, streak, silver) => {
+    const s = scoreOf(values, mults);
+    let mult = s.mult + streak * STREAK_BONUS;
+    if (silver) mult *= SILVER_MULT;
+    return s.total * mult;
+  };
+  const winProb = (points, opp) => {
+    if (opp !== null && opp !== undefined) return points > opp ? 1 : points === opp ? 0.5 : 0;
+    return 1 / (1 + Math.exp(-(points - 52) / 14));
+  };
+  function expectedWin(values, keep, faces, mults, streak, silver, opp, rng) {
+    const free = keep.map((k, i) => (k ? -1 : i)).filter(i => i >= 0);
+    let total = 0;
+    for (let s = 0; s < SAMPLES; s++) {
+      const vals = values.slice();
+      free.forEach(i => { vals[i] = rng.choice(faces[i]); });
+      total += winProb(pointsOf(vals, mults, streak, silver), opp);
+    }
+    return total / SAMPLES;
+  }
+  function planSmart(duel, me, rng) {
+    const other = duel.other(me);
+    const opp = other.played ? other.played.points : null;
+    const values = me.dice.map(d => d.value), faces = me.dice.map(d => d.faces);
+    const wNow = winProb(pointsOf(values, duel.mults, me.streak, me.silver), opp);
+    let bestKeep = [true, true, true, true, true], bestW = -1;
+    for (let mask = 0; mask < 31; mask++) { // 31: todas menos "guardar los cinco"
+      const keep = [0, 1, 2, 3, 4].map(i => !!(mask & (1 << i)));
+      const w = expectedWin(values, keep, faces, duel.mults, me.streak + 1, me.silver, opp, rng);
+      if (w > bestW) { bestKeep = keep; bestW = w; }
+    }
+    return { keep: bestKeep, wNow, wFire: bestW };
+  }
+  function chooseAction(duel, me, pers, wNow, wFire) {
+    const risk = duel.cylinder.risk(), other = duel.other(me);
+    const livesLeft = me.maxWounds - me.wounds;
+    const bulletCost = 1 + (livesLeft <= 1 ? 0.6 : 0);
+    const stand = 1 - wNow;
+    const options = { stand };
+    if (risk <= pers.maxRisk) options.self = risk * bulletCost + (1 - risk) * (1 - wFire);
+    if (other.alive() && risk > 0) {
+      const killBonus = other.maxWounds - other.wounds <= 1 ? 0.5 : 0;
+      const afterHit = Math.min.apply(null, Object.values(options));
+      const loseIfMiss = other.played && other.played.points === 0 ? 0.5 : 1;
+      options.rival = (risk * afterHit + (1 - risk) * loseIfMiss) - risk * (1 + killBonus);
+    }
+    let best = "stand";
+    Object.keys(options).forEach(k => { if (options[k] < options[best]) best = k; });
+    if (best !== "stand" && options[best] + 0.02 >= stand) return "stand";
+    return best;
+  }
+  function lockBest(p) {
+    const c = {};
+    p.dice.forEach(d => { c[d.value] = (c[d.value] || 0) + 1; });
+    let best = 1;
+    Object.keys(c).forEach(v => { const n = +v; if (c[n] > c[best] || (c[n] === c[best] && n > best)) best = n; });
+    p.dice.forEach(d => { d.locked = d.value === best; });
+  }
+  function takeTurn(duel, pers) {
+    const me = duel.current(), startRound = duel.round, events = [];
+    const aiRng = new RNG(duel.rng.randrange(1 << 30));
+    while (duel.current() === me && !duel.gameOver() && duel.round === startRound) {
+      let action;
+      if (pers.smart) {
+        const plan = planSmart(duel, me, aiRng);
+        me.dice.forEach((d, i) => { d.locked = plan.keep[i]; });
+        action = chooseAction(duel, me, pers, plan.wNow, plan.wFire);
+      } else {
+        lockBest(me);
+        const other = duel.other(me);
+        const need = (other.played ? other.played.points + 1 : 45) * pers.greed;
+        action = duel.handOf(me).points < need && duel.cylinder.risk() <= pers.maxRisk ? "self" : "stand";
+      }
+      const locked = me.dice.map(d => d.locked);
+      if (action === "self" || action === "rival") {
+        const r = duel.pullTrigger(action);
+        events.push({ type: "fire", target: action, chamber: r.chamber, wounded: r.wounded,
+                      dice: me.dice.map(d => d.value), locked, message: duel.message });
+        continue;
+      }
+      const r2 = duel.playHand();
+      events.push({ type: "play", hand: r2.hand, points: r2.points, total: r2.total, mult: r2.mult,
+                    dice: me.dice.map(d => d.value), locked, message: duel.message });
+    }
+    return events;
+  }
+
+  // --- estado para la interfaz (serialize de server.py) ----------------------
+  function serialize(g, seed) {
+    const h = g.hand(), k = g.cylinder.known();
+    return Object.assign({
+      mode: "solo", seed,
+      level: g.level, max_level: MAX_LEVEL, score: g.score, target: g.target(),
+      hands_left: g.handsLeft, wounds: g.wounds, max_wounds: MAX_WOUNDS,
+      dice: g.dice.map(d => ({ value: d.value, locked: d.locked, loaded: isLoaded(d) })),
+      hand: h,
+      mults: Object.assign({}, g.mults),
+      cylinder: Object.assign(k, { risk: g.cylinder.risk() }),
+      streak: g.streak, streak_bonus: STREAK_BONUS, silver: g.silver, shield: g.shield,
+      message: g.message,
+      pending_upgrades: g.pending.map(upgradeInfo),
+      cleared: g.cleared(), game_over: g.gameOver(),
+      victory: g.level >= MAX_LEVEL && g.cleared(),
+    });
+  }
+  function serializeDuel(d, seed, rivalKey) {
+    const [me, rival] = d.players, k = d.cylinder.known(), h = d.handOf(me), w = d.winner();
+    return {
+      mode: "duel", seed, rival: rivalKey, rival_name: rival.name,
+      round: d.round, my_turn: d.current() === me && !d.gameOver(),
+      max_wounds: MAX_WOUNDS,
+      me: { wounds: me.wounds, max_wounds: me.maxWounds, streak: me.streak, silver: me.silver, rounds_won: me.roundsWon,
+            dice: me.dice.map(x => ({ value: x.value, locked: x.locked, loaded: false })), played: me.played },
+      opponent: { wounds: rival.wounds, max_wounds: rival.maxWounds, rounds_won: rival.roundsWon,
+                  dice: rival.dice.map(x => x.value), played: rival.played },
+      hand: h,
+      mults: Object.assign({}, d.mults),
+      cylinder: Object.assign(k, { risk: d.cylinder.risk() }),
+      streak_bonus: STREAK_BONUS,
+      message: d.message, last_round: d.lastRound,
+      game_over: d.gameOver(), victory: w === me,
+    };
+  }
+
+  // --- misma forma que la API JSON del servidor ------------------------------
+  let sess = null;
+
+  function newGame(body) {
+    const seed = body && body.seed !== undefined && body.seed !== null && body.seed !== ""
+      ? Number(body.seed) >>> 0 : Math.floor(Math.random() * 1e9);
+    const rng = new RNG(seed);
+    if (body && body.mode === "duel") {
+      const key = PERSONALITIES[body.rival] ? body.rival : DEFAULT_RIVAL;
+      const p = PERSONALITIES[key];
+      const duel = new Duel(rng, [new Player("Tú"), new Player(p.name, true, p.lives)], new Cylinder(CYLINDER_SIZE, p.liveRounds));
+      sess = { mode: "duel", seed, rival: key, duel };
+    } else {
+      sess = { mode: "solo", seed, game: new Game(rng) };
+    }
+    return state();
+  }
+  const state = () => (sess.mode === "duel" ? serializeDuel(sess.duel, sess.seed, sess.rival) : serialize(sess.game, sess.seed));
+
+  function duelAction(action, body) {
+    const d = sess.duel, pers = PERSONALITIES[sess.rival];
+    if (d.gameOver()) return { error: "El duelo ha terminado. Empieza otro." };
+    if (d.current().isAI) return { error: "No es tu turno." };
+    if (action === "lock") {
+      const i = Number(body.index);
+      if (!(i >= 0 && i < 5)) return { error: "Índice de dado inválido." };
+      return { locked: d.toggleLock(i) };
+    }
+    let event;
+    if (action === "fire") {
+      const target = body.target === "rival" ? "rival" : "self";
+      const r = d.pullTrigger(target);
+      event = { target, chamber: r.chamber, wounded: r.wounded, shielded: false, message: d.message };
+    } else if (action === "play") {
+      const r = d.playHand();
+      event = { played: r, message: d.message };
+    } else return { error: "Acción desconocida." };
+    if (!d.gameOver() && d.current().isAI) {
+      event.ai_events = takeTurn(d, pers);
+      event.ai_taunt = pers.taunt;
+    }
+    return event;
+  }
+
+  function soloAction(action, body) {
+    const g = sess.game;
+    if (g.gameOver()) return { error: "La partida ha terminado. Empieza una nueva." };
+    if (g.cleared() && action !== "upgrade") return { error: "Nivel superado: elige una mejora primero." };
+    if (action === "lock") {
+      const i = Number(body.index);
+      if (!(i >= 0 && i < g.dice.length)) return { error: "Índice de dado inválido." };
+      return { locked: g.toggleLock(i) };
+    }
+    if (action === "fire") { const r = g.pullTrigger(); return { chamber: r.chamber, wounded: r.wounded, shielded: r.shielded }; }
+    if (action === "play") { return { played: g.playHand() }; }
+    if (action === "upgrade") {
+      if (!g.pending.length) return { error: "No hay mejoras pendientes." };
+      if (g.level >= MAX_LEVEL) return { error: "La partida ya está ganada." };
+      const id = body.id;
+      if (!UPGRADES[id]) return { error: "Mejora desconocida." };
+      if (g.pending.indexOf(id) < 0) return { error: "Esa mejora no está entre las ofrecidas." };
+      g.applyUpgrade(id); g.nextLevel();
+      return { next_level: g.level };
+    }
+    return { error: "Acción desconocida." };
+  }
+
+  // Mismo contrato que fetch("/api/…"): {token, state, event} o lanza el error.
+  global.LocalGame = {
+    // expuesto solo para poder contrastar la puntuación con la de Python
+    _score: (values, mults) => scoreOf(values, mults),
+    api(path, body) {
+      body = body || {};
+      if (path === "new") return { token: "local", state: newGame(body) };
+      if (!sess) throw new Error("No hay partida. Empieza una nueva.");
+      if (path === "state") return { state: state() };
+      const event = sess.mode === "duel" ? duelAction(path, body) : soloAction(path, body);
+      if (event.error) { const e = new Error(event.error); e.state = state(); throw e; }
+      return { event, state: state() };
+    },
+  };
+})(window);
+
+</script>
+<script>
+// Cliente fino: las reglas viven en bones_bullets/game.py y llegan por la API JSON.
+const $ = id => document.getElementById(id);
+const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+const HANDS = ["carta alta", "pareja", "dobles parejas", "trío", "escalera", "full", "póker", "repóker"];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ---------- sonido sintetizado (sin archivos) ----------
+const SFX = {
+  ctx: null, on: false,
+  init() { if (!this.ctx) { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {} } if (this.ctx && this.ctx.state === "suspended") this.ctx.resume(); },
+  noise(dur, gain, freq) {
+    if (!this.on || !this.ctx) return; const c = this.ctx, n = c.sampleRate * dur, b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    const s = c.createBufferSource(); s.buffer = b; const f = c.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = freq; const g = c.createGain(); g.gain.value = gain;
+    s.connect(f).connect(g).connect(c.destination); s.start();
+  },
+  tone(freq, dur, gain, type = "square", slide = 0) {
+    if (!this.on || !this.ctx) return; const c = this.ctx, o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.value = freq;
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, freq + slide), c.currentTime + dur);
+    g.gain.setValueAtTime(gain, c.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+    o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime + dur);
+  },
+  click() { this.noise(0.05, 0.5, 2500); this.tone(1800, 0.04, 0.15); },
+  tick() { this.noise(0.02, 0.25, 4000); },
+  bang() { this.noise(0.5, 1.2, 300); this.tone(90, 0.5, 0.8, "sawtooth", -70); },
+  coin() { this.tone(880, 0.08, 0.2); setTimeout(() => this.tone(1320, 0.12, 0.2), 70); },
+  land() { this.noise(0.04, 0.35, 900); this.tone(220, 0.05, 0.15, "triangle"); },
+  fanfare() { [660, 880, 1100, 1320].forEach((f, i) => setTimeout(() => this.tone(f, 0.18, 0.2, "square"), i * 90)); },
+  lose() { [400, 300, 200].forEach((f, i) => setTimeout(() => this.tone(f, 0.3, 0.25, "sawtooth"), i * 180)); },
+};
+(function initSound() {
+  const b = $("btn-sound"); let saved = null; try { saved = localStorage.getItem("bb-sound"); } catch (_) {}
+  const set = v => { SFX.on = v; b.setAttribute("aria-pressed", String(v)); b.textContent = v ? "Sonido: on" : "Sonido: off"; try { localStorage.setItem("bb-sound", v ? "1" : "0"); } catch (_) {} };
+  set(saved === "1");
+  b.addEventListener("click", () => { SFX.init(); set(!SFX.on); if (SFX.on) SFX.coin(); });
+  document.addEventListener("pointerdown", () => SFX.init(), { once: true });
+})();
+
+
+// ---------- fondo de píxeles, pintado una vez ----------
+(function textures() {
+  // tramado de dos tonos en una baldosa de 8x8: el truco de fondo de los 80
+  const c = document.createElement("canvas"); c.width = c.height = 8;
+  const g = c.getContext("2d");
+  g.fillStyle = "#0a0c0e"; g.fillRect(0, 0, 8, 8);
+  g.fillStyle = "#141a1e";
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if ((x + y) % 4 === 0) g.fillRect(x, y, 1, 1);
+  document.body.style.backgroundImage = `url(${c.toDataURL()})`;
+  document.body.style.backgroundSize = "24px 24px";
+})();
+
+// ---------- salón de píxeles, pintado una vez ----------
+(function saloon() {
+  const cv = $("saloon"); if (!cv) return;
+  const g = cv.getContext("2d"), W = 160, H = 96;
+  const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+  // pared de tablones
+  R(0, 0, W, H, "#241a12");
+  for (let x = 0; x < W; x += 9) R(x, 0, 1, H, "#1a120b");
+  for (let y = 0; y < H; y += 24) R(0, y, W, 1, "#1a120b");
+  // ventana con luna y marco
+  R(10, 10, 30, 24, "#0a0e14"); R(10, 10, 30, 1, "#3a2410"); R(10, 33, 30, 1, "#3a2410");
+  R(10, 10, 1, 24, "#3a2410"); R(39, 10, 1, 24, "#3a2410"); R(24, 10, 1, 24, "#3a2410");
+  R(29, 15, 6, 6, "#e8e0c8"); R(29, 15, 2, 2, "#9a9480"); // luna
+  R(14, 27, 2, 1, "#3a4a5a"); R(32, 25, 2, 1, "#3a4a5a");
+  // estantería con botellas detrás de la barra
+  R(108, 8, 46, 3, "#3a2410"); R(108, 26, 46, 3, "#3a2410");
+  const bot = ["#30b050", "#c02020", "#8a5a30", "#3050a0", "#e8a020", "#30b050", "#c02020"];
+  bot.forEach((c, i) => { const x = 111 + i * 6; R(x, 14, 4, 12, c); R(x, 14, 1, 12, "#e8e0c8"); R(x + 1, 11, 2, 3, c); });
+  // puerta de vaivén al fondo
+  R(62, 34, 34, 40, "#1a120b"); R(62, 34, 34, 2, "#3a2410");
+  R(64, 40, 14, 26, "#3a2410"); R(80, 40, 14, 26, "#3a2410");
+  R(64, 46, 14, 2, "#241a12"); R(80, 46, 14, 2, "#241a12");
+  R(64, 58, 14, 2, "#241a12"); R(80, 58, 14, 2, "#241a12");
+  // lámpara colgante con su charco de luz
+  R(78, 0, 4, 8, "#2a2e33"); R(70, 8, 20, 3, "#3a3e44"); R(72, 11, 16, 4, "#f0c020"); R(74, 15, 12, 2, "#8a6010");
+  g.fillStyle = "rgba(240,192,32,.10)";
+  for (let i = 0; i < 7; i++) g.fillRect(80 - 6 - i * 5, 17 + i * 4, 12 + i * 10, 4);
+  // suelo de tablones
+  R(0, 74, W, 22, "#2a1c10");
+  R(0, 74, W, 2, "#3a2410");
+  for (let x = 0; x < W; x += 16) R(x, 76, 1, 20, "#1a1108");
+})();
+
+// ---------- polvo de fondo ----------
+(function dust() {
+  const cv = $("dust"); if (reduced) return; const ctx = cv.getContext("2d");
+  let W, H, P = [];
+  const resize = () => { W = cv.width = innerWidth; H = cv.height = innerHeight; P = Array.from({ length: Math.min(70, W / 12) }, () => ({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.6 + .4, v: Math.random() * .25 + .08, a: Math.random() * .5 + .2 })); };
+  addEventListener("resize", resize); resize();
+  (function frame() { ctx.clearRect(0, 0, W, H); ctx.fillStyle = "#cfc6a8"; for (const p of P) { p.y -= p.v; p.x += Math.sin(p.y / 40) * .15; if (p.y < -4) { p.y = H + 4; p.x = Math.random() * W; } ctx.globalAlpha = p.a; ctx.fillRect(p.x | 0, p.y | 0, p.r * 2 | 0 || 1, p.r * 2 | 0 || 1); } requestAnimationFrame(frame); })();
+})();
+
+// ---------- utilidades de movimiento ----------
+function countUp(el, from, to, ms = 550) {
+  if (reduced || from === to) { el.textContent = to; return Promise.resolve(); }
+  return new Promise(res => { const t0 = performance.now(); let lastTick = 0;
+    (function step(t) { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3); const v = Math.round(from + (to - from) * e); el.textContent = v;
+      if (v !== lastTick && (v - lastTick) >= Math.max(1, (to - from) / 12)) { lastTick = v; SFX.tick(); }
+      if (k < 1) requestAnimationFrame(step); else { el.textContent = to; res(); } })(t0); });
+}
+function flyPoints(text, fromEl, toEl) {
+  if (reduced) return Promise.resolve();
+  const a = fromEl.getBoundingClientRect(), b = toEl.getBoundingClientRect();
+  const f = document.createElement("div"); f.className = "fly"; f.textContent = text; document.body.appendChild(f);
+  f.style.left = a.left + a.width / 2 + "px"; f.style.top = a.top + "px"; f.style.transform = "translate(-50%, 0)";
+  return new Promise(res => { requestAnimationFrame(() => { f.style.transform = `translate(calc(-50% + ${b.left + b.width / 2 - (a.left + a.width / 2)}px), ${b.top + b.height / 2 - a.top}px) scale(.6)`; f.style.opacity = "0"; setTimeout(() => { f.remove(); res(); }, 560); }); });
+}
+function bump(id, cls = "bump") { const t = $(id); if (!t) return; const el = t.closest(".cell") || t; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+function shake() { if (reduced) return; document.body.classList.remove("shake"); void document.body.offsetWidth; document.body.classList.add("shake"); if (typeof DiceTable !== "undefined") DiceTable.nudge(0.8); }
+function splat() { const s = $("splat"); s.classList.add("on"); setTimeout(() => s.classList.remove("on"), 300); }
+const HAND_RANK = { "carta alta": 0, "pareja": 1, "dobles parejas": 2, "trío": 3, "escalera": 4, "full": 5, "póker": 6, "repóker": 7 };
+function bannerHand(h) {
+  const r = HAND_RANK[h.hand] || 0; if (r < 3) return;
+  if (S && S.mode === "duel") { mood("lost", 1800); taunt("yourGood"); }
+  const b = $("banner"); $("banner-t").textContent = h.hand.toUpperCase(); $("banner-m").textContent = `×${h.mult}`;
+  b.classList.toggle("epic", r >= 6); b.hidden = false; setTimeout(() => { b.hidden = true; }, 1400);
+  if (r >= 6) { shake(); SFX.fanfare(); } else SFX.coin();
+  bump("score", "pulse");
+}
+// ---------- el personaje reacciona a ti ----------
+const ME_LINES = ["¿Eso es todo, Sheriff?", "Tu estrella está torcida.", "Aprieta tú, si tienes lo que hay que tener.", "Este pueblo ya no es tuyo."];
+const TAUNTS = {
+  reply: ["Sigue hablando. Yo cuento balas.", "Cuando acabe contigo, brindaré.", "Mi estrella la limpio con gente como tú.", "Hablas mucho para tener tres vidas."],
+  lockMany: ["¿Guardas tantos? Miedo huele.", "Cobarde con los dados, valiente con la boca."],
+  fireWarn: ["¿Seguro? Yo no lo haría.", "Adelante. Me gusta el ruido.", "Cuenta las recámaras, forastero."],
+  aimedAt: ["¿A mí? Tienes agallas.", "Apunta bien. No habrá segunda.", "Vamos, aprieta."],
+  gotShot: ["...Buen tiro. Hijo de perra.", "Eso no lo olvido.", "Me has rozado la estrella."],
+  youMissed: ["Ja. Y ahora tu mano vale humo.", "Te tiembla el pulso, forastero.", "Click. Qué pena."],
+  poke: ["¿Algo que decir, forastero?", "Tres balas. Cuenta bien.", "Aprieta. Te miro.", "En este pueblo mando yo."],
+  yourBang: ["Ja. Te lo dije.", "Eso va a doler.", "Una menos.", "¿Sigues queriendo jugar?"],
+  yourGood: ["Suerte de principiante.", "Hmpf.", "No te acostumbres.", "Bonita mano. Pena de dueño."],
+};
+function taunt(kind) {
+  if (!S || S.mode !== "duel") return;
+  const list = TAUNTS[kind]; const t = $("taunt"); t.textContent = list[Math.floor(Math.random() * list.length)];
+  t.hidden = false; t.style.animation = "none"; void t.offsetWidth; t.style.animation = ""; setTimeout(() => { t.hidden = true; }, 2400);
+}
+function meSay(text) {
+  const b = $("me-bubble"); b.textContent = text; b.hidden = false; b.style.animation = "none"; void b.offsetWidth; b.style.animation = ""; setTimeout(() => { b.hidden = true; }, 2000);
+}
+$("btn-poke").addEventListener("click", () => {
+  if (!S || S.mode !== "duel" || S.game_over) return;
+  meSay(ME_LINES[Math.floor(Math.random() * ME_LINES.length)]); SFX.click();
+  setFrame("me", "smirk", 900);
+  setTimeout(() => { taunt("reply"); mood("lost", 1500); }, 900);
+});
+(function idle() {
+  if (reduced) return;
+  (function tick() {
+    setTimeout(() => {
+      const live = S && S.mode === "duel" && !S.game_over && !$("backdrop").hidden;
+      if (live && restingFrame("stage")) setFrame("rv", "blink", 160);
+      if (live && restingFrame("me-stage")) setTimeout(() => setFrame("me", "blink", 160), 500);
+      tick();
+    }, 2200 + Math.random() * 3200);
+  })();
+})();
+
+(function breathe() {
+  // respiración de sprite: dos fotogramas de reposo alternándose, como en los recreativos
+  if (reduced) return;
+  let on = false;
+  setInterval(() => {
+    if (!S || S.mode !== "duel" || S.game_over || $("backdrop").hidden) return;
+    on = !on;
+    const f = on ? "idle2" : "idle";
+    if (restingFrame("stage")) setFrame("rv", f);
+    if (restingFrame("me-stage")) setFrame("me", f);
+  }, 1100);
+})();
+
+(function pokeStage() {
+  $("stage").addEventListener("click", () => { taunt("poke"); mood("won", 1200); SFX.click(); });
+})();
+
+// ---- armas de píxeles: todo en bloques de 6 unidades del viewBox ----
+const PX = { steel: "#6b6f75", steelHi: "#a8adb4", dark: "#2a2e33", ink: "#000",
+             wood: "#8a5a30", woodD: "#3a2410", bone: "#e8e0c8", gold: "#f0c020",
+             fire: "#f0c020", fire2: "#c02020", smoke: "#8a929c", skin: "#d9a878" };
+function pxRect(x, y, w, h, fill, u) { return `<rect x="${x * u}" y="${y * u}" width="${w * u}" height="${h * u}" fill="${fill}"/>`; }
+
+function drawFP(n) {
+  // primera persona: la boca del cañón de frente, en anillos cuadrados
+  const u = 6, R = (x, y, w, h, f) => pxRect(x, y, w, h, f, u);
+  let ch = "";
+  const spots = [[24, 8], [36, 15], [36, 29], [24, 37], [11, 29], [11, 15]];
+  spots.forEach(([x, y], i) => { ch += R(x, y, 5, 5, PX.ink) + R(x + 1, y + 1, 3, 3, i < n ? PX.bone : "#101418"); });
+  $("fp").innerHTML = `
+  <g class="whole">
+    <g class="hammer">${R(22, 0, 6, 4, PX.steel) + R(23, 1, 4, 2, PX.steelHi)}</g>
+    <g class="cyl-ring">${R(6, 4, 38, 42, PX.steel) + R(7, 5, 36, 40, PX.dark) + ch}</g>
+    ${R(17, 17, 16, 16, PX.steel)}
+    ${R(18, 18, 14, 14, "#3a3e44")}
+    ${R(20, 20, 10, 10, PX.ink)}
+    ${R(12, 46, 26, 4, PX.skin)}
+    ${R(14, 47, 22, 1, "#b9805a")}
+  </g>
+  <g class="flash">
+    ${R(19, 19, 12, 12, "#fff3c4") + R(15, 23, 20, 4, PX.fire) + R(23, 15, 4, 20, PX.fire)}
+    ${R(11, 11, 4, 4, PX.fire2) + R(35, 11, 4, 4, PX.fire2) + R(11, 35, 4, 4, PX.fire2) + R(35, 35, 4, 4, PX.fire2)}
+  </g>
+  <g class="smoke">${R(16, 16, 18, 18, PX.smoke) + R(10, 12, 8, 8, PX.smoke) + R(32, 14, 8, 8, PX.smoke)}</g>`;
+}
+
+function drawGun(n, target = "gun") {
+  // revólver de perfil en bloques: culata a la izquierda, cañón a la derecha
+  const u = 6, R = (x, y, w, h, f) => pxRect(x, y, w, h, f, u);
+  let ch = "";
+  const spots = [[24, 7], [27, 9], [27, 13], [24, 15], [21, 13], [21, 9]];
+  spots.forEach(([x, y], i) => { ch += R(x, y, 2, 2, i < n ? PX.bone : PX.ink); });
+  $(target).innerHTML = `
+  <g class="whole">
+    ${R(4, 13, 6, 11, PX.woodD) + R(5, 13, 4, 9, PX.wood)}
+    ${R(9, 8, 22, 8, PX.dark) + R(9, 9, 20, 2, "#3a3e44")}
+    ${R(15, 16, 8, 1, PX.ink) + R(15, 17, 1, 3, PX.ink) + R(22, 17, 1, 3, PX.ink) + R(15, 20, 8, 1, PX.ink)}
+    <g class="trigger">${R(17, 16, 2, 4, PX.steel)}</g>
+    ${R(30, 9, 18, 4, PX.steel) + R(30, 10, 18, 1, PX.steelHi) + R(46, 7, 2, 2, PX.ink)}
+    <g class="cylinder">${R(19, 5, 12, 13, PX.ink) + R(20, 6, 10, 11, PX.steel) + ch + R(24, 11, 2, 2, PX.ink)}</g>
+    <g class="hammer">${R(7, 3, 5, 5, PX.steel) + R(8, 4, 3, 3, PX.steelHi)}</g>
+    <g class="shell">${R(24, 1, 2, 3, "#c99a3f")}</g>
+  </g>
+  <g class="flash">
+    ${R(48, 9, 5, 4, "#fff3c4") + R(52, 7, 4, 8, PX.fire) + R(55, 10, 5, 2, PX.fire) + R(52, 4, 2, 2, PX.fire2) + R(52, 16, 2, 2, PX.fire2)}
+  </g>
+  <g class="smoke">${R(49, 6, 4, 4, PX.smoke) + R(53, 3, 3, 3, PX.smoke) + R(56, 7, 2, 2, PX.smoke)}</g>`;
+}
+let gunMode = "side", spinLabel = "TE APUNTAS";
+async function spinOverlay(risk, n, mode = "side", label = "TE APUNTAS") {
+  if (reduced) return;
+  gunMode = mode; spinLabel = label;
+  const ov = $("spin-ov"), g = mode === "fp" ? $("fp") : $("gun");
+  $("gun").hidden = mode === "fp"; $("fp").hidden = mode !== "fp";
+  if (mode === "fp") drawFP(n); else drawGun(n);
+  ov.classList.remove("bang");
+  $("spin-txt").textContent = `${spinLabel} · RIESGO ${Math.round(risk * 100)}%`; ov.hidden = false;
+  g.className.baseVal = mode === "fp" ? "fp" : "gun"; void g.getBBox(); g.classList.add("spin");
+  for (let i = 0; i < 14; i++) { SFX.tick(); await sleep(30 + i * 9); }
+  $("spin-txt").textContent = "APRIETAS EL GATILLO";
+  g.classList.add("cock"); SFX.tone(600, 0.06, 0.15, "square"); await sleep(520);
+}
+async function resolveGun(result) {
+  if (reduced) return;
+  const ov = $("spin-ov"), g = gunMode === "fp" ? $("fp") : $("gun");
+  if (result === "bang") { ov.classList.add("bang"); $("spin-txt").textContent = "¡BANG!"; g.classList.add("bang"); await sleep(750); }
+  else { $("spin-txt").textContent = "click."; g.classList.add("click"); await sleep(420); }
+  ov.hidden = true;
+}
+async function curtain(title, sub) {
+  if (reduced) return; const c = $("curtain"); $("curtain-lvl").textContent = title; $("curtain-sub").textContent = sub || "";
+  const done = Math.max(0, (S ? S.level : 1) - 1);   // una estrella por nivel limpiado
+  $("curtain-stars").innerHTML = Array.from({ length: 8 }, (_, i) => `<span class="star${i < done ? " on" : ""}"></span>`).join("");
+  c.hidden = false; c.style.animation = "none"; void c.offsetWidth; c.style.animation = ""; await sleep(1500); c.hidden = true;
+}
+let S = null, token = null, busy = false, mode = "solo", rival = "sheriff";
+
+async function api(path, body) {
+  // Sin servidor: las reglas corren aquí mismo (engine.js, port de game.py).
+  try {
+    const data = LocalGame.api(path, body || {});
+    if (data.token) token = data.token;
+    if (data.state) S = data.state;
+    return data;
+  } catch (e) {
+    if (e.state) S = e.state;
+    throw e;
+  }
+}
+
+
+// ===================== mesa de dados con física =====================
+// Dados en un lienzo: se lanzan, giran, rebotan, chocan entre ellos y se paran
+// donde caen. La lámpara está arriba en el centro, así que la sombra se alarga
+// hacia fuera y la cara recibe más luz por arriba.
+const DiceTable = (() => {
+  const cv = $("dice-canvas"), ctx = cv.getContext("2d");
+  const N = 5, GRAV = 3400, REST = 0.34, FRIC = 5.0, SPIN_FRIC = 5.4;
+  let W = 0, H = 0, SZ = 56, R = 0, dpr = 1;
+  let dice = [], rolling = false, resolveRoll = null, raf = 0, last = 0, lampX = 0, lampY = -120;
+  let hold = false; // los dados esperan quietos mientras traquetean
+
+  function layout() {
+    const rect = cv.getBoundingClientRect();
+    const cssW = rect.width || cv.parentElement.clientWidth || 360;
+    SZ = Math.max(38, Math.min(62, cssW / 7.2));
+    const cssH = Math.round(SZ * 2.8);
+    dpr = Math.min(2, devicePixelRatio || 1);
+    cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
+    cv.style.height = cssH + "px";
+    W = cssW; H = cssH; R = SZ * 0.62; lampX = W / 2;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (dice.length) place();
+  }
+
+  function home(i) { return { x: W * (0.5 + (i - (N - 1) / 2) * 0.155), y: H * 0.38 }; }
+  function keepSpot(i) { return { x: W * (0.5 + (i - (N - 1) / 2) * 0.155), y: H * 0.79 }; }
+
+  function place() {
+    dice.forEach((d, i) => { const p = d.locked ? keepSpot(i) : home(i); d.x = p.x; d.y = p.y; });
+  }
+
+  function make() {
+    dice = Array.from({ length: N }, (_, i) => {
+      const p = home(i);
+      return { x: p.x, y: p.y, z: 0, vx: 0, vy: 0, vz: 0, rot: (i * 0.7) % 1 - 0.5, vrot: 0,
+               value: 1, shown: 1, locked: false, loaded: false, settled: true, slide: 0 };
+    });
+  }
+  // ---- dibujo ----
+  const PIP_XY = [[-1, -1], [0, -1], [1, -1], [-1, 0], [0, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+
+  // Dados de píxeles: cuadrados duros, sin curvas ni degradados. Las posiciones
+  // se redondean a la rejilla para que los bordes siempre caigan en un píxel.
+  function drawDie(d) {
+    const lift = 1 + d.z * 0.0012, s = Math.round(SZ * lift), half = Math.round(s / 2);
+    const px = Math.round(d.x) - half, py = Math.round(d.y - d.z * 0.35) - half;
+    const p = Math.max(2, Math.round(s / 14)); // tamaño del píxel del dado
+    // sombra: un bloque desplazado, sin difuminar
+    const off = Math.round(2 + d.z * 0.02);
+    ctx.fillStyle = "rgba(0,0,0,.45)";
+    ctx.fillRect(px + off, py + off + Math.round(d.z * 0.05), s, s);
+    // cuerpo
+    ctx.fillStyle = d.loaded ? "#f0c020" : "#e8e0c8";
+    ctx.fillRect(px, py, s, s);
+    ctx.fillStyle = d.loaded ? "#fff0bd" : "#fffaf0"; // luz arriba a la izquierda
+    ctx.fillRect(px, py, s, p); ctx.fillRect(px, py, p, s);
+    ctx.fillStyle = d.loaded ? "#8a6010" : "#9a9480"; // canto en sombra
+    ctx.fillRect(px, py + s - p, s, p); ctx.fillRect(px + s - p, py, p, s);
+    ctx.fillStyle = "#000"; // contorno de un píxel
+    ctx.fillRect(px, py, s, 1); ctx.fillRect(px, py + s - 1, s, 1);
+    ctx.fillRect(px, py, 1, s); ctx.fillRect(px + s - 1, py, 1, s);
+    // puntos cuadrados
+    const pip = p * 2, step = Math.round(s * 0.26);
+    ctx.fillStyle = "#000";
+    for (const idx of PIPS[d.shown]) {
+      const [ax, ay] = PIP_XY[idx];
+      ctx.fillRect(px + half + ax * step - pip / 2, py + half + ay * step - pip / 2, pip, pip);
+    }
+    if (d.locked) { // marco de latón si está guardado
+      ctx.fillStyle = "#f0c020";
+      ctx.fillRect(px - p, py - p, s + p * 2, p); ctx.fillRect(px - p, py + s, s + p * 2, p);
+      ctx.fillRect(px - p, py, p, s); ctx.fillRect(px + s, py, p, s);
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    // línea de la zona de guardados, a trazos cuadrados
+    const y = Math.round(H * 0.69);
+    ctx.fillStyle = "rgba(240,192,32,.35)";
+    for (let x = Math.round(W * 0.04); x < W * 0.96; x += 8) ctx.fillRect(x, y, 4, 2);
+    ctx.save();
+    ctx.font = `${Math.max(7, Math.round(SZ * 0.16))}px "Press Start 2P", monospace`;
+    ctx.fillStyle = "rgba(232,238,242,.35)"; ctx.textAlign = "left";
+    ctx.fillText("GUARDADOS", Math.round(W * 0.05), y - 6);
+    ctx.restore();
+    [...dice].sort((a, b) => a.z - b.z).forEach(drawDie);
+  }
+
+  // ---- física ----
+  function step(dt) {
+    if (hold) return false; // los dados traquetean antes de salir
+    let moving = false;
+    for (const d of dice) {
+      if (d.locked) { // se desliza a su sitio y se queda
+        const t = keepSpot(dice.indexOf(d));
+        d.x += (t.x - d.x) * Math.min(1, dt * 9); d.y += (t.y - d.y) * Math.min(1, dt * 9);
+        d.rot += (0 - d.rot) * Math.min(1, dt * 9); d.z = 0; d.vx = d.vy = d.vz = d.vrot = 0;
+        if (Math.abs(t.x - d.x) > 0.4) moving = true;
+        continue;
+      }
+      if (d.settled) continue;
+      moving = true;
+      d.vz -= GRAV * dt;
+      d.z += d.vz * dt;
+      if (d.z <= 0) {
+        d.z = 0;
+        if (d.vz < -60) { d.vz = -d.vz * REST; d.vx *= 0.82; d.vy *= 0.82; d.vrot *= 0.7; SFX.land(); }
+        else { d.vz = 0; }
+        const f = Math.exp(-FRIC * dt); d.vx *= f; d.vy *= f;
+        d.vrot *= Math.exp(-SPIN_FRIC * dt);
+      }
+      d.x += d.vx * dt; d.y += d.vy * dt; d.rot += d.vrot * dt;
+      // paredes
+      const pad = R;
+      if (d.x < pad) { d.x = pad; d.vx = Math.abs(d.vx) * REST; }
+      if (d.x > W - pad) { d.x = W - pad; d.vx = -Math.abs(d.vx) * REST; }
+      if (d.y < pad * 0.8) { d.y = pad * 0.8; d.vy = Math.abs(d.vy) * REST; }
+      if (d.y > H * 0.62 - pad * 0.5) { d.y = H * 0.62 - pad * 0.5; d.vy = -Math.abs(d.vy) * REST; }
+      // cara que enseña mientras da vueltas
+      if (d.z > 6 || Math.abs(d.vrot) > 2.5) { if (Math.random() < dt * 26) d.shown = 1 + Math.floor(Math.random() * 6); }
+      else d.shown = d.value;
+      if (d.z === 0 && Math.hypot(d.vx, d.vy) < 16 && Math.abs(d.vrot) < 0.6 && Math.abs(d.vz) < 20) {
+        d.settled = true; d.shown = d.value; d.vx = d.vy = d.vrot = 0;
+      }
+    }
+    // choques entre dados
+    for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
+      const a = dice[i], b = dice[j];
+      if (a.locked || b.locked || (a.settled && b.settled)) continue;
+      if (Math.abs(a.z - b.z) > SZ * 0.8) continue;
+      const dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy) || 0.01, min = R * 1.75;
+      if (dist < min) {
+        const nx = dx / dist, ny = dy / dist, push = (min - dist) / 2;
+        if (!a.settled) { a.x -= nx * push; a.y -= ny * push; }
+        if (!b.settled) { b.x += nx * push; b.y += ny * push; }
+        const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+        if (rel < 0) {
+          const imp = rel * 0.72;
+          if (!a.settled) { a.vx += imp * nx; a.vy += imp * ny; a.vrot += rel * 0.004; }
+          if (!b.settled) { b.vx -= imp * nx; b.vy -= imp * ny; b.vrot -= rel * 0.004; }
+          if (b.settled && Math.abs(rel) > 40) { b.settled = false; b.vx -= imp * nx; b.vy -= imp * ny; }
+          if (a.settled && Math.abs(rel) > 40) { a.settled = false; a.vx += imp * nx; a.vy += imp * ny; }
+          if (Math.abs(rel) > 60) SFX.tick();
+        }
+      }
+    }
+    if (!moving && rolling) { rolling = false; const r = resolveRoll; resolveRoll = null; if (r) r(); }
+    return moving;
+  }
+
+  function loop(t) {
+    const dt = Math.min(0.032, (t - last) / 1000 || 0.016); last = t;
+    const moving = step(dt);
+    draw();
+    if (moving || rolling) raf = requestAnimationFrame(loop); else raf = 0;
+  }
+  function kick() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(loop); } }
+
+  // ---- interfaz pública ----
+  function sync(list) {
+    if (!dice.length) make();
+    list.forEach((d, i) => {
+      const t = dice[i];
+      t.locked = !!d.locked; t.loaded = !!d.loaded;
+      if (!rolling) { t.value = d.value; if (t.settled) t.shown = d.value; }
+    });
+    kick(); draw();
+  }
+
+  async function throwFree(list) {
+    if (!dice.length) make();
+    const free = list.map((d, i) => (d.locked ? null : dice[i])).filter(Boolean);
+    if (!free.length) { sync(list); return; }
+
+    if (!reduced) { // traqueteo: los dados que hay en la mesa se sacuden antes de la tirada
+      const home = free.map(d => ({ d, x: d.x, y: d.y }));
+      hold = true; rolling = true; kick();
+      for (const off of [-3, 3, -2, 2]) {
+        home.forEach(k => { k.d.x = k.x + off; k.d.y = k.y - Math.abs(off); });
+        draw(); SFX.tick(); await sleep(55);
+      }
+      home.forEach(k => { k.d.x = k.x; k.d.y = k.y; });
+      hold = false;
+    }
+
+    list.forEach((d, i) => { // y ahora salen por arriba, girando
+      const t = dice[i];
+      t.locked = !!d.locked; t.loaded = !!d.loaded; t.value = d.value;
+      if (t.locked) { t.shown = d.value; return; }
+      t.settled = false;
+      t.x = W * (0.32 + Math.random() * 0.36);
+      t.y = -SZ * (0.5 + Math.random() * 0.4);
+      t.z = 95 + Math.random() * 70;
+      t.vx = (W / 2 - t.x) * 1.1 + (Math.random() - 0.5) * 160;
+      t.vy = 210 + Math.random() * 130;
+      t.vz = 20 + Math.random() * 80;
+      t.vrot = (Math.random() - 0.5) * 22;
+      t.shown = 1 + Math.floor(Math.random() * 6);
+    });
+    rolling = true; kick();
+    return new Promise(res => {
+      resolveRoll = res;
+      setTimeout(() => { if (rolling) { rolling = false; dice.forEach(d => { d.settled = true; d.shown = d.value; }); draw(); const r = resolveRoll; resolveRoll = null; if (r) r(); } }, 1700);
+    });
+  }
+
+  function nudge(force = 1) {
+    dice.forEach(d => { if (d.locked) return; d.settled = false; d.vz = 120 * force; d.vx += (Math.random() - .5) * 220 * force; d.vy += (Math.random() - .5) * 160 * force; d.vrot += (Math.random() - .5) * 8 * force; });
+    kick();
+  }
+
+  function hit(px, py) {
+    for (let i = N - 1; i >= 0; i--) {
+      const d = dice[i];
+      if (Math.abs(px - d.x) < SZ * 0.62 && Math.abs(py - (d.y - d.z * 0.35)) < SZ * 0.62) return i;
+    }
+    return -1;
+  }
+
+  cv.addEventListener("pointerdown", e => {
+    const r = cv.getBoundingClientRect();
+    const i = hit(e.clientX - r.left, e.clientY - r.top);
+    if (i >= 0) lock(i);
+  });
+  addEventListener("resize", () => { layout(); draw(); });
+  layout(); make(); draw();
+  return { sync, throwFree, nudge, layout, get busy() { return rolling; } };
+})();
+
+function dieEl(d, i) {
+  const b = document.createElement("button");
+  b.type = "button"; b.id = "die-" + i;
+  b.textContent = `Dado ${i + 1}: ${d.value}${d.locked ? ", guardado" : ""}${d.loaded ? ", cargado" : ""}`;
+  b.addEventListener("click", () => lock(i));
+  return b;
+}
+
+function drawCylinder() {
+  // tambor cuadrado de seis recámaras, todo en bloques de 5
+  const n = S.cylinder.remaining, u = 5;
+  let out = pxRect(1, 1, 18, 18, "#000", u) + pxRect(2, 2, 16, 16, "#6b6f75", u);
+  const spots = [[8, 2], [13, 5], [13, 12], [8, 15], [3, 12], [3, 5]];
+  spots.forEach(([x, y], i) => { out += pxRect(x, y, 4, 3, "#000", u) + pxRect(x + 1, y + 1, 2, 1, i < n ? "#e8e0c8" : "#101418", u); });
+  $("cyl").innerHTML = out + pxRect(8, 8, 4, 4, "#000", u);
+}
+
+// Personaje pintado: un cuerpo común con sombreado y una cabeza por rival.
+// Se conservan los enganches de animación: body, upper, coat-l, coat-r, hat,
+// pupils, lids, brows, mouth-idle/smirk/ouch, arm, flash, smoke.
+
+// Personajes en píxeles: una rejilla de 24x32 dibujada con bloques enteros,
+// como los muñecos de los salones recreativos. Cada fotograma es un dibujo
+// completo; setFrame() cambia de fotograma en vez de animar con CSS.
+const PALETTE = {
+  sheriff: { hat: "#3a2410", hatHi: "#8a5a30", coat: "#3a3e44", coatHi: "#6b6f75",
+             shirt: "#8a929c", scarf: "#c02020", legs: "#4a4e54", band: "#f0c020", skull: 1 },
+  yo:      { hat: "#3a2410", hatHi: "#8a5a30", coat: "#1e2c50", coatHi: "#3050a0",
+             shirt: "#9a9480", scarf: "#e8a020", legs: "#2c4a8a", band: "#8a5a30", skull: 0 },
+  cauto:   { hat: "#3a342c", hatHi: "#6b6154", coat: "#2b291f", coatHi: "#5a5747",
+             shirt: "#b6ad95", scarf: "#3050a0", legs: "#2b291f", skull: 0 },
+  tahur:   { hat: "#111116", hatHi: "#2b2b33", coat: "#15141f", coatHi: "#33324a",
+             shirt: "#c3bca8", scarf: "#c02020", legs: "#15141f", skull: 0 },
+  loco:    { hat: "#3a2515", hatHi: "#7a5233", coat: "#2e1d10", coatHi: "#6e4a2e",
+             shirt: "#a8987c", scarf: "#f0c020", legs: "#2e1d10", skull: 0 },
+};
+const SKIN = "#d9a878", SKIN_DK = "#8a5634", BONE = "#e8e0c8", BONE_DK = "#9a9480";
+
+function rig(key, frame = "idle") {
+  // Rejilla de 32x40. Cada bloque es un píxel gordo; no hay curvas ni medios tonos.
+  const c = PALETTE[key] || PALETTE.sheriff;
+  const R = (x, y, w, h, f) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}"/>`;
+  const fire = frame === "fire", ouch = frame === "ouch", smirk = frame === "smirk",
+        blink = frame === "blink", bob = frame === "idle2", dead = frame === "dead";
+  const band = c.band || "#f0c020";
+  let s = "";
+  // ---- sombrero ----
+  s += R(10, 0, 12, 5, c.hatHi) + R(10, 0, 12, 1, c.hat) + R(10, 4, 12, 2, band);
+  s += R(4, 6, 24, 2, c.hat) + R(6, 8, 20, 1, "#1a1108");
+  // ---- cabeza ----
+  if (c.skull) {
+    s += R(10, 9, 12, 10, BONE) + R(10, 9, 12, 1, "#fff8e0") + R(21, 9, 1, 10, BONE_DK);
+    s += R(9, 12, 1, 4, BONE_DK) + R(22, 12, 1, 4, BONE_DK); // pómulos
+    const ember = ouch || dead ? "#c02020" : "#e8a020";
+    if (blink) s += R(11, 14, 4, 1, "#000") + R(17, 14, 4, 1, "#000");
+    else s += R(11, 12, 4, 4, "#000") + R(17, 12, 4, 4, "#000") + R(12, 13, 2, 2, ember) + R(18, 13, 2, 2, ember);
+    s += R(15, 15, 2, 2, BONE_DK) + R(15, 16, 2, 1, "#000"); // nariz
+    // dentadura
+    s += R(12, 18, 8, 2, "#000");
+    if (!ouch) for (let i = 0; i < 4; i++) s += R(12 + i * 2, 18, 1, 2, BONE);
+  } else {
+    s += R(10, 9, 12, 11, SKIN) + R(10, 9, 12, 1, "#f0c79a") + R(21, 9, 1, 11, SKIN_DK);
+    s += R(9, 13, 1, 3, SKIN) + R(22, 13, 1, 3, SKIN); // orejas
+    if (dead) { // ojos en cruz, como en los recreativos
+      s += R(11, 12, 1, 1, "#000") + R(12, 13, 1, 1, "#000") + R(13, 14, 1, 1, "#000") + R(13, 12, 1, 1, "#000") + R(12, 14, 1, 1, "#000") + R(11, 14, 1, 1, "#000");
+      s += R(17, 12, 1, 1, "#000") + R(18, 13, 1, 1, "#000") + R(19, 14, 1, 1, "#000") + R(19, 12, 1, 1, "#000") + R(18, 14, 1, 1, "#000") + R(17, 14, 1, 1, "#000");
+    }
+    else if (blink) s += R(11, 14, 4, 1, "#000") + R(17, 14, 4, 1, "#000");
+    else if (ouch) s += R(11, 12, 4, 1, "#000") + R(17, 12, 4, 1, "#000") + R(11, 13, 4, 3, "#000") + R(17, 13, 4, 3, "#000");
+    else s += R(11, 12, 4, 4, "#fff") + R(17, 12, 4, 4, "#fff") + R(12, 13, 2, 2, "#000") + R(18, 13, 2, 2, "#000");
+    s += R(11, 11, 4, 1, "#000") + R(17, 11, 4, 1, "#000"); // cejas
+    s += R(15, 14, 2, 3, SKIN_DK); // nariz
+    s += R(12, 17, 8, 2, SKIN_DK) + R(13, 19, 6, 1, SKIN_DK); // bigote y barba
+    s += ouch ? R(14, 18, 4, 2, "#000") : smirk ? R(15, 18, 4, 1, "#000") + R(18, 17, 1, 1, "#000") : R(14, 18, 4, 1, "#000");
+  }
+  // ---- cuello y pañuelo ----
+  s += R(14, 19, 4, 2, SKIN_DK);
+  s += R(11, 20, 10, 3, c.scarf) + R(15, 23, 3, 2, c.scarf);
+  // ---- abrigo y pecho ----
+  s += R(6, 21, 20, 3, c.coat) + R(6, 21, 20, 1, c.coatHi);
+  s += R(9, 24, 14, 7, c.coat);
+  s += R(13, 22, 6, 9, c.shirt) + R(13, 22, 2, 9, "#5a5448");
+  s += R(11, 22, 2, 6, c.coatHi) + R(19, 22, 2, 6, c.coatHi); // solapas
+  if (key === "sheriff") s += R(9, 25, 3, 3, "#f0c020") + R(10, 26, 1, 1, "#8a6010"); // estrella
+  // ---- brazos ----
+  s += R(5, 22, 4, 9, c.coat) + R(5, 22, 1, 9, c.coatHi) + R(5, 31, 4, 2, SKIN);
+  if (fire) {
+    s += R(24, 17, 4, 7, c.coat) + R(24, 17, 1, 7, c.coatHi) + R(26, 15, 3, 3, SKIN);
+    s += R(28, 13, 4, 3, "#6b6f75") + R(28, 13, 4, 1, "#a8adb4") + R(26, 14, 2, 3, "#2a2e33");
+    s += `<g class="flash">${R(31, 10, 1, 4, "#f0c020") + R(29, 9, 3, 3, "#fff3c4") + R(30, 7, 1, 2, "#c02020")}</g>`;
+    s += `<g class="smoke">${R(29, 5, 2, 2, "#8a929c") + R(31, 3, 1, 1, "#8a929c")}</g>`;
+  } else {
+    s += R(23, 22, 4, 9, c.coat) + R(26, 22, 1, 9, c.coatHi) + R(23, 31, 4, 2, SKIN);
+  }
+  // ---- cinturón, funda y piernas ----
+  s += R(9, 31, 14, 2, "#000") + R(14, 31, 3, 2, "#f0c020");
+  for (let i = 0; i < 4; i++) s += R(9 + i * 2, 31, 1, 1, "#c99a3f"); // cartuchos
+  s += R(21, 30, 3, 2, "#6b6f75") + R(21, 32, 4, 4, "#3a2410"); // culata y funda
+  s += R(10, 33, 5, 5, c.legs) + R(17, 33, 5, 5, c.legs);
+  s += R(10, 33, 1, 5, "#000") + R(21, 33, 1, 5, "#000"); // costuras
+  s += R(9, 38, 7, 2, "#6b4a33") + R(16, 38, 7, 2, "#6b4a33"); // botas
+  s += R(9, 38, 7, 1, "#8a5a30") + R(16, 38, 7, 1, "#8a5a30");
+  s += R(9, 39, 2, 1, "#3a2410") + R(21, 39, 2, 1, "#3a2410"); // tacones
+  const fig = `<g class="fig" transform="translate(0,${bob ? 1 : 0})">${s}</g>`;
+  return `<svg class="portrait" viewBox="0 0 32 40" shape-rendering="crispEdges" preserveAspectRatio="xMidYMax meet" aria-hidden="true">${fig}</svg>`;
+}
+// ---- fotogramas ----
+const restingFrame = id => { const f = $(id).dataset.frame; return f === "idle" || f === "idle2"; };
+function setFrame(which, frame, ms) {
+  const host = $(which === "me" ? "me-stage" : "stage");
+  const key = which === "me" ? "yo" : (S && S.rival) || "sheriff";
+  host.innerHTML = rig(key, frame);
+  if (ms) setTimeout(() => { if (host.dataset.frame === frame) setFrame(which, "idle"); }, ms);
+  host.dataset.frame = frame;
+}
+const FRAME_OF = { firing: "fire", hit: "ouch", won: "smirk", lost: "ouch" };
+function moodMe(cls, ms) { setFrame("me", FRAME_OF[cls] || "idle", ms || (cls ? 900 : 0)); }
+function mood(cls, ms) { setFrame("rv", FRAME_OF[cls] || "idle", ms || (cls ? 900 : 0)); }
+
+function drawMeFigure() {
+  if (!$("me-stage").firstChild) setFrame("me", "idle");
+}
+function drawMe() {
+  $("me-fig").setAttribute("preserveAspectRatio", "none");
+  $("me-fig").innerHTML = `
+  <defs>
+    <linearGradient id="mesil" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000"/><stop offset="100%" stop-color="#000"/>
+    </linearGradient>
+    <linearGradient id="merim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="rgba(255,224,164,.95)"/><stop offset="100%" stop-color="rgba(255,224,164,0)"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="86" cy="70" rx="120" ry="44" fill="rgba(255,214,140,.09)"/>
+  <g class="torso">
+    <!-- hombros, bajos, cruzando la mesa -->
+    <path d="M-10 110 L-10 96 Q60 80 150 78 L320 82 L320 110Z" fill="url(#mesil)"/>
+    <path d="M-10 96 Q60 80 150 78 L320 82" stroke="url(#merim)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- tu cabeza y sombrero, a un lado para no taparle -->
+    <path d="M52 86 Q44 58 86 56 Q128 58 120 86Z" fill="url(#mesil)"/>
+    <path d="M62 60 Q66 36 86 34 Q106 36 110 60Z" fill="url(#mesil)"/>
+    <path d="M18 58 Q86 26 154 58 Q86 74 18 58Z" fill="url(#mesil)"/>
+    <path d="M18 58 Q86 26 154 58" stroke="url(#merim)" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+    <path d="M62 56 Q66 36 86 34 Q106 36 110 56" stroke="rgba(255,224,164,.45)" stroke-width="2.2" fill="none"/>
+    <path d="M64 52 Q86 44 108 52" stroke="rgba(184,146,47,.4)" stroke-width="2.4" fill="none"/>
+  </g>
+  <!-- tu brazo con el revólver, sube al disparar -->
+  <g class="me-arm">
+    <path d="M236 110 Q250 92 270 84 L280 98 Q262 106 252 114Z" fill="url(#mesil)"/>
+    <path d="M268 82 Q282 76 290 82 Q292 92 282 96 L272 94Z" fill="#000"/>
+    <path d="M284 80 L310 72 L312 80 L294 86 L294 96 L284 96Z" fill="#2a2f36" stroke="rgba(255,224,164,.55)" stroke-width="1.4"/>
+    <circle cx="286" cy="86" r="5.5" fill="#3b4048" stroke="rgba(255,224,164,.4)" stroke-width="1.2"/>
+    <g class="mflash"><polygon points="313,74 334,62 325,74 344,76 324,81 338,94" fill="#ffd36b" stroke="#ff8c1a" stroke-width="1.2"/><circle cx="315" cy="75" r="5" fill="#fff3c4"/></g>
+  </g>`;
+}
+
+const hearts = (w, max) => Array.from({ length: max }, (_, i) => `<span class="bullet${i < max - w ? "" : " spent"}"></span>`).join("");
+
+function renderRival(revealed) {
+  const o = S.opponent, rv = $("rival"), bd = $("backdrop");
+  rv.hidden = false; bd.hidden = false; $("empty-seat").hidden = true; $("rv-cup").hidden = false;
+  drawMeFigure();
+  $("me-backdrop").hidden = false; $("me-name").hidden = false;
+  $("me-backdrop").classList.toggle("active", S.my_turn && !S.game_over); rv.classList.toggle("active", !S.my_turn && !S.game_over); bd.classList.toggle("active", !S.my_turn && !S.game_over);
+  $("rv-name").textContent = S.rival_name;
+  const st = $("stage"); if (st.dataset.key !== S.rival) { st.dataset.key = S.rival; setFrame("rv", "idle"); }
+  bd.classList.toggle("dead", S.game_over && S.victory);
+  $("rv-hearts").innerHTML = hearts(o.wounds, o.max_wounds);
+  $("rv-status").textContent = o.played ? `ha jugado ${o.played.hand} por ${o.played.points}` : (S.my_turn ? "aún no ha jugado" : "está jugando...");
+  const show = revealed || o.played;
+  $("rv-cup").classList.toggle("up", !!show);
+  $("rv-dice").innerHTML = rivalDice(o.dice, null);
+  $("btn-poke").hidden = S.game_over;
+}
+function pipsHTML(v) { return Array.from({ length: 9 }, (_, k) => `<span class="pip${PIPS[v].includes(k) ? " on" : ""}"></span>`).join(""); }
+function rivalDice(vals, locked) { return vals.map((v, i) => `<span class="d${locked && locked[i] ? " keep" : ""}" style="--r:${(i * 37) % 21 - 10}deg">${pipsHTML(v)}</span>`).join(""); }
+
+function render() {
+  if (!S) return;
+  const h = S.hand, duel = S.mode === "duel";
+  document.querySelectorAll(".modes button").forEach(b => b.setAttribute("aria-pressed", String(b.id === "mode-" + (duel ? S.rival : "solo"))));
+  if (duel) {
+    $("meta-left").textContent = `Ronda ${S.round}`;
+    $("meta-right").textContent = S.opponent.played ? `rival ${S.opponent.played.points}` : "rival · aún nada";
+    $("score").textContent = `${S.me.rounds_won}–${S.opponent.rounds_won}`;
+    $("sub-txt").textContent = "rondas";
+    $("track").hidden = true;
+    $("hearts").innerHTML = hearts(S.me.wounds, S.me.max_wounds);
+    $("dice").replaceChildren(...S.me.dice.map(dieEl)); DiceTable.sync(S.me.dice);
+    renderRival(false);
+    $("turn").textContent = S.game_over ? "" : S.my_turn ? "Tu turno" : `Turno de ${S.rival_name}`;
+  } else {
+    $("rival").hidden = true; $("backdrop").hidden = true; $("me-backdrop").hidden = true; $("me-name").hidden = true; $("turn").textContent = ""; $("empty-seat").hidden = false; $("rv-cup").hidden = true;
+    $("meta-left").textContent = `Nivel ${S.level}/8`;
+    $("meta-right").textContent = `${S.hands_left} ${S.hands_left === 1 ? "mano" : "manos"}`;
+    $("score").textContent = S.score;
+    $("sub-txt").textContent = `de ${S.target}`;
+    $("track").hidden = false;
+    $("bar").style.width = Math.min(100, 100 * S.score / S.target) + "%";
+    $("hearts").innerHTML = hearts(S.wounds, S.max_wounds);
+    $("dice").replaceChildren(...S.dice.map(dieEl)); DiceTable.sync(S.dice);
+  }
+  const me = duel ? S.me : S;
+  $("hand").innerHTML = `<b>${h.hand}</b> · ${h.total} × ${h.mult} = <b class="mono">${h.points}</b>`;
+  const tags = [];
+  if (me.streak) tags.push(`<span class="tag streak">racha ${me.streak} · +${me.streak * S.streak_bonus}</span>`);
+  if (me.silver) tags.push(`<span class="tag silver">plata ×3</span>`);
+  if (S.shield) tags.push(`<span class="tag shield">chaleco</span>`);
+  $("tags").innerHTML = tags.join("");
+  const r = S.cylinder.risk, rk = $("risk");
+  rk.textContent = Math.round(r * 100) + "%"; rk.className = "risk mono " + (r >= 0.34 ? "high" : r >= 0.2 ? "mid" : "low");
+  $("fire-sub").textContent = `gatillo · riesgo ${Math.round(r * 100)}%`;
+  const parts = [`${S.cylinder.remaining} recámaras`, `${S.cylinder.live} ${S.cylinder.live === 1 ? "bala" : "balas"}`];
+  [["fogueo", "blank"], ["plata", "silver"], ["rebote", "bounce"]].forEach(([n, k]) => { if (S.cylinder[k]) parts.push(`${S.cylinder[k]} ${n}`); });
+  $("chambers").textContent = parts.join(" · ");
+  drawCylinder(); drawGun(S.cylinder.remaining, "table-gun");
+  const tg = $("table-gun"); if (tg) tg.classList.toggle("to-rival", duel && !S.my_turn && !S.game_over);
+  $("mults").innerHTML = HANDS.map(k => `<tr><td>${k}</td><td>×${S.mults[k]}</td></tr>`).join("");
+  $("seed").value = S.seed;
+  const locked = busy || (duel && !S.my_turn);
+  $("btn-fire").disabled = locked; $("btn-play").disabled = locked;
+  $("btn-aim").hidden = !duel; $("btn-aim").disabled = locked || S.game_over;
+}
+
+function log(text, cls = "") { const l = $("log"); l.textContent = text; l.className = "log " + cls; }
+
+async function animateRoll() {
+  const list = S.mode === "duel" ? S.me.dice : S.dice;
+  if (reduced) { DiceTable.sync(list); return; }
+  await DiceTable.throwFree(list);
+}
+
+async function playAiEvents(event) {
+  if (!event || !event.ai_events) return;
+  const name = S.rival_name;
+  renderRival(false);
+  log(`${name}: "${event.ai_taunt}"`);
+  if (!reduced) await sleep(900);
+  for (const ev of event.ai_events) {
+    if (ev.type === "fire") {
+      const cyl = $("cyl"); cyl.classList.remove("spinning"); void cyl.offsetWidth; cyl.classList.add("spinning");
+      mood("firing", 1400);
+      const atMe = ev.target === "rival";
+      log(atMe ? `${name} te apunta...` : `${name} aprieta el gatillo...`);
+      if (atMe) await spinOverlay(S.cylinder.risk, S.cylinder.remaining, "fp", `${name.toUpperCase()} TE APUNTA`);
+      else await spinOverlay(S.cylinder.risk, S.cylinder.remaining, "side", `${name.toUpperCase()} SE APUNTA`);
+      const aiBang = ev.chamber === "LIVE"; if (aiBang) SFX.bang(); else SFX.click();
+      await resolveGun(aiBang ? "bang" : "click");
+      if (atMe) {
+        if (aiBang) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); shake(); splat(); log(`¡BANG! ${name} te da: una herida.`, "bang"); mood("won", 1800); moodMe("hit", 1400); }
+        else { log(`Click. ${name} falla: su mano vale cero esta ronda.`, "good"); mood("lost", 1800); }
+        if (!reduced) await sleep(800); continue;
+      }
+      if (ev.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); log(`¡BANG! ${name} recibe una herida.`, "bang"); mood("hit", 1500); }
+      else log(`${name}: click.`);
+      S.opponent.dice = ev.dice; $("rv-dice").innerHTML = rivalDice(ev.dice, ev.locked); $("rv-cup").classList.add("up");
+      const kept = ev.locked.filter(Boolean).length; if (kept) log(`${name} guarda ${kept} dado${kept > 1 ? "s" : ""} y relanza el resto.`);
+      if (!reduced) await sleep(500);
+    } else {
+      S.opponent.dice = ev.dice; $("rv-dice").innerHTML = rivalDice(ev.dice, ev.locked); $("rv-cup").classList.add("up"); SFX.land();
+      log(`${name} juega ${ev.hand} por ${ev.points} puntos.`, "good");
+    }
+    if (!reduced) await sleep(800);
+  }
+}
+
+function showdown(lr) {
+  return new Promise(res => {
+    const [me, rv] = lr.hands, [pm, pr] = lr.points;
+    $("sd-title").textContent = `Ronda ${lr.round}`;
+    const side = (who, hd, cls) => `<div class="side ${cls}${hd.banged ? " bang" : ""}"><div class="who">${who}</div><div class="desc">${hd.banged ? "<b>BANG</b> · la mano vale cero" : `<b>${hd.hand}</b> · ${hd.total} × ${hd.mult}`}</div><div class="pts">${hd.points}</div><div class="mini-dice">${hd.dice.map(v => `<span class="d">${pipsHTML(v)}</span>`).join("")}</div></div>`;
+    const myFrame = pm > pr ? "smirk" : pm < pr ? "ouch" : "idle";
+    const rvFrame = pr > pm ? "smirk" : pr < pm ? "ouch" : "idle";
+    $("sd-duel").innerHTML =
+      `<div class="fighter${pm > pr ? " winner" : ""}">${rig("yo", myFrame)}</div>` +
+      `<div class="vs">VS</div>` +
+      `<div class="fighter flip${pr > pm ? " winner" : ""}">${rig(S.rival, rvFrame)}</div>`;
+    $("sd-body").innerHTML = side("Tú", me, pm > pr ? "win" : "") + side(S.rival_name, rv, pr > pm ? "them win" : "them");
+    const v = $("sd-verdict");
+    if (pm === pr) { v.textContent = "Empate. Nadie sangra."; v.className = "verdict"; }
+    else if (lr.loser === "Tú") { v.textContent = me.banged ? "Ya sangraste por la bala." : "Recibes una herida."; v.className = "verdict blood"; }
+    else { v.textContent = rv.banged ? `${S.rival_name} ya sangró por la bala.` : `${S.rival_name} recibe una herida.`; v.className = "verdict"; }
+    const ov = $("showdown"); ov.hidden = false;
+    const done = () => { ov.hidden = true; ov.removeEventListener("click", done); res(); };
+    ov.addEventListener("click", done); setTimeout(done, reduced ? 0 : 4200);
+  });
+}
+let shownRound = 0;
+async function guarded(fn) {
+  if (busy) return; busy = true; render();
+  try {
+    const ev = await fn();
+    if (ev && ev.ai_events) { await playAiEvents(ev); }
+    if (S.mode === "duel" && S.last_round && S.last_round.round !== shownRound && S.last_round.hands) { shownRound = S.last_round.round; await showdown(S.last_round); if (S.last_round.loser === "Tú") SFX.lose(); else if (S.last_round.loser) SFX.coin(); }
+    if (S.mode === "duel" && S.last_round && !S.game_over) {
+      const [mine, theirs] = S.last_round.points;
+      if (S.last_round.round === S.round - 1) mood(theirs > mine ? "won" : theirs < mine ? "lost" : null, 2200);
+    }
+  } catch (e) { log(e.message, "bang"); }
+  busy = false; render(); afterMove();
+}
+
+const lock = i => guarded(async () => { SFX.click(); await api("lock", { index: i });
+  if (S.mode === "duel" && S.me.dice.filter(d => d.locked).length >= 4 && Math.random() < .5) taunt("lockMany"); const d = $("die-" + i); if (d) { d.classList.add("wobble"); setTimeout(() => d.classList.remove("wobble"), 260); } });
+
+const fire = (target = "self") => guarded(async () => {
+  if (S.mode === "duel" && target === "self" && S.cylinder.risk >= 0.34 && Math.random() < .6) { taunt("fireWarn"); if (!reduced) await sleep(700); }
+  if (S.mode === "duel") { moodMe("firing", 2200); if (!reduced) await sleep(520); }
+  if (target === "rival") { taunt("aimedAt"); if (!reduced) await sleep(500); }
+  const cyl = $("cyl"); cyl.classList.remove("spinning"); void cyl.offsetWidth; cyl.classList.add("spinning");
+  log(`Giras el tambor... riesgo ${Math.round(S.cylinder.risk * 100)}%`);
+  const req = api("fire", { target });
+  if (target === "rival") await spinOverlay(S.cylinder.risk, S.cylinder.remaining, "side", `APUNTAS A ${S.rival_name.toUpperCase()}`);
+  else await spinOverlay(S.cylinder.risk, S.cylinder.remaining, "fp", "TE APUNTAS");
+  const { event } = await req;
+  const isBang = event.chamber === "LIVE";
+  if (isBang) SFX.bang(); else SFX.click();
+  await resolveGun(isBang ? "bang" : "click");
+  const msg = event.message || S.message;
+  if (target === "rival") {
+    if (isBang) { shake(); mood("hit", 1500); log(msg, "good"); taunt("gotShot"); }
+    else { log(msg, "bang"); mood("won", 1800); taunt("youMissed"); }
+    if (!reduced) await sleep(700);
+    return event;
+  }
+  if (event.wounded) { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); shake(); splat(); log(msg, "bang"); if (S.mode === "duel") { mood("won", 2000); taunt("yourBang"); moodMe("hit", 1400); } }
+  else if (event.shielded) { shake(); log(msg, "good"); }
+  else { log(msg, event.chamber === "EMPTY" || event.chamber === "BLANK" ? "" : "good"); await animateRoll(); bannerHand(S.hand); }
+  if (event.wounded && !reduced) await sleep(700);
+  return event;
+});
+
+const play = () => guarded(async () => {
+  const before = S.mode === "duel" ? null : S.score, pts = S.hand.points;
+  const { event } = await api("play", {}); log(event.message || S.message, "good");
+  if (before !== null) { await flyPoints(`+${pts}`, $("hand"), $("score")); bump("score"); SFX.coin(); await countUp($("score"), before, S.score); }
+  else { bump("score"); SFX.coin(); }
+  if (!reduced && event.ai_events) await sleep(600); return event;
+});
+
+function afterMove() {
+  if (!S) return;
+  if (S.mode === "duel") {
+    if (S.game_over) return endGame(S.victory, S.victory ? `Has ganado el duelo a ${S.rival_name} en ${S.round} rondas.` : `${S.rival_name} te ha ganado en ${S.round} rondas.`);
+    return;
+  }
+  if (S.wounds >= S.max_wounds) return endGame(false, `Tres heridas en el nivel ${S.level}.`);
+  if (S.victory) return endGame(true, "Has superado los ocho niveles con el tambor girando. Victoria.");
+  if (S.cleared) return showUpgrades();
+  if (S.game_over) return endGame(false, `Sin manos y sin llegar a ${S.target} en el nivel ${S.level}.`);
+}
+
+function showUpgrades() {
+  if (!$("ov-upgrade").hidden) return;
+  SFX.fanfare();
+  $("up-title").textContent = `Nivel ${S.level} superado`;
+  $("up-sub").textContent = S.message.includes("Sangre fría") ? "Sangre fría: has curado una herida. Elige una mejora." : "Elige una mejora.";
+  const list = $("up-list"); list.replaceChildren(...S.pending_upgrades.map((u, i) => {
+    const b = document.createElement("button"); b.className = "upgrade"; b.type = "button"; b.id = "up-" + i;
+    b.innerHTML = `<b>${u.name}</b>${u.desc}`;
+    b.addEventListener("click", () => guarded(async () => { SFX.click(); $("ov-upgrade").hidden = true; await api("upgrade", { id: u.id }); render(); await curtain(`NIVEL ${S.level}`, `objetivo ${S.target}`); log(`Nivel ${S.level}. Objetivo ${S.target}. El tambor está recargado.`); }));
+    return b;
+  }));
+  $("ov-upgrade").hidden = false; list.firstChild.focus();
+}
+
+function endGame(win, text) {
+  if (!$("ov-end").hidden) return;
+  if (win) SFX.fanfare(); else SFX.lose();
+  $("end-title").textContent = win ? "¡GANASTE!" : "GAME OVER"; $("end-title").className = win ? "" : "bad";
+  $("end-fig").innerHTML = rig("yo", win ? "smirk" : "dead");
+  const duel = S.mode === "duel";
+  const rows = duel
+    ? [["Rondas", S.round], ["Tus heridas", `${S.me.wounds}/${S.me.max_wounds}`], ["Heridas del rival", `${S.opponent.wounds}/${S.opponent.max_wounds}`]]
+    : [["Nivel", `${S.level}/8`], ["Objetivo", S.target], ["Heridas", `${S.wounds}/3`]];
+  rows.push(["Semilla", S.seed]);
+  $("end-stats").innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+  $("end-text").textContent = text; $("ov-end").hidden = false; $("btn-again").focus();
+}
+
+async function newGame(seed) {
+  $("ov-upgrade").hidden = true; $("ov-end").hidden = true; token = null; shownRound = 0;
+  try { await api("new", { seed: seed === undefined || seed === "" ? null : seed, mode, rival }); }
+  catch (e) { return log("No se pudo hablar con el servidor. Arranca `python -m bones_bullets.server` y recarga.", "bang"); }
+  try { localStorage.setItem("bb-token", token); } catch (_) {}
+  log(mode === "duel" ? (S.rival === "sheriff" ? `El Sheriff. Tres balas en el tambor y cuatro vidas para él. Puedes apuntarle: bala, él sangra; click, tu mano vale cero.` : `Duelo contra ${S.rival_name}. Un tambor para los dos: si sobrevives al click, el riesgo se lo queda el siguiente.`) : "Toca un dado para bloquearlo. Los bloqueados no se relanzan.");
+  busy = false; render();
+}
+
+async function resume() {
+  let saved = null; try { saved = null /* sin servidor no hay partida guardada */; } catch (_) {}
+  if (saved) { token = saved; try { await api("state"); mode = S.mode; if (S.rival) rival = S.rival; render(); log("Partida recuperada."); return afterMove(); } catch (_) { token = null; } }
+  await newGame();
+}
+
+$("btn-fire").addEventListener("click", () => fire("self"));
+$("btn-aim").addEventListener("click", () => fire("rival"));
+$("btn-play").addEventListener("click", play);
+$("btn-new").addEventListener("click", () => newGame($("seed").value));
+document.querySelectorAll(".modes button").forEach(b => b.addEventListener("click", () => {
+  const key = b.id.slice(5); mode = key === "solo" ? "solo" : "duel"; if (key !== "solo") rival = key; newGame();
+}));
+$("btn-again").addEventListener("click", () => newGame(S && S.seed !== undefined ? S.seed + 1 : undefined));
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || !$("ov-upgrade").hidden || !$("ov-end").hidden) return;
+  if (e.key >= "1" && e.key <= "5") lock(+e.key - 1); else if (e.key === "g") fire("self"); else if (e.key === "r" && S && S.mode === "duel") fire("rival"); else if (e.key === "j") play();
+});
+resume();
+</script>
