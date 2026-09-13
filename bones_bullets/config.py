@@ -1,9 +1,4 @@
-"""Configuración de balance separada por modo de juego.
-
-Cada modo (campaña solitaria, duelo contra IA) tiene su propia clase de
-configuración. No comparten constantes aunque algún valor coincida hoy:
-si mañana cambia uno de los dos, el otro no se ve afectado.
-"""
+"""Configuración de balance separada por modo de juego."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -11,7 +6,6 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class CampaignConfig:
-    """Balance del modo campaña (solitario, por niveles)."""
     max_level: int = 8
     hands_per_level: int = 3
     max_wounds: int = 3
@@ -24,10 +18,13 @@ class CampaignConfig:
 
 @dataclass(frozen=True)
 class DuelConfig:
-    """Balance del modo duelo (contra IA, un tambor compartido)."""
+    """Valores por defecto del duelo. Cada rival puede pisarlos vía
+    new_duel(rival_lives=..., live_rounds=...), como ya hace ai.py."""
     cylinder_size: int = 6
-    live_rounds: int = 3
+    live_rounds: int = 1
     max_wounds: int = 3
+    silver_mult: float = 3.0
+    streak_bonus: float = 0.5
     default_rival: str = "sheriff"
 
 

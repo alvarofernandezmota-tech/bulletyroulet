@@ -4,10 +4,17 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass, field
 
+from .config import DEFAULT_DUEL_CONFIG
 from .dice import Die, new_hand, roll_all, unlock_all
 from .hands import BASE_MULT, HandType, score
-from .game import CYLINDER_SIZE, LIVE_ROUNDS, MAX_WOUNDS, SILVER_MULT, STREAK_BONUS, HandResult, TriggerResult
+from .results import HandResult, TriggerResult
 from .revolver import Chamber, Cylinder
+
+CYLINDER_SIZE = DEFAULT_DUEL_CONFIG.cylinder_size
+LIVE_ROUNDS = DEFAULT_DUEL_CONFIG.live_rounds
+MAX_WOUNDS = DEFAULT_DUEL_CONFIG.max_wounds
+SILVER_MULT = DEFAULT_DUEL_CONFIG.silver_mult
+STREAK_BONUS = DEFAULT_DUEL_CONFIG.streak_bonus
 
 
 @dataclass
